@@ -36,6 +36,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -48,6 +49,8 @@
   --color-brand-soft: var(--brand-soft);
   --color-kakao: var(--kakao);
   --color-stripe: var(--stripe);
+  --color-stripe-muted: var(--stripe-muted);
+  --color-stripe-muted-soft: var(--stripe-muted-soft);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -77,12 +80,18 @@
   --secondary-foreground: #1c1f18;
   --muted: #f2f3ef;
 
-  /* TODO(D-4): 아래는 디자인 값이 없어 shadcn 기본값을 유지한다 (text.secondary, border.default 미확인) */
-  --muted-foreground: oklch(0.556 0 0);
+  /*
+   * TODO(D-4): DESIGN.md에서 미확인인 값을 Figma 홈 화면 캡처(200:20789)에서 측정한 근사치
+   * muted-foreground — 인원·비용, 비선택 탭 / subtle-foreground — 장소, 마감 일정 날짜, 비활성 GNB
+   */
+  --muted-foreground: #676c62;
+  --subtle-foreground: #8b9085;
+  --border: #eceee8;
+  --input: #eceee8;
+
+  /* TODO(D-4): 아래는 디자인 값이 없어 shadcn 기본값을 유지한다 */
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   /* TODO(D-8): 오류 색 미확인 */
   --destructive: oklch(0.577 0.245 27.325);
@@ -97,6 +106,35 @@
   --kakao: #fee500;
   /* placeholder.stripe — 이미지 placeholder 사선 (다른 한 색은 brand-soft) */
   --stripe: #ddebc5;
+  /* 모집완료 썸네일의 회색 사선 — Figma 캡처(200:20789) 측정 근사치 */
+  --stripe-muted: #e6e8e2;
+  --stripe-muted-soft: #eef0ea;
+}
+
+/* 노치·홈 인디케이터 safe-area (DESIGN §12) */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 이미지 placeholder 사선 패턴 (DESIGN §9.1) */
+@utility bg-stripe {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--brand-soft) 0 6px,
+    var(--stripe) 6px 12px
+  );
+}
+
+@utility bg-stripe-muted {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--stripe-muted-soft) 0 6px,
+    var(--stripe-muted) 6px 12px
+  );
 }
 
 @layer base {

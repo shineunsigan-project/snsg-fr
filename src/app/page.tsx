@@ -1,4 +1,5 @@
-// TODO: 홈(일정 목록) 화면 구현 전까지 두는 빈 페이지 (USER_FLOW §5)
+import { ScheduleHome } from "@/features/schedule/components/ScheduleHome";
+
 export default function Home() {
-  return <main />;
+  return <ScheduleHome />;
 }

@@ -63,19 +63,37 @@ import { ColorItem, ColorPalette, Meta } from "@storybook/addon-docs/blocks";
   />
 </ColorPalette>
 
-## 미확인 (shadcn 기본값 유지)
+## Figma 홈 캡처 측정값 (근사치, D-4)
 
 <ColorPalette>
   <ColorItem
     title="muted-foreground"
-    subtitle="text.secondary 미확인 (D-4)"
+    subtitle="text.secondary — 인원·비용, 비선택 탭"
     colors={{ "muted-foreground": "var(--muted-foreground)" }}
   />
   <ColorItem
+    title="subtle-foreground"
+    subtitle="text.subtle — 장소, 마감 일정 날짜, 비활성 GNB"
+    colors={{ "subtle-foreground": "var(--subtle-foreground)" }}
+  />
+  <ColorItem
     title="border / input"
-    subtitle="border.default 미확인 (D-4)"
+    subtitle="border.default — 칩·입력 테두리, 헤더·GNB 경계선"
     colors={{ border: "var(--border)", input: "var(--input)" }}
   />
+  <ColorItem
+    title="stripe-muted"
+    subtitle="placeholder.stripe.muted — 모집완료 썸네일 사선"
+    colors={{
+      "stripe-muted": "var(--stripe-muted)",
+      "stripe-muted-soft": "var(--stripe-muted-soft)",
+    }}
+  />
+</ColorPalette>
+
+## 미확인 (shadcn 기본값 유지)
+
+<ColorPalette>
   <ColorItem
     title="destructive"
     subtitle="오류 색 미확인 (D-8)"
