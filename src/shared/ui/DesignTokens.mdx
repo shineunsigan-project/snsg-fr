@@ -1,0 +1,84 @@
+import { ColorItem, ColorPalette, Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Foundations/Design Tokens" />
+
+# Design Tokens
+
+`src/app/globals.css`의 `:root` 값을 보여준다. 값은 DESIGN.md §6의 근사치이고, Claude Design 시안 원본 값을 받으면 교체한다 (D-4).
+
+글자 크기, 간격, radius 스케일은 디자인에서 확인되지 않아 Tailwind 기본값을 쓴다.
+
+## 서비스 색상
+
+<ColorPalette>
+  <ColorItem
+    title="brand"
+    subtitle="brand.primary — 로그인 배경, GNB 활성, 날짜 텍스트"
+    colors={{ brand: "var(--brand)" }}
+  />
+  <ColorItem
+    title="primary"
+    subtitle="brand.button — 주요 버튼"
+    colors={{ primary: "var(--primary)" }}
+  />
+  <ColorItem
+    title="brand-soft"
+    subtitle="chip.selected / badge.recruiting"
+    colors={{ "brand-soft": "var(--brand-soft)" }}
+  />
+  <ColorItem
+    title="kakao"
+    subtitle="kakao.yellow — 카카오 로그인 버튼, 로그인 필요 모달 주요 버튼"
+    colors={{ kakao: "var(--kakao)" }}
+  />
+  <ColorItem
+    title="stripe"
+    subtitle="placeholder.stripe — 이미지 placeholder 사선"
+    colors={{ stripe: "var(--stripe)", "brand-soft": "var(--brand-soft)" }}
+  />
+</ColorPalette>
+
+## 배경과 텍스트
+
+<ColorPalette>
+  <ColorItem
+    title="background"
+    subtitle="bg.app — 목록 배경"
+    colors={{ background: "var(--background)" }}
+  />
+  <ColorItem
+    title="card / popover"
+    subtitle="bg.surface — 카드, 모달, 시트"
+    colors={{ card: "var(--card)" }}
+  />
+  <ColorItem
+    title="secondary / muted"
+    subtitle="bg.subtle — 회색 버튼, 세그먼트 탭 트랙"
+    colors={{ secondary: "var(--secondary)" }}
+  />
+  <ColorItem
+    title="foreground"
+    subtitle="text.primary — 제목, 본문"
+    colors={{ foreground: "var(--foreground)" }}
+  />
+</ColorPalette>
+
+## 미확인 (shadcn 기본값 유지)
+
+<ColorPalette>
+  <ColorItem
+    title="muted-foreground"
+    subtitle="text.secondary 미확인 (D-4)"
+    colors={{ "muted-foreground": "var(--muted-foreground)" }}
+  />
+  <ColorItem
+    title="border / input"
+    subtitle="border.default 미확인 (D-4)"
+    colors={{ border: "var(--border)", input: "var(--input)" }}
+  />
+  <ColorItem
+    title="destructive"
+    subtitle="오류 색 미확인 (D-8)"
+    colors={{ destructive: "var(--destructive)" }}
+  />
+</ColorPalette>

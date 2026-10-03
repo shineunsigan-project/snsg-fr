@@ -1,0 +1,112 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Pretendard 1.3.9 — SIL Open Font License (public/fonts/OFL.txt) */
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("/fonts/PretendardVariable.woff2") format("woff2-variations");
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * 디자인 토큰
+ * 색상 값은 DESIGN.md §6의 근사치다. Claude Design 시안 원본 값을 받으면 :root만 교체한다 (D-4).
+ * 글자 크기·간격 스케일은 디자인에서 확인되지 않아 Tailwind 기본값을 그대로 쓴다 (D-4).
+ * 다크 모드는 디자인 미확인이라 정의하지 않는다.
+ */
+@theme inline {
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* shadcn 시맨틱 토큰 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* 서비스 토큰 (DESIGN.md §6) */
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-kakao: var(--kakao);
+  --color-stripe: var(--stripe);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* bg.app — 목록 배경 */
+  --background: #f7f8f4;
+  /* text.primary — 제목, 본문 */
+  --foreground: #1c1f18;
+  /* bg.surface — 카드, 모달, 시트 */
+  --card: #ffffff;
+  --card-foreground: #1c1f18;
+  --popover: #ffffff;
+  --popover-foreground: #1c1f18;
+  /* brand.button — 적용하기, 시작하기 등 주요 버튼 */
+  --primary: #578627;
+  /* 추정: 녹색 버튼 위 흰 글자 */
+  --primary-foreground: #ffffff;
+  /* bg.subtle — 회색 버튼, 세그먼트 탭 트랙 */
+  --secondary: #f2f3ef;
+  --secondary-foreground: #1c1f18;
+  --muted: #f2f3ef;
+
+  /* TODO(D-4): 아래는 디자인 값이 없어 shadcn 기본값을 유지한다 (text.secondary, border.default 미확인) */
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  /* TODO(D-8): 오류 색 미확인 */
+  --destructive: oklch(0.577 0.245 27.325);
+  /* TODO(D-4): radius 수치 미확인 */
+  --radius: 0.625rem;
+
+  /* brand.primary — 로그인 배경, GNB 활성, 날짜 텍스트 */
+  --brand: #356516;
+  /* chip.selected / badge.recruiting — 선택된 칩, 모집중 배지, 선택된 토글 배경 */
+  --brand-soft: #e8f1d8;
+  /* kakao.yellow — 카카오 로그인 버튼, 로그인 필요 모달 주요 버튼 */
+  --kakao: #fee500;
+  /* placeholder.stripe — 이미지 placeholder 사선 (다른 한 색은 brand-soft) */
+  --stripe: #ddebc5;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

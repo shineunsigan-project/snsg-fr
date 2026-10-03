@@ -26,7 +26,41 @@ cd snsg-fr
 ```
 
 ### 2. 설치 · 실행
-> 프로젝트 세팅 후 추가 예정 (pnpm 사용)
+
+**필요 환경**
+- Node.js 24 이상 (`.nvmrc` 기준 24)
+- pnpm 12.4.2 — corepack을 켜면 `package.json`의 `packageManager` 버전이 자동으로 쓰인다
+
+```bash
+nvm use                      # .nvmrc의 Node 버전 사용 (nvm 사용 시)
+corepack enable              # pnpm 버전 고정
+pnpm install                 # 의존성 설치
+cp .env.example .env.local   # 환경변수 파일 생성 후 값 입력
+```
+
+**환경변수** (`.env.local`)
+
+| 이름 | 설명 |
+|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | 백엔드 API base URL |
+| `NEXT_PUBLIC_API_MOCKING` | `enabled`로 두면 MSW 브라우저 mock을 켠다 (기본 `disabled`) |
+
+**실행**
+
+```bash
+pnpm dev                     # 개발 서버 http://localhost:3000
+pnpm storybook               # Storybook http://localhost:6006
+```
+
+**검사** — PR마다 GitHub Actions에서 같은 검사를 실행한다
+
+```bash
+pnpm lint                    # ESLint (경고도 실패)
+pnpm format:check            # Prettier 검사 (pnpm format으로 자동 수정)
+pnpm typecheck               # TypeScript 타입 검사
+pnpm build                   # 프로덕션 빌드
+pnpm build-storybook         # Storybook 빌드
+```
 
 ### 3. 브랜치 규칙
 작업 시작 전 반드시 `develop`에서 분기한다.

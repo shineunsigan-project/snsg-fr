@@ -1,0 +1,6 @@
+pnpm-lock.yaml
+public/mockServiceWorker.js
+storybook-static/
+
+# 문서는 표 정렬이 바뀌지 않도록 포맷 대상에서 제외한다
+*.md
