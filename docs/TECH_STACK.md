@@ -26,6 +26,7 @@
 | API Mocking | **MSW** | 백엔드 준비 전 화면 개발, 실패 케이스 재현 |
 | Lint | **ESLint** | 코드 오류·위험한 패턴 검사 |
 | Formatter | **Prettier** | 코드 포맷 통일 |
+| Component Workshop | **Storybook** | 공통 컴포넌트 단위 개발·문서화 (§3.12) |
 | CI | **GitHub Actions** | PR 검사 자동화 |
 | Package Manager | **pnpm** | 의존성 설치·관리 |
 
@@ -36,8 +37,7 @@
 | 기술 | 판단 | 이유 |
 |---|---|---|
 | Zustand | 미채택 | 전역 클라이언트 상태가 거의 없다. 서버 데이터는 TanStack Query, 필터·탭은 URL, 모달 등은 컴포넌트 state로 충분하다. 일정 개설 단계를 별도 URL로 나누게 되면 다시 검토한다 |
-| Storybook | 미채택 | 디자인이 아직 근사치이고 미확인 화면이 많아, 지금 도입하면 관리 비용이 먼저 든다 |
-| Chromatic | 미채택 | Storybook이 전제이고, 디자인 기준선이 확정되지 않았다 |
+| Chromatic | **추후 도입** | 디자인 토큰이 근사치라 시각 테스트 기준선을 아직 잡을 수 없다. 버전·원칙은 §3.12 |
 | Husky | 미채택 | 같은 검사를 GitHub Actions에서 수행한다 |
 | npm | 미채택 | pnpm으로 통일한다 |
 
@@ -107,7 +107,7 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 - mock 응답은 백엔드 스펙 문서를 기준으로 작성한다. 실제 API와 어긋나지 않게, 스펙이 바뀌면 mock도 함께 고친다.
 
 ### 3.9 GitHub Actions
-- PR마다 **lint · 포맷 검사 · 타입 검사 · 빌드**를 실행한다.
+- PR마다 **lint · 포맷 검사 · 타입 검사 · 빌드 · Storybook 빌드**를 실행한다.
 - `develop` 브랜치 보호 규칙과 함께 쓴다(CONTRIBUTING.md의 리뷰 규칙 유지).
 - 배포 자동화는 배포 환경이 정해진 뒤 추가한다.
 
@@ -119,6 +119,25 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 - ESLint는 Next.js 기본 설정(`eslint-config-next`)과 TypeScript 규칙에서 시작한다. 규칙 추가는 팀 합의 후 한다.
 - Tailwind 클래스 순서는 Prettier 플러그인(`prettier-plugin-tailwindcss`)으로 자동 정렬한다.
 - 커밋 전 자동 실행(Husky)은 쓰지 않는다(§2). 에디터 저장 시 포맷 + PR의 GitHub Actions 검사로 지킨다.
+
+### 3.12 Storybook · Chromatic
+**Storybook은 초기 세팅에 포함한다** (팀 결정, 2026-10-03). **Chromatic은 추후 도입**한다. 디자인 토큰이 Claude Design 원본 값으로 확정되면(DESIGN D-4) 시각 테스트 기준선을 잡는다.
+
+| 패키지 | 버전 | 역할 | 도입 시점 |
+|---|---|---|---|
+| `storybook` | **10.x** | 컴포넌트 단위 개발·문서화 | 초기 세팅 |
+| `@storybook/nextjs-vite` | **10.x** | Next.js용 Storybook 프레임워크 (Vite 기반) | 초기 세팅 |
+| `@chromatic-com/storybook` | **5.x** | Storybook 안에서 Chromatic 시각 테스트 실행 | 추후 |
+| `chromatic` | **18.x** | CI에서 Chromatic으로 빌드 업로드 | 추후 |
+
+- 버전 기준일: 2026-10-03 (당시 최신 `storybook` 10.6.1, `@chromatic-com/storybook` 5.4.0, `chromatic` 18.10.2). 설치할 때 위 메이저 버전의 최신을 쓴다.
+- Storybook 11은 이 시점에 alpha라 쓰지 않는다. 안정 버전이 나오면 다시 검토한다.
+- 프레임워크는 `@storybook/nextjs`(Webpack)가 아니라 **`@storybook/nextjs-vite`** 를 쓴다. 빌드가 빠르고, Tailwind v4 설정이 간단하며, Next.js 16을 지원한다.
+- `storybook`과 `@storybook/*` 패키지는 **모두 같은 버전**으로 맞춘다. 업그레이드는 버전을 직접 고치지 않고 `pnpm dlx storybook@latest upgrade`로 한다.
+- 스토리는 공통 컴포넌트(`src/shared/ui` `추정`)부터 작성한다. 화면 단위 스토리는 디자인이 확인된 화면만 만든다(DESIGN §11의 `미확인` 상태는 임의로 만들지 않는다).
+- 스토리에서 API가 필요한 컴포넌트는 MSW mock(§3.8)을 함께 쓴다.
+- PR 검사(§3.9)에 **Storybook 빌드**를 추가해, 스토리가 깨지면 머지하지 못하게 한다. Chromatic 검사는 도입 시 추가한다.
+- 컴포넌트는 색·간격 등을 하드코딩하지 않고 **디자인 토큰(Tailwind 테마)만** 쓴다. 토큰 값이 바뀌면 Storybook에서 바로 확인할 수 있고, 나중에 Chromatic 스냅샷이 디자인 변경을 정확히 잡는다(DESIGN §14).
 
 ---
 

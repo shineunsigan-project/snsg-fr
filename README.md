@@ -13,7 +13,7 @@
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | 브랜치·커밋·PR 규칙 |
 
 ## 🛠 기술스택
-Next.js · TypeScript · Tailwind CSS · shadcn/ui · TanStack Query · React Hook Form · Zod · Axios · MSW · ESLint · Prettier · GitHub Actions · pnpm
+Next.js · TypeScript · Tailwind CSS · shadcn/ui · TanStack Query · React Hook Form · Zod · Axios · MSW · ESLint · Prettier · Storybook · GitHub Actions · pnpm
 
 자세한 내용은 [`docs/TECH_STACK.md`](./docs/TECH_STACK.md)를 참고한다.
 
