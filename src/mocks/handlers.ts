@@ -14,12 +14,13 @@ const EXISTING_USER_CODE = "existing-user";
 const mockProfileImageUrl =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" fill="#578627"/><text x="40" y="52" font-size="32" text-anchor="middle" fill="#fff" font-family="sans-serif">민</text></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" fill="#578627"/><text x="40" y="52" font-size="32" text-anchor="middle" fill="#fff" font-family="sans-serif">딸</text></svg>',
   );
 
 const mockUser: User = {
   id: 1,
-  nickname: "민트초코",
+  // 임시 닉네임 — 실제 값은 백엔드가 카카오 프로필 닉네임을 넘겨준다
+  nickname: "딸기스무디",
   name: "홍길동",
   email: "mint@example.com",
   gender: "FEMALE",
