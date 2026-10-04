@@ -19,7 +19,7 @@
 | Language | **TypeScript** | 5.9 | 일정 상태 × 역할 × 로그인 여부 분기를 타입으로 표현, 백엔드 응답 형식 관리 |
 | Styling | **Tailwind CSS** | 4.3 | 스타일링, 디자인 토큰 관리 (shadcn/ui의 전제, §3.13) |
 | UI Component | **shadcn/ui** (Base UI 기반) | CLI 4.21 · `@base-ui/react` 1.8 | 접근성이 중요한 오버레이·입력 요소 (범위는 §3.4) |
-| Toast | **Sonner** | 설치 전 (첫 사용 시 추가) | 결과 안내 토스트 (shadcn Sonner 컴포넌트, §3.4) |
+| Toast | **Sonner** | 2.0 | 결과 안내 토스트 (`src/shared/ui/sonner.tsx`, §3.4) |
 | Server State | **TanStack Query** | 5 | 서버 데이터 조회·캐시·로딩/에러 상태, 참여·취소 후 관련 목록 갱신 |
 | Form | **React Hook Form** | 7 | 프로필 완성·수정, 일정 개설 폼 |
 | Validation | **Zod** | 4 | 폼 입력값 유효성 검사 스키마 |
@@ -87,7 +87,7 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 | Dialog(확인 모달·로그인 필요 모달), Drawer(바텀시트), RadioGroup, Checkbox, Tabs(동작), Sonner(토스트) | Button 변형, Badge, FilterChip, ScheduleCard, BottomNav, Header, ImagePlaceholder, 일정 요약 블록, 성별 토글, Avatar Editor |
 
 - 기준: 포커스 이동·키보드 조작·스크린리더 대응이 까다로운 요소만 shadcn을 쓴다. 도메인 전용 UI는 직접 만든다.
-- **Sonner:** 토스트는 Sonner를 쓴다(팀 결정, 2026-10-04). 실제로 쓰는 화면을 만들 때 `shadcn add sonner`로 추가한다. shadcn의 Sonner 컴포넌트는 다크 모드 전환용 `next-themes`를 함께 설치하는데, 다크 모드는 정의하지 않으므로(DESIGN §6) `next-themes` 없이 light 테마로 고정해서 쓴다.
+- **Sonner:** 토스트는 Sonner로 띄운다(팀 결정, 2026-10-04). `sonner` 패키지만 설치하고(`next-themes` 없음), `src/shared/ui/sonner.tsx`의 `Toaster`를 `providers.tsx`에 한 번 둔다. 모양은 Sonner 기본을 끄고(`unstyled`) 시안 컴포넌트 코드의 Toast를 따른다(DESIGN §9.1). 띄울 때는 `showToast("문구")`.
 
 ### 3.5 React Hook Form + Zod
 - **사용하는 곳:** 프로필 완성, 프로필 수정, 일정 개설.

@@ -39,6 +39,7 @@ import type { SocialUser } from "@/features/auth/types";
 import { AvatarEditor } from "@/shared/ui/AvatarEditor";
 import { Button } from "@/shared/ui/button";
 import { PageStatus } from "@/shared/ui/PageStatus";
+import { showToast } from "@/shared/ui/sonner";
 import { TextField } from "@/shared/ui/TextField";
 import { ToggleButtonGroup } from "@/shared/ui/ToggleButtonGroup";
 
@@ -106,6 +107,8 @@ export function ProfileCompleteScreen() {
 
       isCompleted.current = true;
       saveAuthSession({ accessToken, refreshToken, user });
+      // TODO: 임시 문구. 확정되면 바꾼다
+      showToast("로그인이 완료되었습니다.");
       // 로그인을 요청한 원래 화면으로 돌아간다 (USER_FLOW §4.3)
       const redirect = new URLSearchParams(window.location.search).get(
         "redirect",

@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useState, type ReactNode } from "react";
 
+import { Toaster } from "@/shared/ui/sonner";
+
 const isMockingEnabled = process.env.NEXT_PUBLIC_API_MOCKING === "enabled";
 
 // msw/browser는 서버에서 resolve되지 않으므로 클라이언트에서만 불러온다
@@ -22,6 +24,9 @@ export function Providers({ children }: { children: ReactNode }) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <Toaster />
+    </QueryClientProvider>
   );
 }

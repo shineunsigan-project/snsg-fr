@@ -59,6 +59,10 @@
   --color-kakao: var(--kakao);
   --color-on-brand-accent: var(--on-brand-accent);
   --color-on-brand-muted: var(--on-brand-muted);
+  --color-toast: var(--toast);
+
+  /* 토스트 그림자 — 시안 컴포넌트 코드(Toast) 값 */
+  --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.18);
   --color-stripe: var(--stripe);
   --color-stripe-muted: var(--stripe-muted);
   --color-stripe-muted-soft: var(--stripe-muted-soft);
@@ -120,6 +124,8 @@
   /* 브랜드 녹색 배경 위 글자 — 서비스명 라벨 / 보조 문구·약관 안내 (Figma 247:21229 측정) */
   --on-brand-accent: #b1d27b;
   --on-brand-muted: #dfebc7;
+  /* TODO(D-4): 시안 코드의 --toast-bg 실제 값을 받으면 교체한다. 지금은 짙은 글자색으로 대신한다 */
+  --toast: #1c1f18;
   /* placeholder.stripe — 이미지 placeholder 사선 (다른 한 색은 brand-soft) */
   --stripe: #ddebc5;
   /* 모집완료 썸네일의 회색 사선 — Figma 캡처(200:20789) 측정 근사치 */

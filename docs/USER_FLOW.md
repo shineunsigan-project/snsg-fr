@@ -202,7 +202,7 @@ flowchart TD
 | 3. 콜백 | `/auth/kakao/callback` (= 카카오 콘솔 로그인 Redirect URI `http://localhost:5173/auth/kakao/callback`). `code`를 꺼내 백엔드에 넘긴다. 인가 코드는 한 번만 쓸 수 있어 요청은 한 번만 보낸다 |
 | 4. 백엔드 API | `POST /api/auth/kakao/callback` `{ code }` → `{ authStatus, accessToken?, refreshToken?, user?, signupToken?, requiredFields?, socialUser? }` (기존 프로젝트 `authSession.js` 기준). 백엔드 준비 전에는 MSW가 대신 응답한다 |
 | 5. 분기·저장 | `accessToken`이 있으면 **기존 회원**: localStorage `token`·`refreshToken`·`user` 저장 → 원래 화면(`redirect`). `authStatus = ADDITIONAL_INFO_REQUIRED` + `signupToken`이면 **신규 회원**: sessionStorage `signupToken`·`requiredFields`·`socialUser` 저장 → 프로필 완성(`/signup`) |
-| 6. 가입 완료 | 프로필 완성 화면이 `socialUser`의 닉네임·사진을 미리 채운다. `시작하기` → `POST /api/auth/signup` `{ signupToken, name, nickname, email, gender(MALE·FEMALE), birthDate(YYYY-MM-DD) }` → `SIGNUP_SUCCESS` + 토큰 → 5의 기존 회원과 같이 저장 → 원래 화면. 이름·닉네임·이메일·성별은 필수, 이메일은 화면에서 받지 않고 `socialUser.email`을 보낸다. 엔드포인트는 임시(MSW) |
+| 6. 가입 완료 | 프로필 완성 화면이 `socialUser`의 닉네임·사진을 미리 채운다. `시작하기` → `POST /api/auth/signup` `{ signupToken, name, nickname, email, gender(MALE·FEMALE), birthDate(YYYY-MM-DD) }` → `SIGNUP_SUCCESS` + 토큰 → 5의 기존 회원과 같이 저장 → 토스트 "로그인이 완료되었습니다."(임시 문구) → 원래 화면. 이름·닉네임·이메일·성별은 필수, 이메일은 화면에서 받지 않고 `socialUser.email`을 보낸다. 엔드포인트는 임시(MSW) |
 | 7. 실패 | `code` 없음(카카오 취소·오류) 또는 API 실패 → `alert("로그인에 실패했습니다.")` 후 로그인 화면(`/login`). 실패 화면 디자인은 F-3 |
 
 - 가입 진행 정보 없이 `/signup`에 들어오면 로그인 화면으로 보낸다. `로그인 없이 둘러보기`는 sessionStorage `guest = true`를 남긴다(로그인하면 지움).
