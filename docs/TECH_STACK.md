@@ -118,6 +118,7 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 - **브라우저 쪽만 mock한다.** 환경 변수로 켜고 끈다.
 - mock 응답은 백엔드 스펙 문서를 기준으로 작성한다. 실제 API와 어긋나지 않게, 스펙이 바뀌면 mock도 함께 고친다.
 - 구성: 핸들러는 `src/mocks/handlers.ts`, worker는 `public/mockServiceWorker.js`(msw CLI가 생성). `NEXT_PUBLIC_API_MOCKING=enabled`일 때만 켜진다.
+- 현재 mock: `POST /api/auth/kakao/callback`(카카오 로그인 백엔드 API — 기본은 신규 회원 응답, 테스트 코드 `existing-user`면 기존 회원 응답), `POST /api/auth/signup`(가입 완료, 엔드포인트 임시). 카카오 OAuth 자체는 mock하지 않는다. 백엔드가 준비되면 `NEXT_PUBLIC_API_MOCKING=disabled`로 끄면 같은 API 함수가 실제 백엔드를 부른다.
 - `msw/browser`는 서버에서 불러올 수 없으므로, worker 시작은 `next/dynamic`(`ssr: false`)으로 불러오는 `src/mocks/MockWorker.tsx`에서만 한다. mock이 켜져 있으면 worker가 준비될 때까지 화면 렌더링을 미룬다(`src/app/providers.tsx`).
 
 ### 3.9 GitHub Actions
@@ -178,9 +179,9 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 | ~~T-2~~ | ~~ESLint·Prettier를 포함하는가?~~ → **해결 (2026-10-03): 둘 다 쓴다** (§1, §3.11) | — |
 | ~~T-3~~ | ~~기존 코드(Vite + JSX + React Router + Zustand + Supabase + npm, 다른 레포의 커밋 `efadcdd`)를 이전할지, 새로 시작할지~~ → **해결 (2026-10-03): 이 레포(`snsg-fr`)에서 새로 세팅한다** | — |
 | T-4 | 이전 작업물(다른 레포)에는 **Supabase**가 쓰였다. 백엔드는 별도 개발자가 담당하는데, 프론트에서 Supabase를 쓸 일이 있는가? | API 클라이언트 구성, 인증 방식 |
-| T-5 | 이전 작업물(다른 레포)에는 **네이버 로그인 버튼**이 있었다. 기획에는 카카오 로그인만 있는데, 네이버 로그인도 지원하는가? | 로그인 화면, 인증 콜백 처리 |
+| ~~T-5~~ | ~~네이버 로그인도 지원하는가?~~ → **해결 (2026-10-04): 지원한다.** Figma 로그인 화면(`247:21229`)에 `네이버로 시작하기` 버튼이 있다. 인증 연동 방식은 카카오와 함께 정한다 (USER_FLOW F-16) | 로그인 화면, 인증 콜백 처리 |
 | T-6 | **푸시 알림 구현 방향**(웹뷰 앱 + 네이티브 푸시 / 카카오 알림톡·문자 / 아이폰 브라우저 제외)이 아직 정해지지 않았다. 아이폰 지원, 홈 화면 추가 없음이 조건이다 | 웹뷰 앱 껍데기 필요 여부, 웹과 앱 사이 연결(브리지) 설계 (USER_FLOW F-15) |
-| T-7 | 백엔드 인증 방식(쿠키 / Bearer 토큰 + refresh)은? | Axios 클라이언트의 인증·401 처리 |
+| ~~T-7~~ | ~~백엔드 인증 방식은?~~ → **해결 (2026-10-04): 기존 프로젝트와 같이 localStorage `token`을 `Authorization: Bearer`로 붙인다** (`apiClient` 요청 인터셉터). `refreshToken`은 저장만 하고, 401 처리·재발급은 백엔드 계약이 나오면 추가한다 | — |
 | T-8 | Next.js의 배포 환경은? (Vercel / 자체 서버 등) | 서버 기능(OG 메타, 로그인 콜백) 사용 범위, GitHub Actions 배포 단계 |
 
 ---

@@ -23,6 +23,15 @@
     system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   --font-heading: var(--font-sans);
 
+  /* 글자 크기 — Tailwind 기본 스케일에 없는 값만 추가 (Figma 로그인 화면 247:21229 측정) */
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.5rem;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  /* 입력값·토글·보조 버튼 라벨 (로그인 247:21229, 프로필 완성 132:16466 측정) */
+  --text-md: 0.9375rem;
+  --text-md--line-height: 1.375rem;
+
   /* shadcn 시맨틱 토큰 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -48,6 +57,8 @@
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
   --color-kakao: var(--kakao);
+  --color-on-brand-accent: var(--on-brand-accent);
+  --color-on-brand-muted: var(--on-brand-muted);
   --color-stripe: var(--stripe);
   --color-stripe-muted: var(--stripe-muted);
   --color-stripe-muted-soft: var(--stripe-muted-soft);
@@ -87,7 +98,8 @@
   --muted-foreground: #676c62;
   --subtle-foreground: #8b9085;
   --border: #eceee8;
-  --input: #eceee8;
+  /* 입력 필드·미선택 토글 테두리 — Figma 프로필 완성 화면 측정 */
+  --input: #e0e3da;
 
   /* TODO(D-4): 아래는 디자인 값이 없어 shadcn 기본값을 유지한다 */
   --accent: oklch(0.97 0 0);
@@ -101,9 +113,13 @@
   /* brand.primary — 로그인 배경, GNB 활성, 날짜 텍스트 */
   --brand: #356516;
   /* chip.selected / badge.recruiting — 선택된 칩, 모집중 배지, 선택된 토글 배경 */
-  --brand-soft: #e8f1d8;
+  /* DESIGN §6은 #E8F1D8 부근이었으나 홈·프로필 캡처 두 곳에서 모두 #F1F7E8로 측정되어 맞춘다 */
+  --brand-soft: #f1f7e8;
   /* kakao.yellow — 카카오 로그인 버튼, 로그인 필요 모달 주요 버튼 */
   --kakao: #fee500;
+  /* 브랜드 녹색 배경 위 글자 — 서비스명 라벨 / 보조 문구·약관 안내 (Figma 247:21229 측정) */
+  --on-brand-accent: #b1d27b;
+  --on-brand-muted: #dfebc7;
   /* placeholder.stripe — 이미지 placeholder 사선 (다른 한 색은 brand-soft) */
   --stripe: #ddebc5;
   /* 모집완료 썸네일의 회색 사선 — Figma 캡처(200:20789) 측정 근사치 */
@@ -121,7 +137,7 @@
 }
 
 /* 이미지 placeholder 사선 패턴 (DESIGN §9.1) */
-@utility bg-stripe {
+@utility bg-stripe-pattern {
   background-image: repeating-linear-gradient(
     135deg,
     var(--brand-soft) 0 6px,
@@ -129,7 +145,7 @@
   );
 }
 
-@utility bg-stripe-muted {
+@utility bg-stripe-pattern-muted {
   background-image: repeating-linear-gradient(
     135deg,
     var(--stripe-muted-soft) 0 6px,

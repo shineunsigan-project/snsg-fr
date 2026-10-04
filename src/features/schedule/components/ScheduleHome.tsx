@@ -82,9 +82,6 @@ export function ScheduleHome() {
     if (item !== "schedule") setIsLoginDialogOpen(true);
   };
 
-  // TODO: 로그인 화면으로 이동하고 돌아올 화면을 redirect 파라미터로 넘긴다 (USER_FLOW §4.2, §4.3)
-  const handleKakaoLogin = () => {};
-
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-background">
       <header className="border-b border-border bg-card pt-safe shadow-xs">
@@ -120,7 +117,6 @@ export function ScheduleHome() {
       <LoginRequiredDialog
         open={isLoginDialogOpen}
         onOpenChange={setIsLoginDialogOpen}
-        onKakaoLogin={handleKakaoLogin}
       />
     </div>
   );

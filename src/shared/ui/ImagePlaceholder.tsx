@@ -14,7 +14,10 @@ export function ImagePlaceholder({
   return (
     <div
       aria-hidden
-      className={cn(muted ? "bg-stripe-muted" : "bg-stripe", className)}
+      className={cn(
+        muted ? "bg-stripe-pattern-muted" : "bg-stripe-pattern",
+        className,
+      )}
     />
   );
 }

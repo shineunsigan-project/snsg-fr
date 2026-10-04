@@ -44,11 +44,13 @@ cp .env.example .env.local   # 환경변수 파일 생성 후 값 입력
 |---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | 백엔드 API base URL |
 | `NEXT_PUBLIC_API_MOCKING` | `enabled`로 두면 MSW 브라우저 mock을 켠다 (기본 `disabled`) |
+| `NEXT_PUBLIC_KAKAO_REST_API_KEY` | Kakao Developers의 REST API 키. Client Secret은 백엔드에만 둔다 |
+| `NEXT_PUBLIC_KAKAO_REDIRECT_URI` | 카카오 콘솔에 등록한 로그인 Redirect URI와 정확히 같은 값 (`http://localhost:5173/auth/kakao/callback`) |
 
 **실행**
 
 ```bash
-pnpm dev                     # 개발 서버 http://localhost:3000
+pnpm dev                     # 개발 서버 http://localhost:5173 (카카오 Redirect URI와 같은 포트)
 pnpm storybook               # Storybook http://localhost:6006
 ```
 
