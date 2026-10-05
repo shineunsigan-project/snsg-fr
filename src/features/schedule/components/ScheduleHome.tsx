@@ -1,6 +1,9 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type ComponentProps } from "react";
+
+import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
 
 import { AppHeader } from "@/shared/ui/AppHeader";
 import { BottomNav, type BottomNavItem } from "@/shared/ui/BottomNav";
@@ -14,6 +17,13 @@ const tabs = [
   { value: "joined", label: "참여한 일정" },
   { value: "hosted", label: "개설한 일정" },
 ] as const;
+
+type TabValue = (typeof tabs)[number]["value"];
+
+/** URL의 tab 값 (모르는 값이면 모집 중) — 탭은 URL로 관리한다 (TECH_STACK §3.3) */
+function toTabValue(value: string | null): TabValue {
+  return tabs.find((tab) => tab.value === value)?.value ?? "recruiting";
+}
 
 // TODO(API): 일정 목록 API가 정해지면 쿼리 훅으로 교체한다. 지금은 Figma 홈(200:20789)의 예시 데이터로 레이아웃만 보여준다
 const previewSchedules: Array<
@@ -63,23 +73,42 @@ const previewSchedules: Array<
 
 /**
  * 홈 = 일정 목록 (USER_FLOW §5, DESIGN §3.5)
- * - 참여한·개설한 일정 탭 → 로그인 필요 모달 (USER_FLOW §4.2). 취소하면 모집 중 탭에 그대로 남는다
- *   TODO: 인증 상태가 생기면 로그인한 사용자는 모달 없이 탭을 전환하고, 탭 값은 URL로 관리한다 (TECH_STACK §3.3)
+ * - 탭 값은 URL로 관리한다 (TECH_STACK §3.3)
+ * - 비로그인으로 참여한·개설한 일정 탭을 누르면 탭이 바뀌고 로그인 필요 모달이 뜬다 (USER_FLOW §4.2, tab2.jpg).
+ *   새로고침·주소로 들어온 경우에도 처음 한 번 띄운다. 취소하면 모달만 닫히고 그 탭 화면에 남는다
  * - TODO(F-7): 필터 칩 → 바텀시트, 필터 값은 URL로 관리. 칩 상태는 Figma의 필터 적용 상태를 그대로 보여준다
- * - GNB 일정 개설·내 정보 → 로그인 필요 모달 (USER_FLOW §4.2)
+ * - 비로그인으로 GNB 일정 개설·내 정보 → 로그인 필요 모달 (USER_FLOW §4.2)
  * - TODO: 카드 → 일정 상세
  */
 export function ScheduleHome() {
+  const router = useRouter();
+  const tab = toTabValue(useSearchParams().get("tab"));
+  const isLoggedIn = useIsLoggedIn();
+  // 로그인 필요 모달: 탭·GNB를 누를 때, 그리고 처음 들어왔을 때 한 번 연다
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [hasCheckedEntry, setHasCheckedEntry] = useState(false);
 
-  const handleTabChange = (value: (typeof tabs)[number]["value"]) => {
-    // 인증 상태 확인은 아직 없다. 로그인이 필요한 탭은 항상 모달을 띄운다
-    if (value !== "recruiting") setIsLoginDialogOpen(true);
+  // 처음 들어왔을 때 한 번: 비로그인으로 참여한·개설한 일정 탭에 있으면 모달을 띄운다 (새로고침·주소 직접 접속)
+  // 로그인 여부는 브라우저에서 화면을 이어받은 뒤에 확정되므로 그때 판단한다
+  if (!hasCheckedEntry && isLoggedIn !== undefined) {
+    setHasCheckedEntry(true);
+    if (isLoggedIn === false && tab !== "recruiting")
+      setIsLoginDialogOpen(true);
+  }
+
+  const changeTab = (value: TabValue) => {
+    router.replace(value === "recruiting" ? "/" : `/?tab=${value}`, {
+      scroll: false,
+    });
+    if (value !== "recruiting" && isLoggedIn === false) {
+      setIsLoginDialogOpen(true);
+    }
   };
 
   const handleNavSelect = (item: BottomNavItem) => {
-    // 인증 상태 확인은 아직 없다. 일정 개설·내 정보는 항상 모달을 띄운다
-    if (item !== "schedule") setIsLoginDialogOpen(true);
+    if (item === "schedule") return;
+    // TODO: 로그인 상태면 일정 개설 1단계·내 정보 화면으로 이동한다 (화면 미구현)
+    if (isLoggedIn === false) setIsLoginDialogOpen(true);
   };
 
   return (
@@ -90,26 +119,38 @@ export function ScheduleHome() {
           <SegmentedTabs
             aria-label="일정 구분"
             items={tabs}
-            value="recruiting"
-            onValueChange={handleTabChange}
+            value={tab}
+            onValueChange={changeTab}
           />
-          <div className="flex gap-2 overflow-x-auto">
-            <FilterChip label="머더 미스터리" state="selected" />
-            <FilterChip label="마포구" state="selected" />
-            <FilterChip label="날짜" />
-          </div>
+          {tab === "recruiting" && (
+            <div className="flex gap-2 overflow-x-auto">
+              <FilterChip label="머더 미스터리" state="selected" />
+              <FilterChip label="마포구" state="selected" />
+              <FilterChip label="날짜" />
+            </div>
+          )}
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto px-5 py-4">
-        <h2 className="sr-only">모집 중인 일정</h2>
-        <ul className="flex flex-col gap-3">
-          {previewSchedules.map(({ id, ...schedule }) => (
-            <li key={id}>
-              <ScheduleCard {...schedule} />
-            </li>
-          ))}
-        </ul>
+        <h2 className="sr-only">
+          {tabs.find((item) => item.value === tab)?.label}
+        </h2>
+        {tab === "recruiting" ? (
+          <ul className="flex flex-col gap-3">
+            {previewSchedules.map(({ id, ...schedule }) => (
+              <li key={id}>
+                <ScheduleCard {...schedule} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          // 비로그인: 리스트 자리(빈 카드) 위에 로그인 필요 모달이 뜬다 (tab2.jpg)
+          // 로그인: 리스트 여백만 있는 빈 화면
+          // TODO(API): 로그인 상태의 참여한·개설한 일정 목록은 일정 API가 생기면 연결한다
+          // TODO(D-6): 목록이 없을 때의 빈 화면(USER_FLOW §7.3) 디자인이 확인되면 바꾼다
+          isLoggedIn === false && <ListPlaceholder />
+        )}
       </main>
 
       <BottomNav activeItem="schedule" onItemSelect={handleNavSelect} />
@@ -119,5 +160,16 @@ export function ScheduleHome() {
         onOpenChange={setIsLoginDialogOpen}
       />
     </div>
+  );
+}
+
+/** 비로그인 상태에서 로그인 필요 모달 뒤에 깔리는 리스트 자리 (Figma 로그인 팝업 캡처 tab2.jpg의 배경) */
+function ListPlaceholder() {
+  return (
+    <ul aria-hidden className="flex flex-col gap-4">
+      {[0, 1, 2].map((index) => (
+        <li key={index} className="h-28 rounded-2xl bg-card" />
+      ))}
+    </ul>
   );
 }

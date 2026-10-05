@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { Button } from "./button";
 import { SocialLoginButton } from "./SocialLoginButton";
@@ -26,12 +26,13 @@ export function LoginRequiredDialog({
   onOpenChange,
 }: LoginRequiredDialogProps) {
   const router = useRouter();
-  const pathname = usePathname();
 
   // 카카오 인증이 아니라 서비스 로그인 화면으로 이동한다. 로그인 후 돌아올 화면은 redirect로 넘긴다 (USER_FLOW §4.3)
-  // TODO: 트리거별 목적지(탭 → 해당 탭, GNB 일정 개설 → 개설 1단계 등)는 해당 화면이 생기면 반영한다 (USER_FLOW §4.3)
+  // TODO: GNB 일정 개설 → 개설 1단계 등 트리거별 목적지는 해당 화면이 생기면 반영한다 (USER_FLOW §4.3)
   const handleKakaoLogin = () => {
-    router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+    // 탭처럼 쿼리에 담긴 화면 상태까지 그대로 돌아온다 (예: /?tab=joined)
+    const { pathname, search } = window.location;
+    router.push(`/login?redirect=${encodeURIComponent(pathname + search)}`);
   };
 
   return (
