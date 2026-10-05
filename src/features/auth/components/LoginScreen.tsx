@@ -28,44 +28,58 @@ export function LoginScreen() {
   const handleNaverStart = () => {};
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-brand px-5 pt-safe pb-safe">
-      {/* TODO: 대표 이미지 에셋을 받으면 교체한다 (DESIGN §3.1) */}
+    // 넓은 화면에서 최대 폭 밖으로 늘어나는 양옆은 앱 기본 배경(bg.app)이고, 로그인 영역만 브랜드 녹색이다
+    <main className="mx-auto flex h-dvh max-w-md flex-col justify-center-safe overflow-y-auto bg-brand px-5 pt-safe pb-safe">
+      {/* 대표 이미지 (DESIGN §3.1) — 폭에 맞춘 5:4 상자 (휴대폰 350×280, 웹에서는 최대 408×326)
+          낮은 화면(iPhone SE 등)에서는 이 상자만 줄어들어 아래 버튼·안내가 스크롤 없이 보인다 */}
       <div
         aria-hidden
-        className="mt-5.5 min-h-40 flex-1 rounded-3xl bg-background"
-      />
-
-      <p className="mt-8 text-md font-medium text-on-brand-accent">쉬는시간</p>
-      <h1 className="mt-3 text-display font-bold text-white">
-        눈치 보느라 망설였다면,
-        <br />
-        이번엔 그냥 저질러보세요.
-      </h1>
-      <p className="mt-3 text-base text-on-brand-muted">
-        사람 모아서, 하고 싶은 거 해보세요.
-      </p>
-
-      <div className="mt-6 flex flex-col gap-4">
-        <SocialLoginButton asset="kakao-large" onClick={handleKakaoStart} />
-        <SocialLoginButton asset="naver-large" onClick={handleNaverStart} />
-        <Button
-          variant="outline-inverse"
-          className="rounded-lg text-md"
-          nativeButton={false}
-          render={<Link href="/" onClick={markGuest} />}
-        >
-          로그인 없이 둘러보기
-        </Button>
+        className="relative mt-5.5 aspect-5/4 min-h-0 w-full overflow-hidden rounded-3xl bg-background"
+      >
+        {/* 애니메이션이 SVG 안의 스크립트(SVGator)로 동작한다. <img>로 넣으면 스크립트가 돌지 않아 멈춰 보이므로 <object>로 넣는다 */}
+        <object
+          type="image/svg+xml"
+          data="/images/snsg-loop.svg"
+          tabIndex={-1}
+          // 상자 크기를 정하지 않고 채우기만 한다 (SVG 자체 크기 때문에 상자가 줄어들지 못하는 것을 막는다)
+          className="pointer-events-none absolute inset-0 size-full"
+        />
       </div>
 
-      <p className="mt-4 mb-7 text-center text-2xs text-on-brand-muted/85">
-        로그인 하시면{" "}
-        <ExternalTextLink href={PRIVACY_POLICY_URL}>
-          개인정보처리방침
-        </ExternalTextLink>{" "}
-        및 <ExternalTextLink href={TERMS_URL}>이용약관</ExternalTextLink>에
-        동의하는 것으로 간주됩니다
-      </p>
+      {/* 이미지와 문구 사이는 항상 32px. 화면이 길면 이미지부터 약관까지 묶음 전체가 세로 가운데에 놓인다 */}
+      <div className="shrink-0 pt-8">
+        <p className="text-md font-medium text-on-brand-accent">쉬는시간</p>
+        <h1 className="mt-3 text-display font-bold break-keep text-white">
+          눈치 보느라 망설였다면,
+          <br />
+          이번엔 그냥 저질러보세요.
+        </h1>
+        <p className="mt-3 text-base text-on-brand-muted">
+          사람 모아서, 하고 싶은 거 해보세요.
+        </p>
+
+        <div className="mt-6 flex flex-col gap-4">
+          <SocialLoginButton asset="kakao-large" onClick={handleKakaoStart} />
+          <SocialLoginButton asset="naver-large" onClick={handleNaverStart} />
+          <Button
+            variant="outline-inverse"
+            className="rounded-lg text-md"
+            nativeButton={false}
+            render={<Link href="/" onClick={markGuest} />}
+          >
+            로그인 없이 둘러보기
+          </Button>
+        </div>
+
+        <p className="mt-4 mb-7 text-center text-2xs break-keep text-on-brand-muted/85">
+          로그인 하시면{" "}
+          <ExternalTextLink href={PRIVACY_POLICY_URL}>
+            개인정보처리방침
+          </ExternalTextLink>{" "}
+          및 <ExternalTextLink href={TERMS_URL}>이용약관</ExternalTextLink>에
+          동의하는 것으로 간주됩니다
+        </p>
+      </div>
     </main>
   );
 }
