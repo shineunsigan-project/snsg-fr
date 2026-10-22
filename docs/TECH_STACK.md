@@ -84,7 +84,7 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 
 | shadcn 기반 | 직접 구현 |
 |---|---|
-| Dialog(확인 모달·로그인 필요 모달), Drawer(바텀시트), RadioGroup, Checkbox, Tabs(동작), Sonner(토스트) | Button 변형, Badge, FilterChip, ScheduleCard, BottomNav, Header, ImagePlaceholder, 일정 요약 블록, 성별 토글, Avatar Editor |
+| Dialog(확인 모달·로그인 필요 모달), Drawer(바텀시트 — shadcn 대신 이미 설치된 Base UI `Drawer`로 직접 감쌌다, `shared/ui/drawer.tsx`), RadioGroup, Checkbox, Tabs(동작), Sonner(토스트) | Button 변형, Badge, FilterChip, ScheduleCard, BottomNav, Header, ImagePlaceholder, 일정 요약 블록, 성별 토글, Avatar Editor |
 
 - 기준: 포커스 이동·키보드 조작·스크린리더 대응이 까다로운 요소만 shadcn을 쓴다. 도메인 전용 UI는 직접 만든다.
 - **Sonner:** 토스트는 Sonner로 띄운다(팀 결정, 2026-10-04). `sonner` 패키지만 설치하고(`next-themes` 없음), `src/shared/ui/sonner.tsx`의 `Toaster`를 `providers.tsx`에 한 번 둔다. 모양은 Sonner 기본을 끄고(`unstyled`) 시안 컴포넌트 코드의 Toast를 따른다(DESIGN §9.1). 띄울 때는 `showToast("문구")`.

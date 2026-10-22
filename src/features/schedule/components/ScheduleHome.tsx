@@ -13,6 +13,30 @@ import { FilterChip } from "@/shared/ui/FilterChip";
 import { LoginRequiredDialog } from "@/shared/ui/LoginRequiredDialog";
 import { ScheduleCard } from "@/shared/ui/ScheduleCard";
 
+import { isIosInAppBrowser } from "../lib/isIosInAppBrowser";
+import { OpenInSafariSheet } from "./OpenInSafariSheet";
+
+// Safari 안내를 닫으면 이 창(탭)에서는 다시 띄우지 않는다. 링크를 새로 열면 다시 뜬다 (팀 결정 2026-10-11)
+// TODO: "7일 동안 안 띄우기" 체크는 논의 중이다
+const SAFARI_GUIDE_DISMISSED_KEY = "safariGuideDismissed";
+
+function shouldShowSafariGuide() {
+  try {
+    if (sessionStorage.getItem(SAFARI_GUIDE_DISMISSED_KEY)) return false;
+  } catch {
+    // 저장소를 쓸 수 없는 환경이면 닫은 기록 없이 판단한다
+  }
+  return isIosInAppBrowser();
+}
+
+function dismissSafariGuide() {
+  try {
+    sessionStorage.setItem(SAFARI_GUIDE_DISMISSED_KEY, "1");
+  } catch {
+    // 저장하지 못하면 다음 진입에 다시 뜬다
+  }
+}
+
 // TODO(API): 일정 목록 API가 정해지면 쿼리 훅으로 교체한다. 지금은 Figma 홈(430:28279)의 예시 데이터로 레이아웃만 보여준다
 const previewSchedules: Array<
   ComponentProps<typeof ScheduleCard> & { id: string }
@@ -83,12 +107,22 @@ const previewSchedules: Array<
  * - TODO(F-7): 필터 칩 → 바텀시트, 필터 값은 URL로 관리. 칩 상태는 Figma의 필터 적용 상태를 그대로 보여준다
  * - 비로그인으로 GNB 일정 개설 → 로그인 필요 모달, GNB 로그인 → 로그인 화면 (USER_FLOW §4.2)
  * - GNB 세 번째 항목은 로그인 상태면 내 정보다
+ * - 비로그인 + iOS 앱 안 브라우저면 Safari로 열기 안내 바텀시트를 띄운다 (팀 요청 2026-10-11)
  * - TODO: 카드 → 일정 상세
  */
 export function ScheduleHome() {
   const router = useRouter();
   const isLoggedIn = useIsLoggedIn();
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [isSafariGuideOpen, setIsSafariGuideOpen] = useState(false);
+  const [hasCheckedSafariGuide, setHasCheckedSafariGuide] = useState(false);
+
+  // 로그인 여부는 브라우저에서 화면을 이어받은 뒤에 확정되므로 그때 한 번 판단한다
+  if (!hasCheckedSafariGuide && isLoggedIn !== undefined) {
+    setHasCheckedSafariGuide(true);
+    if (isLoggedIn === false && shouldShowSafariGuide())
+      setIsSafariGuideOpen(true);
+  }
 
   const handleNavSelect = (item: BottomNavItem) => {
     if (item === "create") {
@@ -142,6 +176,14 @@ export function ScheduleHome() {
       <LoginRequiredDialog
         open={isLoginDialogOpen}
         onOpenChange={setIsLoginDialogOpen}
+      />
+
+      <OpenInSafariSheet
+        open={isSafariGuideOpen}
+        onOpenChange={(open) => {
+          setIsSafariGuideOpen(open);
+          if (!open) dismissSafariGuide();
+        }}
       />
     </div>
   );
