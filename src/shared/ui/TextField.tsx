@@ -4,8 +4,6 @@ import { cn } from "@/shared/lib/utils";
 
 type TextFieldProps = Omit<ComponentProps<"input">, "id"> & {
   label: string;
-  /** 라벨 오른쪽 보조 안내 (예: "다른 사용자에게 공개되지 않아요") */
-  labelHint?: string;
   /** 입력칸 아래 안내·성공 문구 (녹색) */
   helperText?: string;
   /** 입력칸 아래 오류 문구. 있으면 helperText 대신 보여준다 */
@@ -17,7 +15,6 @@ type TextFieldProps = Omit<ComponentProps<"input">, "id"> & {
 /** 라벨(위) → 입력 → 도움말(아래) 구조의 입력 필드 (DESIGN §9.1, §13-9) */
 export function TextField({
   label,
-  labelHint,
   helperText,
   errorMessage,
   trailing,
@@ -30,14 +27,12 @@ export function TextField({
 
   return (
     <div className={className}>
-      <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="text-xs font-bold text-muted-foreground">
-          {label}
-        </label>
-        {labelHint && (
-          <span className="text-xs text-subtle-foreground">{labelHint}</span>
-        )}
-      </div>
+      <label
+        htmlFor={id}
+        className="block text-xs font-bold text-muted-foreground"
+      >
+        {label}
+      </label>
       <div
         className={cn(
           "mt-2 flex h-13 items-center gap-2 rounded-lg border bg-card px-4 focus-within:ring-3 focus-within:ring-ring/50",

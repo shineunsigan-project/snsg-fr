@@ -74,7 +74,7 @@
 |---|---|
 | 필터 값, 선택된 탭 | URL 쿼리 파라미터 |
 | 모달 열림, 입력 중인 값 | 컴포넌트 state |
-| 로그인 후 돌아갈 화면 | URL `redirect` 파라미터 (USER_FLOW §4.3) |
+| 로그인 후 돌아갈 화면 | sessionStorage `loginRedirect` (USER_FLOW §4.3). 카카오 인증이 서버를 거쳐 고정 주소로 돌아오므로 URL로 넘기지 않는다 (2026-10-06) |
 
 ### 3.4 shadcn/ui
 shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞게 스타일을 고쳐 쓴다.
@@ -99,7 +99,7 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 ### 3.6 Axios
 - 공통 클라이언트 하나만 만든다: base URL, 인증 정보 부착, 401 처리, 에러 형식 통일.
 - 화면에서 Axios를 직접 부르지 않는다. 항상 API 함수(§3.7)를 거친다.
-- 위치: `src/shared/lib/api/client.ts`. base URL은 환경 변수 `NEXT_PUBLIC_API_BASE_URL`로 받는다(`.env.example` 참고). 인증·401 처리와 에러 형식 통일은 T-7과 백엔드 스펙이 정해지면 추가한다.
+- 위치: `src/shared/lib/api/client.ts`. base URL은 환경 변수 `NEXT_PUBLIC_API_BASE_URL`로 받는다(`.env.example` 참고). 응답 형식, 인증, 401 처리는 §6을 따른다.
 
 ### 3.7 API 계층 분리
 
@@ -118,7 +118,7 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 - **브라우저 쪽만 mock한다.** 환경 변수로 켜고 끈다.
 - mock 응답은 백엔드 스펙 문서를 기준으로 작성한다. 실제 API와 어긋나지 않게, 스펙이 바뀌면 mock도 함께 고친다.
 - 구성: 핸들러는 `src/mocks/handlers.ts`, worker는 `public/mockServiceWorker.js`(msw CLI가 생성). `NEXT_PUBLIC_API_MOCKING=enabled`일 때만 켜진다.
-- 현재 mock: `POST /api/auth/kakao/callback`(카카오 로그인 백엔드 API — 기본은 신규 회원 응답, 테스트 코드 `existing-user`면 기존 회원 응답), `POST /api/auth/signup`(가입 완료, 엔드포인트 임시). 카카오 OAuth 자체는 mock하지 않는다. 백엔드가 준비되면 `NEXT_PUBLIC_API_MOCKING=disabled`로 끄면 같은 API 함수가 실제 백엔드를 부른다.
+- 현재 mock: `POST /api/v1/auth/tokens`(항상 401 → 비로그인), `GET /api/v1/auth/signup/session`(카카오 정보, 임시 닉네임 "딸기스무디"), `POST /api/v1/auth/signup/profile-image`(사진 업로드), `POST /api/v1/auth/signup`(가입 완료. 닉네임 `중복닉네임`이면 409 `DUPLICATED_NICKNAME`). 카카오 인증 이동(`GET /api/v1/auth/kakao/authorize`)은 페이지 이동이라 mock하지 않는다. mock에서 가입 화면은 `/auth/callback?signUp=true`로 들어간다.
 - `msw/browser`는 서버에서 불러올 수 없으므로, worker 시작은 `next/dynamic`(`ssr: false`)으로 불러오는 `src/mocks/MockWorker.tsx`에서만 한다. mock이 켜져 있으면 worker가 준비될 때까지 화면 렌더링을 미룬다(`src/app/providers.tsx`).
 
 ### 3.9 GitHub Actions
@@ -181,7 +181,7 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 | T-4 | 이전 작업물(다른 레포)에는 **Supabase**가 쓰였다. 백엔드는 별도 개발자가 담당하는데, 프론트에서 Supabase를 쓸 일이 있는가? | API 클라이언트 구성, 인증 방식 |
 | ~~T-5~~ | ~~네이버 로그인도 지원하는가?~~ → **해결 (2026-10-04): 지원한다.** Figma 로그인 화면(`247:21229`)에 `네이버로 시작하기` 버튼이 있다. 인증 연동 방식은 카카오와 함께 정한다 (USER_FLOW F-16) | 로그인 화면, 인증 콜백 처리 |
 | T-6 | **푸시 알림 구현 방향**(웹뷰 앱 + 네이티브 푸시 / 카카오 알림톡·문자 / 아이폰 브라우저 제외)이 아직 정해지지 않았다. 아이폰 지원, 홈 화면 추가 없음이 조건이다 | 웹뷰 앱 껍데기 필요 여부, 웹과 앱 사이 연결(브리지) 설계 (USER_FLOW F-15) |
-| ~~T-7~~ | ~~백엔드 인증 방식은?~~ → **해결 (2026-10-04): 기존 프로젝트와 같이 localStorage `token`을 `Authorization: Bearer`로 붙인다** (`apiClient` 요청 인터셉터). `refreshToken`은 저장만 하고, 401 처리·재발급은 백엔드 계약이 나오면 추가한다 | — |
+| ~~T-7~~ | ~~백엔드 인증 방식은?~~ → **해결 (2026-10-06): 백엔드 API 계약을 따른다** (§6) | — |
 | T-8 | Next.js의 배포 환경은? (Vercel / 자체 서버 등) | 서버 기능(OG 메타, 로그인 콜백) 사용 범위, GitHub Actions 배포 단계 |
 
 ---
@@ -204,3 +204,20 @@ src/
   shared/lib/       공통 API 클라이언트(api/client.ts), 유틸(utils.ts)
   mocks/            MSW 핸들러, worker
 ```
+
+## 6. API 공통 규칙 (백엔드 계약, 2026-10-06)
+
+엔드포인트별 요청·응답·에러 코드는 백엔드 서버의 `/v3/api-docs`(swagger-ui)가 기준이다. 여기에는 여러 호출에 걸친 규칙만 적는다.
+
+- **경로:** 모든 API는 `/api/v1`으로 시작한다.
+- **응답 봉투:** 성공 `{ "isSuccess": true, "data": {…} }`, 실패 `{ "isSuccess": false, "code", "message" }`. 화면 분기는 **`code`** 로 한다. `message`는 바뀔 수 있어 분기에 쓰지 않는다. 성공이어도 돌려줄 값이 없으면 `data`가 없다. 코드: `ApiSuccess`·`ApiFailure`·`getApiErrorCode` (`shared/lib/api/client.ts`).
+- **공통 에러 코드:** `INVALID_REQUEST`(400·404·405·415 등 요청 형식 오류), `UNAUTHENTICATED`(401, access token 없음·만료), `INTERNAL_ERROR`(500).
+- **인증 에러 코드:** `INVALID_REFRESH_TOKEN`(401 → 로그인 화면), `INVALID_SIGNUP_TOKEN`·`INVALID_SOCIAL_CODE`(401 → 카카오 로그인부터 다시), `DUPLICATED_NICKNAME`(409 → 다른 닉네임 입력 안내).
+- **토큰:**
+  - access token(30분)은 응답 본문으로 받아 **메모리에만** 둔다(`shared/lib/api/accessToken.ts`). localStorage·sessionStorage에 넣지 않는다. 요청마다 `Authorization: Bearer`로 붙인다.
+  - refresh token(14일)과 가입 토큰은 서버가 **HttpOnly 쿠키**(`Path=/api/v1/auth`)로 관리한다. 그래서 `apiClient`는 `withCredentials: true`로 쿠키를 함께 보낸다.
+- **로그인 복구:** 앱 시작 때 `POST /api/v1/auth/tokens`. 200이면 로그인, 401이면 비로그인. 로그인 여부는 `useIsLoggedIn`(TanStack Query `["auth","session"]` + 메모리 토큰)으로 읽는다.
+- **401 처리:** `UNAUTHENTICATED`를 받으면 `POST /api/v1/auth/tokens`로 재발급을 한 번 시도하고 원래 요청을 한 번 다시 보낸다. 재발급하면 이전 refresh token이 바로 무효가 되므로 **재발급 요청은 한 번에 하나만** 보내고, 다른 요청은 그 결과를 기다린다. 재발급이 401이면 토큰을 지우고 로그인 화면으로 보낸다.
+- **날짜·시간:** `2026-09-14T00:00:00`처럼 오프셋 없는 ISO-8601이고, 모두 한국 시간(Asia/Seoul)이다. 브라우저 시간대와 상관없이 한국 시간으로 해석한다.
+- **CORS·쿠키:** 백엔드가 개발 서버 주소(`http://localhost:3000`)를 허용한다(credentials 포함, 허용 헤더 `Authorization`·`Content-Type`). 쿠키는 `SameSite=None; Secure`라 프론트와 API가 다른 사이트인 동안 Safari에서 막힐 수 있다(`추가 검증 필요`).
+

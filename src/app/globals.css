@@ -63,6 +63,8 @@
 
   /* 토스트 그림자 — 시안 컴포넌트 코드(Toast) 값 */
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.18);
+  /* 홈 상단 고정 영역 아래 그림자 — Figma 430:28279 캡처 측정 근사치 (D-4) */
+  --shadow-header: 0 4px 16px rgb(0 0 0 / 0.08);
   --color-stripe: var(--stripe);
   --color-stripe-muted: var(--stripe-muted);
   --color-stripe-muted-soft: var(--stripe-muted-soft);

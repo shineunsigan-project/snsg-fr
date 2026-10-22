@@ -1,21 +1,51 @@
-import type { AuthResponse, Gender } from "@/features/auth/types";
-import { apiClient } from "@/shared/lib/api/client";
+import type { Gender } from "@/features/auth/types";
+import {
+  apiClient,
+  type ApiSuccess,
+  type TokenResponse,
+} from "@/shared/lib/api/client";
 
-/** 이름·닉네임·이메일·성별은 백엔드에서 필수다 */
+// 가입 API는 모두 가입 토큰 쿠키(signUpToken)로 가입 세션을 찾는다. 세션이 만료되면 401 INVALID_SIGNUP_TOKEN
+
+/** 카카오에서 받은 정보. 받지 못한 값은 비어 있다 */
+export type SignUpSession = {
+  nickname?: string;
+  profileImageUrl?: string;
+};
+
+/** 가입 세션 조회 — 프로필 완성 화면의 기본값(카카오 닉네임·사진) */
+export async function getSignUpSession() {
+  const { data } = await apiClient.get<ApiSuccess<SignUpSession>>(
+    "/api/v1/auth/signup/session",
+  );
+  return data.data;
+}
+
+/** 프로필 사진 업로드 — 돌려받은 경로를 가입 요청의 profileImageUrl에 넣는다 */
+export async function postProfileImage(image: File) {
+  const body = new FormData();
+  body.append("image", image);
+  const { data } = await apiClient.post<
+    ApiSuccess<{ profileImageUrl: string }>
+  >("/api/v1/auth/signup/profile-image", body);
+  return data.data.profileImageUrl;
+}
+
+/** 닉네임·사진을 빼면 서버가 카카오 정보를 쓴다 */
 export type SignupRequest = {
-  signupToken: string;
-  name: string;
-  nickname: string;
-  email: string;
+  nickname?: string;
   gender: Gender;
   /** YYYY-MM-DD */
   birthDate: string;
+  /** postProfileImage가 돌려준 경로 */
+  profileImageUrl?: string;
 };
 
-// TODO(API): 엔드포인트·요청 필드는 백엔드 계약이 나오면 맞춘다. 지금은 MSW가 응답한다
-// TODO(API): 프로필 사진 업로드 방식이 정해지면 추가한다
-/** 신규 회원 가입 완료 — 가입 토큰과 프로필을 보내고 로그인 토큰을 받는다 */
+/** 신규 회원 가입 완료 — 프로필을 보내고 access token을 받는다 */
 export async function postSignup(body: SignupRequest) {
-  const { data } = await apiClient.post<AuthResponse>("/api/auth/signup", body);
-  return data;
+  const { data } = await apiClient.post<ApiSuccess<TokenResponse>>(
+    "/api/v1/auth/signup",
+    body,
+  );
+  return data.data;
 }

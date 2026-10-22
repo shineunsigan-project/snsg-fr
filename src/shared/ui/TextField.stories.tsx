@@ -5,7 +5,7 @@ import { TextField } from "./TextField";
 const meta = {
   title: "Shared/TextField",
   component: TextField,
-  args: { label: "이름", placeholder: "실명을 입력해주세요" },
+  args: { label: "닉네임" },
   decorators: [
     (Story) => (
       <div className="w-sm bg-card p-4">
@@ -18,11 +18,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Placeholder: Story = {};
-
-export const WithLabelHint: Story = {
-  args: { labelHint: "다른 사용자에게 공개되지 않아요" },
-};
+export const Default: Story = {};
 
 export const WithHelperText: Story = {
   args: {

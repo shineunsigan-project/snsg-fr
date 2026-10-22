@@ -12,7 +12,9 @@ const meta = {
       <Toaster />
       <Button
         variant="secondary"
-        onClick={() => showToast("로그인이 완료되었습니다.")}
+        onClick={() =>
+          showToast("회원가입이 완료되었어요. 환영해요!", { duration: 2000 })
+        }
       >
         토스트 띄우기
       </Button>

@@ -3,8 +3,7 @@
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 
-import { markGuest } from "../lib/authStorage";
-import { getKakaoAuthorizeUrl, toSafeRedirectPath } from "../lib/kakaoOAuth";
+import { startKakaoLogin } from "@/shared/lib/kakaoLogin";
 import { Button } from "@/shared/ui/button";
 import { SocialLoginButton } from "@/shared/ui/SocialLoginButton";
 
@@ -14,16 +13,11 @@ const TERMS_URL = "https://shineunsigan.com/terms.html";
 
 /**
  * 로그인 화면 (Figma 247:21229, DESIGN §3.1)
- * 앱 시작 화면이 아니다. 로그인 필요 모달의 `카카오 로그인`, 로그아웃·탈퇴 이후에만 들어온다 (USER_FLOW §3)
+ * 앱 시작 화면이 아니다. 로그인 실패·재발급 실패, 헤더·GNB 로그인, 탈퇴 이후에 들어온다 (USER_FLOW §3)
  */
 export function LoginScreen() {
-  // 실제 카카오 인증 페이지로 이동한다. 로그인 후 돌아올 화면(redirect)은 state로 넘긴다 (USER_FLOW §4.3)
-  const handleKakaoStart = () => {
-    const redirect = new URLSearchParams(window.location.search).get(
-      "redirect",
-    );
-    window.location.assign(getKakaoAuthorizeUrl(toSafeRedirectPath(redirect)));
-  };
+  // 로그인 후 돌아갈 화면은 이 화면으로 보낸 쪽이 저장해 둔다 (USER_FLOW §4.3)
+  const handleKakaoStart = () => startKakaoLogin();
   // TODO: 네이버 인증을 연결한다 (TECH_STACK T-5)
   const handleNaverStart = () => {};
 
@@ -65,7 +59,7 @@ export function LoginScreen() {
             variant="outline-inverse"
             className="rounded-lg text-md"
             nativeButton={false}
-            render={<Link href="/" onClick={markGuest} />}
+            render={<Link href="/" />}
           >
             로그인 없이 둘러보기
           </Button>

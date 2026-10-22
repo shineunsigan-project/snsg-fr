@@ -1,21 +1,28 @@
+import { useQuery } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
 
-import { TOKEN_STORAGE_KEY } from "@/shared/lib/api/client";
-
-// 다른 탭에서 로그인·로그아웃하면 storage 이벤트로 다시 읽는다
-const subscribe = (onChange: () => void) => {
-  window.addEventListener("storage", onChange);
-  return () => window.removeEventListener("storage", onChange);
-};
+import { restoreSession, sessionQueryKey } from "../api/session";
+import {
+  getAccessToken,
+  subscribeAccessToken,
+} from "@/shared/lib/api/accessToken";
 
 /**
- * 로그인 여부 — localStorage에 토큰이 있으면 로그인 상태다 (기존 프로젝트 방식)
- * 서버 렌더링 중에는 알 수 없어 undefined를 돌려준다. 이때는 로그인 필요 모달을 띄우지 않는다
+ * 로그인 여부 — 메모리에 access token이 있으면 로그인 상태다
+ * 처음 한 번 재발급 API로 로그인을 복구한다. 복구가 끝나기 전(서버 렌더링 포함)에는 undefined를 돌려준다.
+ * 이때는 로그인 필요 모달을 띄우지 않는다
  */
 export function useIsLoggedIn() {
-  return useSyncExternalStore(
-    subscribe,
-    () => localStorage.getItem(TOKEN_STORAGE_KEY) !== null,
-    () => undefined,
+  const { isPending } = useQuery({
+    queryKey: sessionQueryKey,
+    queryFn: restoreSession,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const hasToken = useSyncExternalStore(
+    subscribeAccessToken,
+    () => getAccessToken() !== null,
+    () => false,
   );
+  return isPending ? undefined : hasToken;
 }

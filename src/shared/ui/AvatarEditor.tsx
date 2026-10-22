@@ -38,7 +38,8 @@ export function AvatarEditor({ imageUrl, onFileSelect }: AvatarEditorProps) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        // 업로드 API가 받는 형식만 고르게 한다. iOS는 HEIC 사진을 JPG로 바꿔 넘겨준다
+        accept="image/png,image/jpeg,image/webp"
         tabIndex={-1}
         aria-hidden
         className="sr-only"

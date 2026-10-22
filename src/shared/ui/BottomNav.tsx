@@ -1,27 +1,40 @@
 "use client";
 
-import { Calendar, CirclePlus, User, type LucideIcon } from "lucide-react";
+import {
+  Calendar,
+  CirclePlus,
+  LogIn,
+  User,
+  type LucideIcon,
+} from "lucide-react";
 
 import { cn } from "@/shared/lib/utils";
 
-export type BottomNavItem = "schedule" | "create" | "my";
+export type BottomNavItem = "schedule" | "create" | "login" | "my";
 
-const items: ReadonlyArray<{
-  value: BottomNavItem;
-  label: string;
-  icon: LucideIcon;
-}> = [
+type NavEntry = { value: BottomNavItem; label: string; icon: LucideIcon };
+
+const commonEntries: ReadonlyArray<NavEntry> = [
   { value: "schedule", label: "일정", icon: Calendar },
   { value: "create", label: "일정 개설", icon: CirclePlus },
-  { value: "my", label: "내 정보", icon: User },
 ];
+// 세 번째 항목은 비로그인이면 로그인, 로그인 상태면 내 정보다 (Figma 430:28279, 팀 결정 2026-10-11)
+const loginEntry: NavEntry = { value: "login", label: "로그인", icon: LogIn };
+const myEntry: NavEntry = { value: "my", label: "내 정보", icon: User };
 
 type BottomNavProps = {
   activeItem: BottomNavItem;
+  /** 로그인 여부를 확인하기 전(undefined)에는 비로그인으로 그린다 */
+  isLoggedIn?: boolean;
   onItemSelect?: (item: BottomNavItem) => void;
 };
 
-export function BottomNav({ activeItem, onItemSelect }: BottomNavProps) {
+export function BottomNav({
+  activeItem,
+  isLoggedIn,
+  onItemSelect,
+}: BottomNavProps) {
+  const items = [...commonEntries, isLoggedIn ? myEntry : loginEntry];
   return (
     <nav
       aria-label="주요 메뉴"

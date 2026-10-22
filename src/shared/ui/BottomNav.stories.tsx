@@ -18,4 +18,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Schedule: Story = {};
+export const Guest: Story = {};
+
+export const LoggedIn: Story = { args: { isLoggedIn: true } };

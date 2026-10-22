@@ -20,24 +20,27 @@ function Toaster(props: ToasterProps) {
   );
 }
 
-/** 체크 아이콘이 붙은 안내 토스트를 띄운다 */
-function showToast(message: string) {
-  toast.custom(() => (
-    <div className="pointer-events-none flex items-center gap-2 rounded-xl bg-toast px-4.5 py-3.25 font-sans text-sm font-semibold text-white shadow-toast">
-      <svg
-        aria-hidden
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        strokeWidth="3"
-        className="shrink-0 stroke-on-brand-accent"
-      >
-        <path d="M5 12l5 5 9-10" />
-      </svg>
-      {message}
-    </div>
-  ));
+/** 체크 아이콘이 붙은 안내 토스트를 띄운다. duration(ms)을 주지 않으면 Sonner 기본값(4초)을 쓴다 */
+function showToast(message: string, options?: { duration?: number }) {
+  toast.custom(
+    () => (
+      <div className="pointer-events-none flex items-center gap-2 rounded-xl bg-toast px-4.5 py-3.25 font-sans text-sm font-semibold text-white shadow-toast">
+        <svg
+          aria-hidden
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          strokeWidth="3"
+          className="shrink-0 stroke-on-brand-accent"
+        >
+          <path d="M5 12l5 5 9-10" />
+        </svg>
+        {message}
+      </div>
+    ),
+    options,
+  );
 }
 
 export { showToast, Toaster };
