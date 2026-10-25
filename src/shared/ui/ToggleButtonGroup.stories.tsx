@@ -4,8 +4,9 @@ import { useState } from "react";
 import { ToggleButtonGroup } from "./ToggleButtonGroup";
 
 const options = [
-  { value: "FEMALE", label: "여성" },
   { value: "MALE", label: "남성" },
+  { value: "FEMALE", label: "여성" },
+  { value: "OTHER", label: "기타" },
 ] as const;
 
 type Gender = (typeof options)[number]["value"];

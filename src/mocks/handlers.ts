@@ -60,12 +60,12 @@ export const handlers: AnyHandler[] = [
     });
   }),
 
-  // postSignup — 성별·생년월일은 필수, 닉네임은 선택
+  // postSignup — 이름·성별·생년월일은 필수, 닉네임·이메일은 선택
   http.post<never, SignupRequest, ApiSuccess<TokenResponse> | ApiFailure>(
     "*/api/v1/auth/signup",
     async ({ request }) => {
       const body = await request.json();
-      if (!body.gender || !body.birthDate) {
+      if (!body.name || !body.gender || !body.birthDate) {
         return failure(
           400,
           "INVALID_REQUEST",

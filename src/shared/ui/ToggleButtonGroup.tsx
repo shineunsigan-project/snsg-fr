@@ -12,7 +12,7 @@ type ToggleButtonGroupProps<T extends string> = {
   ref?: Ref<HTMLInputElement>;
 };
 
-/** 2지선다 선택 버튼 (DESIGN §9.1 Toggle Button Group, §13-10). 라디오 버튼으로 동작한다 */
+/** 하나만 고르는 선택 버튼 (DESIGN §9.1 Toggle Button Group, §13-10). 라디오 버튼으로 동작한다. 선택지 수만큼 같은 폭으로 나눈다 */
 export function ToggleButtonGroup<T extends string>({
   label,
   name,
@@ -30,7 +30,7 @@ export function ToggleButtonGroup<T extends string>({
       <legend className="text-xs font-bold text-muted-foreground">
         {label}
       </legend>
-      <div className="mt-2 grid grid-cols-2 gap-2.5">
+      <div className="mt-2 grid auto-cols-fr grid-flow-col gap-2.5">
         {options.map((option, index) => (
           <label
             key={option.value}

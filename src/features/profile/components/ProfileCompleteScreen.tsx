@@ -99,11 +99,12 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormInput, unknown, ProfileFormValues>({
     resolver: profileResolver,
-    // 입력 중에는 검사하지 않고 시작하기를 누를 때만 검사한다 (팀 결정 2026-10-11, USER_FLOW §4.1)
-    // 값을 고치면 그 칸의 오류 문구만 지운다
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
+    // 칸을 벗어날 때 그 칸만 검사하고, 시작하기를 누르면 전체를 검사한다. 입력 중에는 검사하지 않는다
+    // 값을 고치면 그 칸의 오류 문구만 지운다 (기능 요구사항 정의서 v0.3, USER_FLOW §4.1)
+    mode: "onBlur",
+    reValidateMode: "onBlur",
     defaultValues: {
+      name: "",
       nickname: session?.nickname ?? "",
       gender: undefined,
       birthDate: "",
@@ -124,7 +125,6 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
     previewUrl: string;
     uploadedPath?: string;
   }>();
-  const [avatarError, setAvatarError] = useState<string>();
 
   // 미리보기용 blob URL은 바뀌거나 화면을 떠날 때 해제한다
   // 업로드 경로만 저장할 때는 해제하지 않도록 previewUrl에만 반응한다
@@ -134,19 +134,35 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
     return () => URL.revokeObjectURL(avatarPreviewUrl);
   }, [avatarPreviewUrl]);
 
-  const handleAvatarSelect = (file: File) => {
+  // 사진 오류는 토스트로 알린다 (기능 요구사항 정의서 v0.3)
+  const handleAvatarSelect = async (file: File) => {
     if (!PROFILE_IMAGE_TYPES.includes(file.type)) {
-      setAvatarError("이미지 파일만 등록할 수 있어요.");
+      // WebP는 팀 결정으로 유지해서 기획서 문구에 WebP를 덧붙였다
+      showToast("JPG, PNG, WebP 형식의 사진만 올릴 수 있어요.", {
+        variant: "error",
+      });
       return;
     }
     if (file.size > PROFILE_IMAGE_MAX_MB * 1024 * 1024) {
-      setAvatarError(
-        `${PROFILE_IMAGE_MAX_MB}MB 이하의 이미지만 등록할 수 있어요.`,
-      );
+      showToast(`${PROFILE_IMAGE_MAX_MB}MB 이하의 이미지만 등록할 수 있어요.`, {
+        variant: "error",
+      });
       return;
     }
-    setAvatarError(undefined);
-    setAvatar({ file, previewUrl: URL.createObjectURL(file) });
+    // 형식은 맞아도 깨진 파일은 미리보기를 그릴 수 없으므로 먼저 열어 본다
+    const previewUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.src = previewUrl;
+    try {
+      await image.decode();
+    } catch {
+      URL.revokeObjectURL(previewUrl);
+      showToast("사진을 불러올 수 없어요. 다른 사진을 골라주세요.", {
+        variant: "error",
+      });
+      return;
+    }
+    setAvatar({ file, previewUrl });
   };
 
   const submit = async (values: ProfileFormValues) => {
@@ -167,16 +183,20 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
           restartLogin(router);
           return;
         }
-        setAvatarError("사진을 올리지 못했어요. 다시 시도해주세요.");
+        showToast("사진을 올리지 못했어요. 다시 시도해주세요.", {
+          variant: "error",
+        });
         return;
       }
     }
 
     try {
       await signup({
+        name: values.name,
         nickname: values.nickname,
         gender: values.gender,
         birthDate: toIsoBirthDate(values.birthDate),
+        email: values.email || undefined,
         profileImageUrl,
       });
     } catch (error) {
@@ -224,15 +244,16 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
             imageUrl={avatarPreviewUrl ?? session?.profileImageUrl}
             onFileSelect={handleAvatarSelect}
           />
-          {avatarError && (
-            // TODO(D-8): 오류 색은 디자인 미확인이라 shadcn 기본 오류 색을 쓴다
-            <p role="alert" className="mt-2 text-xs text-destructive">
-              {avatarError}
-            </p>
-          )}
         </div>
 
+        {/* 입력 순서는 기능 요구사항 정의서 v0.3을 따른다: 이름 → 닉네임 → 성별 → 생년월일 → 이메일 */}
         <div className="mt-4.5 flex flex-col gap-3.5 pb-6">
+          <TextField
+            label="이름"
+            autoComplete="name"
+            errorMessage={errors.name?.message}
+            {...register("name", { onChange: () => clearErrors("name") })}
+          />
           <TextField
             label="닉네임"
             autoComplete="nickname"
@@ -299,6 +320,15 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
                 }
               />
             )}
+          />
+          {/* TODO(D-14): 시안에 없는 칸이라 기존 입력 칸 모양으로 둔다. 선택 입력 표시 방식은 디자인 미정 */}
+          <TextField
+            label="이메일 (선택)"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            errorMessage={errors.email?.message}
+            {...register("email", { onChange: () => clearErrors("email") })}
           />
         </div>
       </div>

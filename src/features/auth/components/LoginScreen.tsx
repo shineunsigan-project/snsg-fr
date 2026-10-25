@@ -7,9 +7,9 @@ import { startKakaoLogin } from "@/shared/lib/kakaoLogin";
 import { Button } from "@/shared/ui/button";
 import { SocialLoginButton } from "@/shared/ui/SocialLoginButton";
 
-// 개인정보처리방침·이용약관 문서 주소 (DESIGN §3.2)
-const PRIVACY_POLICY_URL = "https://shineunsigan.com/privacy.html";
-const TERMS_URL = "https://shineunsigan.com/terms.html";
+// 개인정보처리방침·이용약관 문서 주소 (기능 요구사항 정의서 v0.3, DESIGN §3.2)
+const PRIVACY_POLICY_URL = "https://info.shineunsigan.com/privacy.html";
+const TERMS_URL = "https://info.shineunsigan.com/terms.html";
 
 /**
  * 로그인 화면 (Figma 247:21229, DESIGN §3.1)
@@ -86,15 +86,13 @@ function ExternalTextLink({
   children: string;
 }) {
   return (
+    // 새 탭을 열지 않고 같은 창에서 연다. 뒤로가기로 로그인 화면에 돌아온다 (기능 요구사항 정의서 v0.3)
     <a
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
       className="inline-flex items-center gap-0.5 font-semibold text-white underline underline-offset-2"
     >
       {children}
       <ExternalLink aria-hidden className="size-2.5" />
-      <span className="sr-only">(새 창)</span>
     </a>
   );
 }

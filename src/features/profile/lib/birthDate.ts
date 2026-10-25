@@ -27,19 +27,21 @@ export function formatBirthDate(digits: string): string {
   return parts.join(". ");
 }
 
-/**
- * 연령대 (예: "20대 후반")
- * TODO(F-12): 산출 기준과 계산 위치(클라이언트/서버)가 정해지지 않았다.
- * 지금은 만 나이 기준, 일의 자리 0~3 초반 / 4~6 중반 / 7~9 후반으로 가정한다
- */
-export function getAgeGroup(birthDate: Date, today = new Date()): string {
-  let age = today.getFullYear() - birthDate.getFullYear();
+/** 만 나이 */
+export function getAge(birthDate: Date, today = new Date()): number {
+  const age = today.getFullYear() - birthDate.getFullYear();
   const hadBirthday =
     today.getMonth() > birthDate.getMonth() ||
     (today.getMonth() === birthDate.getMonth() &&
       today.getDate() >= birthDate.getDate());
-  if (!hadBirthday) age -= 1;
+  return hadBirthday ? age : age - 1;
+}
 
+/**
+ * 연령대 (예: "20대 후반") — 만 나이의 일의 자리 0~3 초반 / 4~6 중반 / 7~9 후반 (기능 요구사항 정의서 v0.3, F-12 해결)
+ */
+export function getAgeGroup(birthDate: Date, today = new Date()): string {
+  const age = getAge(birthDate, today);
   const decade = Math.floor(age / 10) * 10;
   const unit = age % 10;
   const part = unit <= 3 ? "초반" : unit <= 6 ? "중반" : "후반";

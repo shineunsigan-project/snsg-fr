@@ -16,8 +16,19 @@ export function getLoginRedirect() {
   return path?.startsWith("/") && !path.startsWith("//") ? path : "/";
 }
 
+// 인증 페이지로 넘어가는 중에 버튼을 다시 눌러도 한 번만 이동한다 (기능 요구사항 정의서 v0.3)
+let isStartingKakaoLogin = false;
+if (typeof window !== "undefined") {
+  // 카카오 화면에서 뒤로가기로 돌아오면(bfcache) 다시 누를 수 있게 한다
+  window.addEventListener("pageshow", () => {
+    isStartingKakaoLogin = false;
+  });
+}
+
 /** 카카오 로그인 시작 — 서버의 카카오 인증 주소로 이동한다 */
 export function startKakaoLogin() {
+  if (isStartingKakaoLogin) return;
+  isStartingKakaoLogin = true;
   // 서버(외부 출처)로 가는 페이지 이동이라 Next.js 라우터를 쓰지 않는다
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- 주소는 API 서버(NEXT_PUBLIC_API_BASE_URL)다
   window.location.assign(KAKAO_AUTHORIZE_URL);

@@ -20,26 +20,38 @@ function Toaster(props: ToasterProps) {
   );
 }
 
-/** 체크 아이콘이 붙은 안내 토스트를 띄운다. duration(ms)을 주지 않으면 Sonner 기본값(4초)을 쓴다 */
-function showToast(message: string, options?: { duration?: number }) {
+type ShowToastOptions = {
+  /** 노출 시간(ms). 주지 않으면 Sonner 기본값(4초) */
+  duration?: number;
+  /** error면 체크 아이콘을 빼고 문구만 보여준다. TODO(D-15): 오류 토스트 디자인이 정해지면 바꾼다 */
+  variant?: "success" | "error";
+};
+
+/** 안내 토스트를 띄운다. 기본은 체크 아이콘이 붙은 성공 안내다 */
+function showToast(
+  message: string,
+  { duration, variant = "success" }: ShowToastOptions = {},
+) {
   toast.custom(
     () => (
       <div className="pointer-events-none flex items-center gap-2 rounded-xl bg-toast px-4.5 py-3.25 font-sans text-sm font-semibold text-white shadow-toast">
-        <svg
-          aria-hidden
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          strokeWidth="3"
-          className="shrink-0 stroke-on-brand-accent"
-        >
-          <path d="M5 12l5 5 9-10" />
-        </svg>
+        {variant === "success" && (
+          <svg
+            aria-hidden
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            strokeWidth="3"
+            className="shrink-0 stroke-on-brand-accent"
+          >
+            <path d="M5 12l5 5 9-10" />
+          </svg>
+        )}
         {message}
       </div>
     ),
-    options,
+    { duration },
   );
 }
 
