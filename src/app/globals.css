@@ -1,0 +1,174 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Pretendard 1.3.9 — SIL Open Font License (public/fonts/OFL.txt) */
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("/fonts/PretendardVariable.woff2") format("woff2-variations");
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * 디자인 토큰
+ * 색상 값은 DESIGN.md §6의 근사치다. Claude Design 시안 원본 값을 받으면 :root만 교체한다 (D-4).
+ * 글자 크기·간격 스케일은 디자인에서 확인되지 않아 Tailwind 기본값을 그대로 쓴다 (D-4).
+ * 다크 모드는 디자인 미확인이라 정의하지 않는다.
+ */
+@theme inline {
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* 글자 크기 — Tailwind 기본 스케일에 없는 값만 추가 (Figma 로그인 화면 247:21229 측정) */
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.5rem;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  /* 입력값·토글·보조 버튼 라벨 (로그인 247:21229, 프로필 완성 132:16466 측정) */
+  --text-md: 0.9375rem;
+  --text-md--line-height: 1.375rem;
+
+  /* shadcn 시맨틱 토큰 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* 서비스 토큰 (DESIGN.md §6) */
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-kakao: var(--kakao);
+  --color-on-brand-accent: var(--on-brand-accent);
+  --color-on-brand-muted: var(--on-brand-muted);
+  --color-toast: var(--toast);
+
+  /* 토스트 그림자 — 시안 컴포넌트 코드(Toast) 값 */
+  --shadow-toast: 0 8px 24px rgb(0 0 0 / 0.18);
+  /* 홈 상단 고정 영역 아래 그림자 — Figma 430:28279 캡처 측정 근사치 (D-4) */
+  --shadow-header: 0 4px 16px rgb(0 0 0 / 0.08);
+  --color-stripe: var(--stripe);
+  --color-stripe-muted: var(--stripe-muted);
+  --color-stripe-muted-soft: var(--stripe-muted-soft);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* bg.app — 목록 배경 */
+  --background: #f7f8f4;
+  /* text.primary — 제목, 본문 */
+  --foreground: #1c1f18;
+  /* bg.surface — 카드, 모달, 시트 */
+  --card: #ffffff;
+  --card-foreground: #1c1f18;
+  --popover: #ffffff;
+  --popover-foreground: #1c1f18;
+  /* brand.button — 적용하기, 시작하기 등 주요 버튼 */
+  --primary: #578627;
+  /* 추정: 녹색 버튼 위 흰 글자 */
+  --primary-foreground: #ffffff;
+  /* bg.subtle — 회색 버튼, 세그먼트 탭 트랙 */
+  --secondary: #f2f3ef;
+  --secondary-foreground: #1c1f18;
+  --muted: #f2f3ef;
+
+  /*
+   * TODO(D-4): DESIGN.md에서 미확인인 값을 Figma 홈 화면 캡처(200:20789)에서 측정한 근사치
+   * muted-foreground — 인원·비용, 비선택 탭 / subtle-foreground — 장소, 마감 일정 날짜, 비활성 GNB
+   */
+  --muted-foreground: #676c62;
+  --subtle-foreground: #8b9085;
+  --border: #eceee8;
+  /* 입력 필드·미선택 토글 테두리 — Figma 프로필 완성 화면 측정 */
+  --input: #e0e3da;
+
+  /* TODO(D-4): 아래는 디자인 값이 없어 shadcn 기본값을 유지한다 */
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --ring: oklch(0.708 0 0);
+  /* TODO(D-8): 오류 색 미확인 */
+  --destructive: oklch(0.577 0.245 27.325);
+  /* TODO(D-4): radius 수치 미확인 */
+  --radius: 0.625rem;
+
+  /* brand.primary — 로그인 배경, GNB 활성, 날짜 텍스트 */
+  --brand: #356516;
+  /* chip.selected / badge.recruiting — 선택된 칩, 모집중 배지, 선택된 토글 배경 */
+  /* DESIGN §6은 #E8F1D8 부근이었으나 홈·프로필 캡처 두 곳에서 모두 #F1F7E8로 측정되어 맞춘다 */
+  --brand-soft: #f1f7e8;
+  /* kakao.yellow — 카카오 로그인 버튼, 로그인 필요 모달 주요 버튼 */
+  --kakao: #fee500;
+  /* 브랜드 녹색 배경 위 글자 — 서비스명 라벨 / 보조 문구·약관 안내 (Figma 247:21229 측정) */
+  --on-brand-accent: #b1d27b;
+  --on-brand-muted: #dfebc7;
+  /* TODO(D-4): 시안 코드의 --toast-bg 실제 값을 받으면 교체한다. 지금은 짙은 글자색으로 대신한다 */
+  --toast: #1c1f18;
+  /* placeholder.stripe — 이미지 placeholder 사선 (다른 한 색은 brand-soft) */
+  --stripe: #ddebc5;
+  /* 모집완료 썸네일의 회색 사선 — Figma 캡처(200:20789) 측정 근사치 */
+  --stripe-muted: #e6e8e2;
+  --stripe-muted-soft: #eef0ea;
+}
+
+/* 노치·홈 인디케이터 safe-area (DESIGN §12) */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 이미지 placeholder 사선 패턴 (DESIGN §9.1) */
+@utility bg-stripe-pattern {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--brand-soft) 0 6px,
+    var(--stripe) 6px 12px
+  );
+}
+
+@utility bg-stripe-pattern-muted {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--stripe-muted-soft) 0 6px,
+    var(--stripe-muted) 6px 12px
+  );
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
