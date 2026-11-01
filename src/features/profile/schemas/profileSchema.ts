@@ -2,11 +2,10 @@ import { z } from "zod";
 
 import { getAge, parseBirthDate } from "../lib/birthDate";
 
-// 기능 요구사항 정의서 v0.3 순서 (남성·여성·기타)
+// 남성·여성 (사용자 UI 수정사항: 기타는 출시 이후 적용 여부를 정한다)
 export const genderOptions = [
   { value: "MALE", label: "남성" },
   { value: "FEMALE", label: "여성" },
-  { value: "OTHER", label: "기타" },
 ] as const;
 
 // 이름: 2~20자 한글·영문. 띄어쓰기는 영문 사이에만 허용한다 (예: John Smith) (기능 요구사항 정의서 v0.3)
@@ -46,7 +45,7 @@ export const profileSchema = z.object({
       NICKNAME_PATTERN,
       "닉네임은 2~10자의 한글·영문·숫자·마침표(.)·밑줄(_)만 쓸 수 있어요.",
     ),
-  gender: z.enum(["MALE", "FEMALE", "OTHER"], {
+  gender: z.enum(["MALE", "FEMALE"], {
     error: "성별을 선택해주세요.",
   }),
   birthDate: z.string().superRefine((digits, ctx) => {
