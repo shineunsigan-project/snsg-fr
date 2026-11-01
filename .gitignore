@@ -32,3 +32,16 @@ coverage/
 .DS_Store
 Thumbs.db
 *.pem
+
+# 개인 Obsidian 노트(기획 자료)
+snsg-fr-secondbrain/
+
+# 로컬 전용 (Claude Code 설정, 문서)
+.claude/
+docs/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

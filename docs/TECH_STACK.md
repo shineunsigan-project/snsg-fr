@@ -20,6 +20,8 @@
 | Styling | **Tailwind CSS** | 4.3 | 스타일링, 디자인 토큰 관리 (shadcn/ui의 전제, §3.13) |
 | UI Component | **shadcn/ui** (Base UI 기반) | CLI 4.21 · `@base-ui/react` 1.8 | 접근성이 중요한 오버레이·입력 요소 (범위는 §3.4) |
 | Toast | **Sonner** | 2.0 | 결과 안내 토스트 (`src/shared/ui/sonner.tsx`, §3.4) |
+| Calendar | **react-day-picker** + **date-fns** | 10.0.2 · 4.4.0 (정확한 버전 고정) | 월 달력 (shadcn Calendar, `src/shared/ui/calendar.tsx`, §3.4). 일정 개설 날짜(CRT-04), 목록 날짜 필터(LIST-03) |
+| Wheel Picker | **@ncdai/react-wheel-picker** | 1.2.3 (정확한 버전 고정) | 시간 휠 (shadcn 레지스트리 `@ncdai/wheel-picker`, `src/shared/ui/wheel-picker.tsx`, §3.4). 일정 개설 시작 시각(CRT-04) |
 | Server State | **TanStack Query** | 5 | 서버 데이터 조회·캐시·로딩/에러 상태, 참여·취소 후 관련 목록 갱신 |
 | Form | **React Hook Form** | 7 | 프로필 완성·수정, 일정 개설 폼 |
 | Validation | **Zod** | 4 | 폼 입력값 유효성 검사 스키마 |
@@ -80,13 +82,17 @@
 shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞게 스타일을 고쳐 쓴다.
 
 - **기반 라이브러리는 Base UI**다(팀 결정, 2026-10-04). `components.json`의 style은 `base-nova`이고, 컴포넌트는 `src/shared/ui`에 설치된다.
-- 추가는 `pnpm dlx shadcn@latest add <컴포넌트>`로 한다.
+- 추가는 `pnpm dlx shadcn@latest add <컴포넌트>`로 한다. 프로젝트에 설치된 CLI 버전을 쓰려면 `pnpm exec shadcn add <컴포넌트>`. 기존 파일(`button.tsx` 등)을 덮어쓸지 물으면 덮어쓰지 않는다.
 
 | shadcn 기반 | 직접 구현 |
 |---|---|
-| Dialog(확인 모달·로그인 필요 모달), Drawer(바텀시트), RadioGroup, Checkbox, Tabs(동작), Sonner(토스트) | Button 변형, Badge, FilterChip, ScheduleCard, BottomNav, Header, ImagePlaceholder, 일정 요약 블록, 성별 토글, Avatar Editor |
+| Dialog(확인 모달·로그인 필요 모달), Drawer(바텀시트), RadioGroup(`RadioList`, Base UI 직접 사용), Checkbox, Tabs(동작), Sonner(토스트), Calendar(월 달력), Wheel Picker(시간 휠, `TimeWheelPicker`) | Button 변형, Badge, FilterChip, ScheduleCard, BottomNav, Header, ImagePlaceholder, 일정 요약 블록, 성별 토글, Avatar Editor |
 
 - 기준: 포커스 이동·키보드 조작·스크린리더 대응이 까다로운 요소만 shadcn을 쓴다. 도메인 전용 UI는 직접 만든다.
+- **Calendar·Wheel Picker (사용자 승인, 2026-10-31):** 일정 개설(CRT-04)의 날짜 달력과 시작 시각 휠을 직접 만들지 않고 라이브러리로 쓴다. 날짜 계산·키보드 이동(달력), 관성 스크롤·터치(휠)를 직접 구현하지 않기 위해서다. 둘 다 정확한 버전으로 고정한다.
+  - Calendar는 DayPicker props(`mode`, `disabled`, `selected` 등)를 그대로 넘긴다. 기간 선택(`mode="range"`)도 막지 않는다. 한국어 로케일(`react-day-picker/locale`의 `ko`)이 기본이다.
+  - Wheel Picker는 role·aria 속성을 주지 않는다. `TimeWheelPicker`는 묶음에 `role="group"`+`aria-label`을 붙이고 바뀐 시각을 `aria-live`로 읽어 준다. 키보드는 ↑↓(값), ←→(열 이동), Home·End, 글자 입력 검색을 패키지가 지원한다.
+  - Wheel Picker 기본 CSS는 `globals.css`에서 `layer(base)`로 불러온다. 레이어 밖에 두면 Tailwind 유틸리티보다 우선하기 때문이다.
 - **Sonner:** 토스트는 Sonner로 띄운다(팀 결정, 2026-10-04). `sonner` 패키지만 설치하고(`next-themes` 없음), `src/shared/ui/sonner.tsx`의 `Toaster`를 `providers.tsx`에 한 번 둔다. 모양은 Sonner 기본을 끄고(`unstyled`) 시안 컴포넌트 코드의 Toast를 따른다(DESIGN §9.1). 띄울 때는 `showToast("문구")`.
 
 ### 3.5 React Hook Form + Zod
