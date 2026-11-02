@@ -195,7 +195,19 @@ src/
 - 참여, 취소, 개설 같은 mutation이 끝나면 영향을 받는 쿼리를 무효화한다. 낙관적 업데이트는 쓰지 않는다.
 
 ### API 계약
-- 기준은 백엔드 스펙 문서 하나다(TECH_STACK §3.7). 엔드포인트, 요청·응답 필드, 에러 코드, 인증 방식(T-7)을 스펙 없이 정하지 않는다.
+- 기준은 백엔드 저장소 `snsg-be`의 **develop 브랜치** 문서다. 이 저장소에 복사본을 두지 않는다.
+  - `docs/api-guide.md`: 동작, 에러 코드, 화면별 처리
+  - `docs/openapi.yaml`: 요청·응답 필드와 타입
+- API를 다루는 작업 전에 최신 문서를 확인한다. 백엔드 작업 폴더는 바꾸지 않고 fetch와 읽기만 한다(기본 위치 `../snsg-be`).
+  ```
+  git -C ../snsg-be fetch -q origin
+  git -C ../snsg-be log -3 --date=short --format='%h %ad %s' origin/develop -- docs/api-guide.md docs/openapi.yaml
+  git -C ../snsg-be show origin/develop:docs/api-guide.md
+  ```
+  - 마지막으로 맞춘 커밋 이후 바뀌었으면 `git -C ../snsg-be diff <커밋>..origin/develop -- docs/api-guide.md`로 바뀐 부분만 코드와 대조한다.
+  - develop에 아직 없는 변경(백엔드 기능 브랜치 `origin/feat/SHI-<번호>-…`)에 미리 맞출 때는 그 브랜치를 보고, 작업 요약과 PR에 "SHI-<번호> 브랜치 기준"이라고 적는다.
+  - 작업 요약과 PR에 대조한 api-guide 커밋을 적는다(예: `snsg-be develop ee02813`). 다음 작업에서 비교 기준이 된다.
+- 엔드포인트, 요청·응답 필드, 에러 코드, 인증 방식(T-7)을 문서 없이 정하지 않는다.
 - 스펙이 없는 API가 필요한 작업이면 구현 전에 사용자에게 알린다. 임시 계약으로 진행하기로 하면:
   - 임시 계약은 `features/<기능>/api/` 파일 한 곳에만 두고 `TODO(API): 미확정`을 표시한다.
   - 타입은 USER_FLOW §11에서 화면에 필요한 최소 필드만 정의한다.
