@@ -32,7 +32,7 @@ export async function postProfileImage(image: File) {
 }
 
 /** 닉네임·사진을 빼면 서버가 카카오 정보를 쓴다 */
-// TODO(API): name·email·gender OTHER는 백엔드 가입 API에 아직 없다. 필드 이름은 가정이다 (기능 요구사항 정의서 v0.3 01)
+// 필드와 규칙은 백엔드 api-guide "가입 요청의 입력 규칙"을 따른다 (SHI-146). email은 비우면 보내지 않는다
 export type SignupRequest = {
   name: string;
   nickname?: string;

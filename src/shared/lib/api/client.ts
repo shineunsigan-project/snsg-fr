@@ -5,8 +5,18 @@ import { getAccessToken, setAccessToken } from "./accessToken";
 
 /** 성공 응답 봉투 (TECH_STACK §6) */
 export type ApiSuccess<T> = { isSuccess: true; data: T };
-/** 실패 응답 봉투. 화면 분기는 code로 한다. message는 바뀔 수 있어 분기에 쓰지 않는다 */
-export type ApiFailure = { isSuccess: false; code: string; message: string };
+/** 요청 필드 검증 실패 항목. field는 요청 JSON의 필드 이름이다 */
+export type ApiFieldError = { field: string; message: string };
+/**
+ * 실패 응답 봉투. 화면 분기는 code로 한다. message는 바뀔 수 있어 분기에 쓰지 않는다
+ * errors는 400 INVALID_REQUEST 중 필드 검증 실패일 때만 온다 (백엔드 api-guide)
+ */
+export type ApiFailure = {
+  isSuccess: false;
+  code: string;
+  message: string;
+  errors?: ApiFieldError[];
+};
 
 /** 로그인·가입·재발급 응답 */
 export type TokenResponse = { accessToken: string };
@@ -26,6 +36,13 @@ export function getApiErrorCode(error: unknown) {
   if (!isAxiosError<Partial<ApiFailure>>(error)) return undefined;
   const code = error.response?.data?.code;
   return typeof code === "string" ? code : undefined;
+}
+
+/** 필드 검증 실패 항목. 없으면 빈 배열 */
+export function getApiFieldErrors(error: unknown): ApiFieldError[] {
+  if (!isAxiosError<Partial<ApiFailure>>(error)) return [];
+  const errors = error.response?.data?.errors;
+  return Array.isArray(errors) ? errors : [];
 }
 
 let refreshRequest: Promise<string | null> | null = null;

@@ -36,7 +36,7 @@ export const Error: Story = {
       <Button
         variant="secondary"
         onClick={() =>
-          showToast("JPG, PNG, WebP 형식의 사진만 올릴 수 있어요.", {
+          showToast("JPG, PNG 형식의 사진만 올릴 수 있어요.", {
             variant: "error",
           })
         }

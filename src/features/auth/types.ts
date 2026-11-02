@@ -1,3 +1,2 @@
-// 남성·여성·기타 (기능 요구사항 정의서 v0.3 01)
-// TODO(API): 백엔드는 아직 MALE·FEMALE만 받는다. 기타 값(OTHER)은 가정이다
-export type Gender = "MALE" | "FEMALE" | "OTHER";
+// 남성·여성. 기타는 출시 이후 적용 여부를 정한다 (사용자 UI 수정사항, 백엔드 협의)
+export type Gender = "MALE" | "FEMALE";
