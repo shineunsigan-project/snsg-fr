@@ -137,14 +137,14 @@ export function ContentStep({ onNext }: { onNext: () => void }) {
               {/* 500자를 넘으면 더 입력되지 않는다 */}
               <textarea
                 id={descriptionId}
-                rows={4}
+                rows={2}
                 maxLength={DESCRIPTION_MAX_LENGTH}
                 aria-invalid={errors.description ? true : undefined}
                 aria-describedby={
                   descriptionMessage ? descriptionMessageId : undefined
                 }
-                // 내용에 맞춰 늘어나되 최대 높이를 넘으면 칸 안에서 스크롤한다. field-sizing을 지원하지 않는 브라우저는 4줄 고정
-                className="block field-sizing-content max-h-40 min-h-24 w-full resize-none overflow-y-auto bg-transparent text-md text-foreground outline-none"
+                // 내용에 맞춰 늘어나되 최대 높이를 넘으면 칸 안에서 스크롤한다. field-sizing을 지원하지 않는 브라우저는 2줄 높이에서 스크롤
+                className="block field-sizing-content max-h-28 min-h-14 w-full resize-none overflow-y-auto bg-transparent text-md text-foreground outline-none"
                 {...register("description", {
                   onChange: () => clearErrors("description"),
                 })}

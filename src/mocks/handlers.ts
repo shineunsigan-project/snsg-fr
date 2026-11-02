@@ -5,6 +5,7 @@ import type {
   SignupRequest,
 } from "@/features/profile/api/signup";
 import type { Region } from "@/features/schedule/api/regions";
+import type { ScheduleListItem } from "@/features/schedule/api/schedules";
 import type {
   Activity,
   CreateScheduleRequest,
@@ -44,9 +45,24 @@ const mockRegions: Region[] = [
   { code: "11200", name: "성동구" },
 ];
 
-let nextScheduleId = 1;
-/** 만든 일정의 장소명 (개설 완료 조회용) */
-const createdPlaceNames = new Map<number, string>();
+/**
+ * TODO(원복): 백엔드(ngrok)가 꺼져 있어도 개설 → 목록 반영을 확인하려고, mock에서는 로그인된 상태로 시작한다 (2026-11-02)
+ * 비로그인 흐름(로그인 화면 이동·가입)을 확인하려면 false로 둔다
+ */
+const MOCK_LOGGED_IN = true;
+
+/** 만든 일정. 새로고침해도 남게 탭 단위 저장소에 둔다 */
+const SCHEDULES_KEY = "mswSchedules";
+function loadMockSchedules(): ScheduleListItem[] {
+  try {
+    return JSON.parse(sessionStorage.getItem(SCHEDULES_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+function saveMockSchedules(schedules: ScheduleListItem[]) {
+  sessionStorage.setItem(SCHEDULES_KEY, JSON.stringify(schedules));
+}
 
 /** 카카오 정보 (임시 닉네임) */
 const mockSignUpSession: SignUpSession = {
@@ -108,17 +124,52 @@ export const handlers: AnyHandler[] = [
         "시작 시각은 현재 시각으로부터 1시간 이후여야 합니다.",
       );
     }
-    const scheduleId = nextScheduleId++;
-    createdPlaceNames.set(scheduleId, body.place.name);
+    const schedules = loadMockSchedules();
+    const scheduleId =
+      Math.max(0, ...schedules.map((schedule) => schedule.scheduleId)) + 1;
+    saveMockSchedules([
+      ...schedules,
+      {
+        scheduleId,
+        activityName:
+          mockActivities.find(
+            (activity) => activity.activityId === body.activityId,
+          )?.name ?? "",
+        title: body.title,
+        startAt: body.startAt,
+        place: {
+          name: body.place.name,
+          regionName: mockRegions.find(({ code }) =>
+            body.place.regionCode.startsWith(code),
+          )?.name,
+        },
+        // 개설자 = 확정 인원 1명 (USER_FLOW §7.7)
+        participantCount: 1,
+        capacity: body.capacity,
+        status: "RECRUITING",
+      },
+    ]);
     return HttpResponse.json({ isSuccess: true, data: { scheduleId } });
   }),
+
+  // getSchedules — TODO(API): 임시 계약. 시작이 빠른 순
+  http.get("*/api/v1/schedules", () =>
+    HttpResponse.json<ApiSuccess<ScheduleListItem[]>>({
+      isSuccess: true,
+      data: loadMockSchedules().sort((a, b) =>
+        a.startAt.localeCompare(b.startAt),
+      ),
+    }),
+  ),
 
   // getCreatedSchedule — TODO(API): 임시 계약
   http.get<{ scheduleId: string }>(
     "*/api/v1/schedules/:scheduleId/created",
     ({ params }) => {
       const scheduleId = Number(params.scheduleId);
-      const placeName = createdPlaceNames.get(scheduleId);
+      const placeName = loadMockSchedules().find(
+        (schedule) => schedule.scheduleId === scheduleId,
+      )?.place.name;
       if (!placeName) {
         return failure(404, "SCHEDULE_NOT_FOUND", "일정을 찾을 수 없습니다.");
       }
@@ -130,8 +181,15 @@ export const handlers: AnyHandler[] = [
   ),
 
   // refreshAccessToken — mock에는 refresh token 쿠키가 없어 항상 비로그인으로 시작한다
-  http.post("*/api/v1/auth/tokens", () =>
-    failure(401, "INVALID_REFRESH_TOKEN", "다시 로그인해야 합니다."),
+  http.post<never, never, ApiSuccess<TokenResponse> | ApiFailure>(
+    "*/api/v1/auth/tokens",
+    () =>
+      MOCK_LOGGED_IN
+        ? HttpResponse.json<ApiSuccess<TokenResponse>>({
+            isSuccess: true,
+            data: { accessToken: "mock-access-token" },
+          })
+        : failure(401, "INVALID_REFRESH_TOKEN", "다시 로그인해야 합니다."),
   ),
 
   // getSignUpSession

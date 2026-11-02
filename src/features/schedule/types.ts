@@ -2,3 +2,6 @@
 
 /** 예상 소요: 짧게·보통·길게 (기능 요구사항 정의서 v0.3 04 개설). 표시용 값이고 상태 전환 기준이 아니다 */
 export type ScheduleDuration = "SHORT" | "MEDIUM" | "LONG";
+
+/** 일정 상태. 서버가 판정한다 (USER_FLOW §7.1). TODO(API): 목록 API가 정해지면 값을 맞춘다 */
+export type ScheduleStatus = "RECRUITING" | "CLOSED";

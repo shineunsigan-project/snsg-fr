@@ -72,7 +72,28 @@ async function mockApis(page: Page) {
       ]),
     ),
   );
+  // 목록 조회(GET)는 만든 일정을 돌려주고, 생성(POST)은 요청을 기록한다 (임시 계약)
   await page.route("**/api/v1/schedules", (route) => {
+    if (route.request().method() === "GET") {
+      return route.fulfill(
+        ok(
+          createRequests.length === 0
+            ? []
+            : [
+                {
+                  scheduleId: 1,
+                  activityName: "보드게임",
+                  title: "초보 환영 보드게임",
+                  startAt: "2026-12-24T19:30:00",
+                  place: { name: PLACE.name, regionName: "마포구" },
+                  participantCount: 1,
+                  capacity: 4,
+                  status: "RECRUITING",
+                },
+              ],
+        ),
+      );
+    }
     createRequests.push(route.request().postDataJSON());
     return route.fulfill(ok({ scheduleId: 1 }));
   });
@@ -139,12 +160,20 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
   });
 
   // 팝업만 기준 이미지와 비교한다. 뒤의 홈 목록은 날짜에 따라 바뀌어 비교하지 않는다
-  await expect(dialog).toHaveScreenshot("schedule-created-dialog.png");
+  // 둥근 모서리 뒤로 비치는 목록 화면에 따라 가장자리 몇 픽셀이 달라질 수 있어 그만큼은 허용한다
+  await expect(dialog).toHaveScreenshot("schedule-created-dialog.png", {
+    maxDiffPixels: 50,
+  });
   // 화면 전체는 결과 보고서에 첨부만 한다
   await test.info().attach("개설 완료 화면", {
     body: await page.screenshot(),
     contentType: "image/png",
   });
+
+  // 만든 일정이 홈 목록 맨 위에 보인다 (개설 후 목록을 다시 불러온다)
+  await expect(page.locator("main li").first()).toContainText(
+    "초보 환영 보드게임",
+  );
 
   // 확인을 누르면 팝업이 닫히고 홈에 머문다
   await dialog.getByRole("button", { name: "확인" }).click();

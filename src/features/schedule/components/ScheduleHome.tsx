@@ -1,5 +1,7 @@
 "use client";
 
+import { format, parseISO } from "date-fns";
+import { ko } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ComponentProps } from "react";
 
@@ -17,9 +19,11 @@ import {
   clearCreatedScheduleId,
   readCreatedScheduleId,
 } from "../lib/createdNotice";
+import type { ScheduleListItem } from "../api/schedules";
+import { useSchedules } from "../hooks/useSchedules";
 import { ScheduleCreatedDialog } from "./create/ScheduleCreatedDialog";
 
-// TODO(API): 일정 목록 API가 정해지면 쿼리 훅으로 교체한다. 지금은 Figma 홈(430:28279)의 예시 데이터로 레이아웃만 보여준다
+// 목록 API가 주는 일정 뒤에 붙이는 예시. TODO(API): 실제 목록 API가 생기면 지운다 (Figma 홈 430:28279의 예시 데이터)
 const previewSchedules: Array<
   ComponentProps<typeof ScheduleCard> & { id: string }
 > = [
@@ -83,6 +87,31 @@ const previewSchedules: Array<
   },
 ];
 
+/** 목록 API 일정 → 카드. 시작 일시는 `11월 2일 (월) 17:30`처럼 보여준다 */
+function toCardProps(
+  schedule: ScheduleListItem,
+): ComponentProps<typeof ScheduleCard> {
+  const remaining = schedule.capacity - schedule.participantCount;
+  return {
+    category: schedule.activityName,
+    dateLabel: format(parseISO(schedule.startAt), "M월 d일 (EEE) HH:mm", {
+      locale: ko,
+    }),
+    title: schedule.title,
+    region: schedule.place.regionName,
+    place: schedule.place.name,
+    participantCount: schedule.participantCount,
+    capacity: schedule.capacity,
+    // 상태는 서버 값을 쓴다 (USER_FLOW §7.1). 모집 중이면서 자리가 적으면 남은 자리를 보여준다
+    badge:
+      schedule.status === "CLOSED"
+        ? { variant: "closed" }
+        : remaining <= 2
+          ? { variant: "seatsLeft", count: remaining }
+          : { variant: "recruiting" },
+  };
+}
+
 /**
  * 홈 = 모집 중 일정 목록 (USER_FLOW §5, DESIGN §3.5, Figma 430:28279)
  * - 참여한·개설한 일정 탭은 없앴다 (팀 결정 2026-10-11)
@@ -104,6 +133,7 @@ export function ScheduleHome() {
   useEffect(() => {
     if (createdScheduleId !== null) clearCreatedScheduleId();
   }, [createdScheduleId]);
+  const { data: schedules } = useSchedules();
   const { data: createdSchedule, isError: isCreatedScheduleError } =
     useCreatedSchedule(createdScheduleId);
 
@@ -142,6 +172,11 @@ export function ScheduleHome() {
 
       <main className="flex-1 overflow-y-auto px-5 py-4">
         <ul className="flex flex-col gap-3">
+          {(schedules ?? []).map((schedule) => (
+            <li key={schedule.scheduleId}>
+              <ScheduleCard {...toCardProps(schedule)} />
+            </li>
+          ))}
           {previewSchedules.map(({ id, ...schedule }) => (
             <li key={id}>
               <ScheduleCard {...schedule} />
