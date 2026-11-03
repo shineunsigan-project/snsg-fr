@@ -88,11 +88,20 @@ async function mockApis(page: Page) {
       ]),
     ),
   );
-  // 목록 조회(GET, 임시 계약)는 만든 일정을 돌려주고, 생성(POST)은 요청을 기록한다
+  // 일정 생성. 요청을 기록한다
   await page.route("**/api/v1/schedules", (route) => {
-    if (route.request().method() === "GET") {
-      return route.fulfill(
-        ok(
+    createRequests.push(route.request().postDataJSON());
+    return route.fulfill({
+      ...ok({ scheduleId: "01a1a2b3-4c5d-7e6f-8a9b-0c1d2e3f4a5b" }),
+      status: 201,
+    });
+  });
+  // 개설한 일정 목록 (임시 계약). 만든 뒤에는 그 일정을 돌려준다
+  await page.route("**/api/v1/users/me/schedules/created?**", (route) =>
+    route.fulfill(
+      ok({
+        hasNext: false,
+        schedules:
           createRequests.length === 0
             ? []
             : [
@@ -101,21 +110,16 @@ async function mockApis(page: Page) {
                   activityName: "보드게임",
                   title: "초보 환영 보드게임",
                   startAt: "2026-12-24T19:30:00",
-                  place: { name: PLACE.name, regionName: "마포구" },
+                  regionName: "마포구",
                   participantCount: 1,
                   capacity: 4,
                   status: "RECRUITING",
+                  isNew: true,
                 },
               ],
-        ),
-      );
-    }
-    createRequests.push(route.request().postDataJSON());
-    return route.fulfill({
-      ...ok({ scheduleId: "01a1a2b3-4c5d-7e6f-8a9b-0c1d2e3f4a5b" }),
-      status: 201,
-    });
-  });
+      }),
+    ),
+  );
 
   return createRequests;
 }
@@ -125,8 +129,16 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
 }) => {
   const createRequests = await mockApis(page);
 
+  // 개설한 일정 탭을 먼저 열어 빈 목록을 받아 둔다. 개설 뒤 이 목록이 다시 불러와지는지 본다 (무효화)
+  await page.goto("/?tab=created");
+  await expect(
+    page.getByText("눈치 보느라 망설였다면,", { exact: false }),
+  ).toBeVisible();
+  // 같은 앱 안에서 이동해야 받아 둔 목록이 남는다
+  await page.getByRole("button", { name: "일정 개설", exact: true }).click();
+
   // 1단계 활동
-  await page.goto("/create?step=1");
+  await expect(page).toHaveURL(/\/create\?step=1$/);
   await page.getByText("보드게임", { exact: true }).click();
   await page.getByRole("button", { name: "다음" }).click();
 
@@ -195,15 +207,16 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
     contentType: "image/png",
   });
 
-  // 만든 일정이 홈 목록 맨 위에 보인다 (개설 후 목록을 다시 불러온다)
-  await expect(page.locator("main li").first()).toContainText(
-    "초보 환영 보드게임",
-  );
+  // 개설한 일정 탭(LIST-05)으로 오고, 만든 일정이 맨 위에 NEW와 함께 보인다
+  await expect(page).toHaveURL(/\/\?tab=created$/);
+  const firstCard = page.locator("[data-slot=tabs-content] li").first();
+  await expect(firstCard).toContainText("초보 환영 보드게임");
+  await expect(firstCard).toContainText("NEW");
 
   // 확인을 누르면 팝업이 닫히고 홈에 머문다
   await dialog.getByRole("button", { name: "확인" }).click();
   await expect(dialog).toBeHidden();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/\?tab=created$/);
 
   // 새로고침해도 팝업이 다시 뜨지 않는다
   await page.reload();

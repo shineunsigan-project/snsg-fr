@@ -7,7 +7,7 @@ export function useCreateSchedule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: postSchedule,
-    // TODO(LIST-05): 개설한 일정 목록이 생기면 새 일정이 보이는지 확인한다
+    // 모집 중·개설한 일정 목록을 다시 불러와 새 일정을 보여준다
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: scheduleQueryKeys.schedules }),
   });

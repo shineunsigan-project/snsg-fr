@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
+import type { DateRange } from "react-day-picker";
 
 import { Calendar } from "./calendar";
 
@@ -26,10 +27,38 @@ export const Default: Story = {
   render: () => <Calendar today={today} defaultMonth={today} />,
 };
 
+/** 오늘 이전 날짜와 이번 달 이전 이동(`‹`)을 막는다 */
 export const DisabledBeforeToday: Story = {
   render: () => (
-    <Calendar today={today} defaultMonth={today} disabled={{ before: today }} />
+    <Calendar
+      today={today}
+      defaultMonth={today}
+      startMonth={today}
+      disabled={{ before: today }}
+    />
   ),
+};
+
+/** LIST-03 날짜·시간: 기간 선택 (양 끝 원 + 사이 띠) */
+export const Range: Story = {
+  render: function Render() {
+    const [selected, setSelected] = useState<DateRange>({
+      from: new Date(2026, 8, 27),
+      to: new Date(2026, 8, 30),
+    });
+    return (
+      <Calendar
+        mode="range"
+        required
+        today={today}
+        defaultMonth={today}
+        startMonth={today}
+        selected={selected}
+        onSelect={setSelected}
+        disabled={{ before: today }}
+      />
+    );
+  },
 };
 
 export const Selected: Story = {
