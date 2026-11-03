@@ -36,9 +36,13 @@ Thumbs.db
 # 개인 Obsidian 노트(기획 자료)
 snsg-fr-secondbrain/
 
-# 로컬 전용 (Claude Code 설정, 문서)
-.claude/
-docs/
+# Claude Code 개인 설정 (rules·skills·tasks는 저장소에 올린다)
+.claude/agents/
+.claude/settings.local.json
+.claude/worktrees/
+
+# 백엔드 저장소(snsg-be)에서 복사해 둔 문서. 원본은 snsg-be docs/
+docs/linear-convention.md
 
 # Playwright
 /test-results/
