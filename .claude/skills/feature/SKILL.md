@@ -55,5 +55,6 @@ description: 새 화면·기능 흐름을 Linear 이슈 단위로 진행한다. 
 ## 4. 마무리
 1. code-reviewer → 고칠 것 반영.
 2. 문서(USER_FLOW·DESIGN·TECH_STACK)에 결정 반영.
-3. `docs/HANDOFF.md` 갱신(다음에 할 일), `docs/PLAN.md` 상태 갱신.
-4. 사용자가 요청하면 `pr` 스킬로 커밋·PR.
+3. `flow-report` 스킬로 화면 흐름 아티팩트를 발행해 사용자가 순서대로 확인하게 한다. URL은 지시서에 적는다.
+4. `docs/HANDOFF.md` 갱신(다음에 할 일), `docs/PLAN.md` 상태 갱신.
+5. 사용자가 요청하면 `pr` 스킬로 커밋·PR.
