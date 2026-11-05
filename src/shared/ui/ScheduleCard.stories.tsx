@@ -8,6 +8,7 @@ const meta = {
   title: "Shared/ScheduleCard",
   component: ScheduleCard,
   args: {
+    href: "/schedules/1",
     category: "보드게임",
     title: "퇴근 후 전략 게임",
     region: "성동구",
@@ -28,7 +29,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** LIST-01 모집 중 */
+/** LIST-01 모집 중. 카드 전체가 상세로 가는 링크 (Tab으로 포커스하면 테두리 표시) */
 export const Recruiting: Story = {};
 
 /** LIST-01 모집완료: 약속 시간을 회색으로 */

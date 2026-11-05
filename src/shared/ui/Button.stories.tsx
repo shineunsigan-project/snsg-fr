@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { Ban } from "lucide-react";
 
 import { Button } from "./button";
 
@@ -44,4 +45,44 @@ export const OutlineInverse: Story = {
       </div>
     ),
   ],
+};
+
+/** DTL-05 `참여 취소` */
+export const DangerSoft: Story = {
+  args: { variant: "danger-soft", children: "참여 취소", className: "w-full" },
+};
+
+/** HOST-01 `일정 전체 취소`. 취소 확인 팝업의 `확인`도 같은 변형 (DTL-07) */
+export const Danger: Story = {
+  args: { variant: "danger", children: "일정 전체 취소", className: "w-full" },
+};
+
+/** DTL-08 상태 때문에 누를 수 없는 버튼. `일정 취소됨`·`일정 완료`도 글자만 다르다 */
+export const Inactive: Story = {
+  args: {
+    variant: "inactive",
+    disabled: true,
+    className: "w-full",
+    children: (
+      <>
+        <Ban aria-hidden className="size-5" />
+        모집 마감
+      </>
+    ),
+  },
+};
+
+/** DTL-08 `활동 진행 중` */
+export const InProgress: Story = {
+  args: {
+    variant: "in-progress",
+    disabled: true,
+    className: "w-full",
+    children: (
+      <>
+        <span aria-hidden className="size-2.5 rounded-full bg-primary" />
+        활동 진행 중
+      </>
+    ),
+  },
 };

@@ -4,10 +4,10 @@ import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
 import type { Place } from "../../api/scheduleCreate";
-
-const NAVER_MAP_CLIENT_ID = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID;
-// NCP 신규 Maps 키는 `ncpKeyId`로 넘긴다. 웹 서비스 URL에 등록한 주소에서만 인증된다
-const NAVER_MAP_SCRIPT_URL = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${NAVER_MAP_CLIENT_ID ?? ""}`;
+import {
+  isMapsAvailable,
+  useNaverMapsScript,
+} from "../../hooks/useNaverMapsScript";
 
 // 장소가 하나뿐이거나 없을 때의 확대 수준과 기본 중심(마포구청 부근)
 const SINGLE_PLACE_ZOOM = 16;
@@ -31,11 +31,8 @@ function panToPinArea(map: naver.maps.Map, latLng: naver.maps.LatLng) {
 const DEFAULT_CENTER = { latitude: 37.5663, longitude: 126.9019 };
 const DEFAULT_ZOOM = 13;
 
-/** 키 인증이 실패하면 지도 스크립트가 naver.maps를 null로 바꾼다. 그 뒤로는 지도 API를 부르지 않는다 */
-const isMapsAvailable = () => Boolean(window.naver?.maps);
-
 // 물방울 모양 번호 핀 (시안 CRT-02). viewBox 32×40, 아래 꼭짓점이 장소 위치다
-const PIN_PATH =
+export const PIN_PATH =
   "M16 1C7.7 1 1 7.6 1 15.8c0 6 3.6 10.6 8.4 14.6L16 39l6.6-8.6C27.4 26.4 31 21.8 31 15.8 31 7.6 24.3 1 16 1z";
 
 const escapeHtml = (text: string) =>
@@ -79,8 +76,11 @@ type PlaceMapProps = {
 export function PlaceMap({ places, selectedKey, onSelect }: PlaceMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<naver.maps.Map>();
-  const [isScriptReady, setIsScriptReady] = useState(false);
-  const [hasFailed, setHasFailed] = useState(!NAVER_MAP_CLIENT_ID);
+  const {
+    isReady: isScriptReady,
+    hasFailed,
+    scriptProps,
+  } = useNaverMapsScript();
   const markersRef = useRef<Array<{ key: string; marker: naver.maps.Marker }>>(
     [],
   );
@@ -88,14 +88,6 @@ export function PlaceMap({ places, selectedKey, onSelect }: PlaceMapProps) {
   useEffect(() => {
     onSelectRef.current = onSelect;
   }, [onSelect]);
-
-  // 키 인증 실패는 스크립트 로드 성공 뒤 전역 함수로만 알려 준다
-  useEffect(() => {
-    window.navermap_authFailure = () => setHasFailed(true);
-    return () => {
-      window.navermap_authFailure = undefined;
-    };
-  }, []);
 
   useEffect(() => {
     // 인증 실패로 naver.maps가 사라졌으면 navermap_authFailure가 실패 표시를 맡는다
@@ -190,16 +182,7 @@ export function PlaceMap({ places, selectedKey, onSelect }: PlaceMapProps) {
 
   return (
     <div className="absolute inset-0 bg-secondary">
-      {NAVER_MAP_CLIENT_ID && (
-        <Script
-          src={NAVER_MAP_SCRIPT_URL}
-          strategy="afterInteractive"
-          onReady={() =>
-            isMapsAvailable() ? setIsScriptReady(true) : setHasFailed(true)
-          }
-          onError={() => setHasFailed(true)}
-        />
-      )}
+      {scriptProps && <Script {...scriptProps} />}
       {hasFailed ? (
         // TODO(D-5): 지도 실패 표시 디자인 없음. 텍스트만 둔다
         <p

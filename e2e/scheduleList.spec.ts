@@ -343,9 +343,7 @@ test("로그인하면 참여한 일정에 참여 확정·D-day, 개설한 일정
   await expect(created.first()).toContainText("모집 중");
   await expect(created.first()).toContainText("NEW");
   // 녹색 테두리는 방금 연 일정에만 보인다. NEW라도 강조하지 않는다 (사용자 결정 2026-11-08)
-  await expect(created.first().locator("article")).not.toHaveClass(
-    /ring-brand/,
-  );
+  await expect(created.first().getByRole("link")).not.toHaveClass(/ring-brand/);
 });
 
 test("비로그인이 참여한 일정 탭을 누르면 로그인 안내를 보여준다", async ({

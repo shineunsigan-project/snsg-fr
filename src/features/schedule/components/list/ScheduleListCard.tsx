@@ -25,6 +25,7 @@ export function ScheduleListCard({
   isHighlighted?: boolean;
 }) {
   const common = {
+    href: `/schedules/${schedule.scheduleId}`,
     category: schedule.activityName,
     title: schedule.title,
     region: schedule.regionName,

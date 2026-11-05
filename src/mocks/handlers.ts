@@ -16,13 +16,27 @@ import type {
   CreateScheduleResponse,
   Place,
 } from "@/features/schedule/api/scheduleCreate";
+import type {
+  CancelScheduleRequest,
+  ScheduleDetail,
+  ScheduleParticipant,
+} from "@/features/schedule/api/scheduleDetail";
 import {
   MOCK_ACTIVITIES,
+  cancelMockSchedule,
+  findMockSchedule,
+  getViewerRole,
+  joinMockSchedule,
+  leaveMockSchedule,
   listMine,
   listRecruiting,
   loadMockSchedules,
+  mockAvatar,
+  mockHostParticipants,
   saveMockSchedules,
+  toDetail,
   toPage,
+  type MockRejection,
 } from "./scheduleStore";
 import type {
   ApiFailure,
@@ -115,11 +129,7 @@ const invalidRequest = () =>
 /** 카카오 정보 (임시 닉네임) */
 const mockSignUpSession: SignUpSession = {
   nickname: "딸기스무디",
-  profileImageUrl:
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" fill="#578627"/><text x="40" y="52" font-size="32" text-anchor="middle" fill="#fff" font-family="sans-serif">딸</text></svg>',
-    ),
+  profileImageUrl: mockAvatar("딸", "#578627"),
 };
 
 const failure = (status: number, code: string, message: string) =>
@@ -127,6 +137,33 @@ const failure = (status: number, code: string, message: string) =>
     { isSuccess: false, code, message },
     { status },
   );
+
+const unauthenticated = () =>
+  failure(401, "UNAUTHENTICATED", "로그인이 필요합니다.");
+
+/** TODO(API): 백엔드 code가 정해지지 않은 거부. 화면은 어떤 code 분기에도 걸리지 않는 일반 실패로 다룬다 */
+const UNDEFINED_CODE = "TODO_API_UNDEFINED";
+
+/** mock 서버의 거부 사유 → 응답. 404의 code도 미정이라 개설 완료 조회 mock과 같은 값을 쓴다 */
+const REJECTIONS: Record<MockRejection, () => HttpResponse<ApiFailure>> = {
+  NOT_FOUND: () =>
+    failure(404, "SCHEDULE_NOT_FOUND", "일정을 찾을 수 없습니다."),
+  RECRUIT_CLOSED: () =>
+    failure(409, "RECRUIT_CLOSED", "모집이 마감된 일정입니다."),
+  SCHEDULE_TIME_CONFLICT: () =>
+    failure(409, "SCHEDULE_TIME_CONFLICT", "시간이 겹치는 일정이 있습니다."),
+  FORBIDDEN: () => failure(403, UNDEFINED_CODE, "권한이 없습니다."),
+  NOT_ALLOWED: () => failure(409, UNDEFINED_CODE, "처리할 수 없는 요청입니다."),
+};
+
+const done = (rejection: MockRejection | null) =>
+  rejection
+    ? REJECTIONS[rejection]()
+    : // 돌려줄 값이 없으면 data가 빠진다 (api-guide 응답 봉투)
+      HttpResponse.json({ isSuccess: true });
+
+/** 전체 취소 사유: 앞뒤 공백 제외 1~200자 (USER_FLOW §7.5) */
+const CANCEL_REASON_MAX = 200;
 
 export const handlers: AnyHandler[] = [
   // getRegions
@@ -197,7 +234,7 @@ export const handlers: AnyHandler[] = [
     // 연속 클릭 방지를 눈으로 확인할 수 있게 조금 기다린다
     await delay(800);
     if (!request.headers.get("Authorization")) {
-      return failure(401, "UNAUTHENTICATED", "로그인이 필요합니다.");
+      return unauthenticated();
     }
     const body = await request.json();
     if (body.title === TIME_CONFLICT_TITLE) {
@@ -240,6 +277,12 @@ export const handlers: AnyHandler[] = [
         regionName:
           mockRegions.find(({ code }) => code === place.regionCode)?.name ?? "",
         placeName: place.name,
+        roadAddress: place.roadAddress,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        duration: body.durationType,
+        description: body.description,
+        participants: mockHostParticipants(),
         // 개설자 = 확정 인원 1명 (USER_FLOW §7.7)
         participantCount: 1,
         capacity: body.capacity,
@@ -281,9 +324,7 @@ export const handlers: AnyHandler[] = [
     http.get<never, never, ApiSuccess<SchedulePage> | ApiFailure>(
       `*/api/v1/users/me/schedules/${tab}`,
       ({ request }) => {
-        if (!request.headers.get("Authorization")) {
-          return failure(401, "UNAUTHENTICATED", "로그인이 필요합니다.");
-        }
+        if (!request.headers.get("Authorization")) return unauthenticated();
         const page = readPage(new URL(request.url).searchParams);
         if (!page) return invalidRequest();
         return HttpResponse.json<ApiSuccess<SchedulePage>>({
@@ -292,6 +333,93 @@ export const handlers: AnyHandler[] = [
         });
       },
     ),
+  ),
+
+  // getScheduleDetail — TODO(API): 임시 계약. 로그인하지 않아도 된다(역할 GUEST)
+  http.get<{ scheduleId: string }>(
+    "*/api/v1/schedules/:scheduleId",
+    ({ request, params }) => {
+      const schedule = findMockSchedule(params.scheduleId);
+      if (!schedule) return REJECTIONS.NOT_FOUND();
+      const role = getViewerRole(
+        schedule,
+        Boolean(request.headers.get("Authorization")),
+      );
+      return HttpResponse.json<ApiSuccess<ScheduleDetail>>({
+        isSuccess: true,
+        data: toDetail(schedule, role),
+      });
+    },
+  ),
+
+  // getScheduleParticipants — TODO(API): 임시 계약. 확정 참여자·개설자만 (F-6)
+  http.get<{ scheduleId: string }>(
+    "*/api/v1/schedules/:scheduleId/participants",
+    ({ request, params }) => {
+      const schedule = findMockSchedule(params.scheduleId);
+      if (!schedule) return REJECTIONS.NOT_FOUND();
+      const role = getViewerRole(
+        schedule,
+        Boolean(request.headers.get("Authorization")),
+      );
+      if (role === "GUEST" || role === "NON_PARTICIPANT") {
+        return REJECTIONS.FORBIDDEN();
+      }
+      return HttpResponse.json<ApiSuccess<ScheduleParticipant[]>>({
+        isSuccess: true,
+        data: schedule.participants,
+      });
+    },
+  ),
+
+  // postParticipation — TODO(API): 임시 계약. 로그인해야 한다
+  http.post<{ scheduleId: string }>(
+    "*/api/v1/schedules/:scheduleId/participants",
+    async ({ request, params }) => {
+      // 연속 클릭 방지를 눈으로 확인할 수 있게 조금 기다린다
+      await delay(800);
+      if (!request.headers.get("Authorization")) return unauthenticated();
+      return done(joinMockSchedule(params.scheduleId));
+    },
+  ),
+
+  // deleteParticipation — TODO(API): 임시 계약. 로그인해야 한다
+  http.delete<{ scheduleId: string }>(
+    "*/api/v1/schedules/:scheduleId/participants/me",
+    async ({ request, params }) => {
+      await delay(800);
+      if (!request.headers.get("Authorization")) return unauthenticated();
+      return done(leaveMockSchedule(params.scheduleId));
+    },
+  ),
+
+  // cancelSchedule — TODO(API): 임시 계약. 개설자만, 사유 1~200자
+  http.post<{ scheduleId: string }, CancelScheduleRequest>(
+    "*/api/v1/schedules/:scheduleId/cancel",
+    async ({ request, params }) => {
+      await delay(800);
+      if (!request.headers.get("Authorization")) return unauthenticated();
+      const { reason } = await request.json();
+      const trimmed = typeof reason === "string" ? reason.trim() : "";
+      if (trimmed.length < 1 || trimmed.length > CANCEL_REASON_MAX) {
+        // 필드 검증 실패 형식 (api-guide 응답 봉투). 문구는 mock용이다
+        return HttpResponse.json(
+          {
+            isSuccess: false,
+            code: "INVALID_REQUEST",
+            message: "요청 형식이 올바르지 않습니다.",
+            errors: [
+              {
+                field: "reason",
+                message: `취소 사유는 1~${CANCEL_REASON_MAX}자로 입력해 주세요.`,
+              },
+            ],
+          },
+          { status: 400 },
+        );
+      }
+      return done(cancelMockSchedule(params.scheduleId));
+    },
   ),
 
   // refreshAccessToken — mock에는 refresh token 쿠키가 없어 항상 비로그인으로 시작한다

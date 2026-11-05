@@ -99,6 +99,39 @@ import { ColorItem, ColorPalette, Meta } from "@storybook/addon-docs/blocks";
   />
 </ColorPalette>
 
+## 일정 상세 (시안 DTL-01·05·07·08, HOST-01 측정 근사치)
+
+<ColorPalette>
+  <ColorItem
+    title="danger"
+    subtitle="`일정 전체 취소`·팝업 `확인` 채움, `참여 취소` 글자"
+    colors={{ danger: "var(--danger)" }}
+  />
+  <ColorItem
+    title="danger-soft / danger-border"
+    subtitle="`참여 취소` 배경·테두리"
+    colors={{
+      "danger-soft": "var(--danger-soft)",
+      "danger-border": "var(--danger-border)",
+    }}
+  />
+  <ColorItem
+    title="inactive"
+    subtitle="`모집 마감`·`일정 취소됨`·`일정 완료` 비활성 버튼 배경"
+    colors={{ inactive: "var(--inactive)" }}
+  />
+  <ColorItem
+    title="brand-border"
+    subtitle="`활동 진행 중` 테두리"
+    colors={{ "brand-border": "var(--brand-border)" }}
+  />
+  <ColorItem
+    title="avatar"
+    subtitle="프로필 사진이 없을 때 기본 아바타 바탕 (DTL-01)"
+    colors={{ avatar: "var(--avatar)" }}
+  />
+</ColorPalette>
+
 ## 미확인 (shadcn 기본값 유지)
 
 <ColorPalette>
