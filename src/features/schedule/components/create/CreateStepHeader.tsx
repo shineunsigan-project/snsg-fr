@@ -1,4 +1,4 @@
-import { ChevronLeft, X } from "lucide-react";
+import { ChevronLeft, RotateCcw, X } from "lucide-react";
 
 import { cn } from "@/shared/lib/utils";
 
@@ -9,11 +9,11 @@ type CreateStepHeaderProps = {
   step: number;
   /** ✕(1단계)·‹(2~5단계)·‹ 이전(6단계) */
   onBack: () => void;
-  /** 상단 `처음으로`. 6단계는 하단에만 있다 */
+  /** 상단 `초기화`(확인 팝업을 연다). 6단계는 하단에만 있다 */
   onRestart?: () => void;
 };
 
-/** 일정 개설 상단: 뒤로·닫기, 처음으로, 진행 막대 (시안 CRT-01~06) */
+/** 일정 개설 상단: 뒤로·닫기, 초기화, 진행 막대 (시안 CRT-01~06. 초기화는 CRT-06 수정안에 맞춤, 사용자 결정 2026-11-07) */
 export function CreateStepHeader({
   step,
   onBack,
@@ -51,9 +51,10 @@ export function CreateStepHeader({
           <button
             type="button"
             onClick={onRestart}
-            className="relative h-9 rounded-full bg-secondary px-3.5 text-xs font-semibold text-muted-foreground after:absolute after:-inset-1"
+            className="relative flex h-9 items-center gap-1 rounded-full bg-secondary px-3.5 text-xs font-semibold text-muted-foreground after:absolute after:-inset-1"
           >
-            처음으로
+            <RotateCcw aria-hidden className="size-3.5" />
+            초기화
           </button>
         )}
       </div>

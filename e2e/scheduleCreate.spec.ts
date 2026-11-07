@@ -137,8 +137,18 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
   await expect(page).toHaveURL(/step=5/);
   await page.getByRole("button", { name: "다음" }).click();
 
-  // 6단계 최종 확인 → 일정 열기
+  // 6단계 최종 확인. [초기화] → 확인 팝업에서 [취소]하면 입력값이 그대로다
   await expect(page).toHaveURL(/step=6/);
+  await page.getByRole("button", { name: "초기화" }).click();
+  const restartDialog = page.getByRole("dialog", {
+    name: "입력한 내용을 초기화할까요?",
+  });
+  await restartDialog.getByRole("button", { name: "취소" }).click();
+  await expect(restartDialog).toBeHidden();
+  await expect(page).toHaveURL(/step=6/);
+  await expect(page.getByText("초보 환영 보드게임")).toBeVisible();
+
+  // → 일정 열기
   await page.getByRole("button", { name: "일정 열기" }).click();
 
   // CRT-07 개설 완료 팝업
@@ -196,4 +206,29 @@ test("일정을 열지 않고 홈에 오면 개설 완료 팝업이 뜨지 않�
   await expect(
     page.getByRole("dialog", { name: "일정이 열렸어요" }),
   ).toBeHidden();
+});
+
+test("초기화 확인 팝업에서 [초기화]를 누르면 입력값을 비우고 1단계로 간다", async ({
+  page,
+}) => {
+  await mockApis(page);
+  await page.goto("/create?step=1");
+  const activity = page.getByRole("radio", { name: "보드게임" });
+  await page.getByText("보드게임", { exact: true }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+  await expect(page).toHaveURL(/step=2/);
+
+  // 1~5단계 상단에도 같은 [초기화]와 확인 팝업이 있다 (사용자 결정 2026-11-07)
+  await page.getByRole("button", { name: "초기화" }).click();
+  const restartDialog = page.getByRole("dialog", {
+    name: "입력한 내용을 초기화할까요?",
+  });
+  await expect(restartDialog).toContainText(
+    "장소·일시·인원이 모두 지워지고 첫 단계로 돌아가요.",
+  );
+  await restartDialog.getByRole("button", { name: "초기화" }).click();
+
+  await expect(page).toHaveURL(/step=1$/);
+  await expect(activity).not.toBeChecked();
+  await expect(page.getByRole("button", { name: "다음" })).toBeDisabled();
 });

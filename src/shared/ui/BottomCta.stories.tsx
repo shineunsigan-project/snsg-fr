@@ -35,15 +35,3 @@ export const Disabled: Story = {
     ),
   },
 };
-
-/** CRT-06: 보조 + 주요 버튼 */
-export const TwoButtons: Story = {
-  args: {
-    children: (
-      <>
-        <Button variant="secondary">처음으로</Button>
-        <Button variant="primary">일정 열기</Button>
-      </>
-    ),
-  },
-};

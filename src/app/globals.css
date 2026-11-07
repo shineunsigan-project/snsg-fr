@@ -73,6 +73,9 @@
   /* 서비스 토큰 (DESIGN.md §6) */
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-kakao: var(--kakao);
   --color-on-brand-accent: var(--on-brand-accent);
   --color-on-brand-muted: var(--on-brand-muted);
@@ -138,6 +141,11 @@
   /* chip.selected / badge.recruiting — 선택된 칩, 모집중 배지, 선택된 토글 배경 */
   /* DESIGN §6은 #E8F1D8 부근이었으나 홈·프로필 캡처 두 곳에서 모두 #F1F7E8로 측정되어 맞춘다 */
   --brand-soft: #f1f7e8;
+  /* 파괴적 동작 버튼 채움 — 확인 팝업 `초기화` (시안 HOST-01 팝업·MY-04 #D32F2E, 사용자 결정 2026-11-07) */
+  --danger: #d32f2e;
+  /* 안내 팝업의 `!` 아이콘 글자·원 배경 (시안 MY-04 측정). 공용 ConfirmDialog가 쓴다 */
+  --warning: #925e1e;
+  --warning-soft: #fdf5e6;
   /* kakao.yellow — 카카오 로그인 버튼, 로그인 필요 모달 주요 버튼 */
   --kakao: #fee500;
   /* 브랜드 녹색 배경 위 글자 — 서비스명 라벨 / 보조 문구·약관 안내 (Figma 247:21229 측정) */

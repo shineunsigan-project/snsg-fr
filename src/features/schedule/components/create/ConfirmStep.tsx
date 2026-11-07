@@ -10,6 +10,8 @@ import {
   type CreateScheduleValues,
 } from "../../schemas/createScheduleSchema";
 import { StepTitle } from "./StepTitle";
+import { RotateCcw } from "lucide-react";
+
 import { BottomCta } from "@/shared/ui/BottomCta";
 import { Button } from "@/shared/ui/button";
 
@@ -100,17 +102,22 @@ export function ConfirmStep({
       </main>
 
       <BottomCta>
-        <Button variant="secondary" size="lg" onClick={onRestart}>
-          처음으로
-        </Button>
-        <Button
-          variant="primary"
-          size="lg"
-          disabled={isOpenDisabled}
-          onClick={onOpen}
-        >
-          일정 열기
-        </Button>
+        {/* 초기화 : 일정 열기 = 1 : 2, 한 줄 (시안 CRT-06 초기화 수정안) */}
+        <div className="grid grid-cols-3 gap-2">
+          <Button variant="secondary" size="lg" onClick={onRestart}>
+            <RotateCcw aria-hidden className="size-5" />
+            초기화
+          </Button>
+          <Button
+            variant="primary"
+            size="lg"
+            className="col-span-2"
+            disabled={isOpenDisabled}
+            onClick={onOpen}
+          >
+            일정 열기
+          </Button>
+        </div>
       </BottomCta>
     </>
   );

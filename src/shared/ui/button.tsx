@@ -14,6 +14,8 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground",
         /** 녹색 배경 위 흰 외곽선 (로그인 화면 `로그인 없이 둘러보기`) */
         "outline-inverse": "border border-white/30 text-white",
+        /** 파괴적 동작 확인 팝업 `초기화` (시안 CRT-06 수정안) */
+        danger: "bg-danger text-white",
       },
       size: {
         default: "h-13 px-4 text-base",

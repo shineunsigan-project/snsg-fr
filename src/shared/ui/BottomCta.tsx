@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/utils";
 
 type BottomCtaProps = {
-  /** 전체 폭 버튼. 여러 개면 위에서 아래로 쌓인다 (CRT-06 `처음으로` + `일정 열기`) */
+  /** 전체 폭 버튼. 여러 개면 위에서 아래로 쌓인다 */
   children: ReactNode;
   className?: string;
 };

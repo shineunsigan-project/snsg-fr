@@ -37,6 +37,7 @@ import { PlaceStep } from "./PlaceStep";
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
 import { getApiErrorCode } from "@/shared/lib/api/client";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { PageStatus } from "@/shared/ui/PageStatus";
 import { showToast } from "@/shared/ui/sonner";
 
@@ -109,6 +110,7 @@ function CreateScheduleForm() {
   const isLoggedIn = useIsLoggedIn();
   const { mutate: createSchedule, isPending } = useCreateSchedule();
   const [initialValues] = useState(() => loadDraft() ?? createEmptyDraft());
+  const [isRestartOpen, setIsRestartOpen] = useState(false);
 
   const form = useForm<CreateScheduleInput, unknown, CreateScheduleValues>({
     resolver: createScheduleResolver,
@@ -144,11 +146,13 @@ function CreateScheduleForm() {
   }, [requestedStep, firstIncompleteStep, router]);
 
   const goTo = (next: number) => router.push(stepPath(next));
+  const openRestart = () => setIsRestartOpen(true);
 
   const handleBack = () => (step === 1 ? router.push("/") : goTo(step - 1));
 
-  // 입력값을 모두 비우고 1단계로
+  // 확인 팝업에서 [초기화]를 누르면 입력값을 모두 비우고 1단계로 (시안 CRT-06 초기화 수정안, 사용자 결정 2026-11-07)
   const restart = () => {
+    setIsRestartOpen(false);
     clearDraft();
     form.reset(createEmptyDraft());
     goTo(1);
@@ -228,7 +232,7 @@ function CreateScheduleForm() {
         <CreateStepHeader
           step={step}
           onBack={handleBack}
-          onRestart={step < LAST_STEP ? restart : undefined}
+          onRestart={step < LAST_STEP ? openRestart : undefined}
         />
         {step === 1 && <ActivityStep onNext={handleNext} />}
         {step === 2 && <PlaceStep onNext={handleNext} />}
@@ -237,12 +241,23 @@ function CreateScheduleForm() {
         {step === 5 && <CapacityStep onNext={handleNext} />}
         {step === 6 && (
           <ConfirmStep
-            onRestart={restart}
+            onRestart={openRestart}
             onOpen={handleOpen}
             isOpenDisabled={isPending || isLoggedIn === undefined}
           />
         )}
       </div>
+      <ConfirmDialog
+        open={isRestartOpen}
+        onClose={() => setIsRestartOpen(false)}
+        title="입력한 내용을 초기화할까요?"
+        description={"장소·일시·인원이 모두 지워지고\n첫 단계로 돌아가요."}
+        hasCloseButton
+        closeLabel="취소"
+        confirmLabel="초기화"
+        isDestructive
+        onConfirm={restart}
+      />
     </FormProvider>
   );
 }
