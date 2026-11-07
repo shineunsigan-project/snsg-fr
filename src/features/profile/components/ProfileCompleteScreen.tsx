@@ -28,7 +28,7 @@ import {
   type ProfileFormInput,
   type ProfileFormValues,
 } from "../schemas/profileSchema";
-import { getApiErrorCode } from "@/shared/lib/api/client";
+import { getApiErrorCode, getApiFieldErrors } from "@/shared/lib/api/client";
 import { getLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { AvatarEditor } from "@/shared/ui/AvatarEditor";
 import { Button } from "@/shared/ui/button";
@@ -53,6 +53,21 @@ const profileResolver: Resolver<
   }
   return { values: {}, errors };
 };
+
+/** 사진 형식 오류 문구 (기획서, 백엔드 INVALID_PROFILE_IMAGE와 같다) */
+const PROFILE_IMAGE_TYPE_MESSAGE = "JPG, PNG 형식의 사진만 올릴 수 있어요.";
+
+/** 서버가 errors로 알려 주는 가입 요청 필드 중 화면에 칸이 있는 것 */
+const profileFields = [
+  "name",
+  "nickname",
+  "gender",
+  "birthDate",
+  "email",
+] as const;
+type ProfileField = (typeof profileFields)[number];
+const isProfileField = (field: string): field is ProfileField =>
+  profileFields.some((profileField) => profileField === field);
 
 // 가입 세션(15분)이 지났거나 인증이 잘못됐으면 카카오 로그인부터 다시 한다
 const isSignUpSessionExpired = (error: unknown) => {
@@ -137,8 +152,7 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
   // 사진 오류는 토스트로 알린다 (기능 요구사항 정의서 v0.3)
   const handleAvatarSelect = async (file: File) => {
     if (!PROFILE_IMAGE_TYPES.includes(file.type)) {
-      // WebP는 팀 결정으로 유지해서 기획서 문구에 WebP를 덧붙였다
-      showToast("JPG, PNG, WebP 형식의 사진만 올릴 수 있어요.", {
+      showToast(PROFILE_IMAGE_TYPE_MESSAGE, {
         variant: "error",
       });
       return;
@@ -183,6 +197,11 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
           restartLogin(router);
           return;
         }
+        // 서버는 파일 내용으로 형식을 판별한다. 확장자만 바꾼 파일은 여기서 걸린다
+        if (getApiErrorCode(error) === "INVALID_PROFILE_IMAGE") {
+          showToast(PROFILE_IMAGE_TYPE_MESSAGE, { variant: "error" });
+          return;
+        }
         showToast("사진을 올리지 못했어요. 다시 시도해주세요.", {
           variant: "error",
         });
@@ -212,6 +231,25 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
       }
       if (isSignUpSessionExpired(error)) {
         restartLogin(router);
+        return;
+      }
+      // 화면 검사를 통과했지만 서버 기준과 다를 때. 해당 칸 아래에 서버 문구를 보여준다
+      if (getApiErrorCode(error) === "UNDERAGE") {
+        setError(
+          "birthDate",
+          { message: "만 18세 이상만 가입할 수 있어요." },
+          { shouldFocus: true },
+        );
+        return;
+      }
+      const fieldErrors = getApiFieldErrors(error).filter(
+        (fieldError): fieldError is { field: ProfileField; message: string } =>
+          isProfileField(fieldError.field),
+      );
+      if (fieldErrors.length > 0) {
+        fieldErrors.forEach(({ field, message }, index) =>
+          setError(field, { message }, { shouldFocus: index === 0 }),
+        );
         return;
       }
       setSubmitError("저장하지 못했어요. 잠시 후 다시 시도해주세요.");

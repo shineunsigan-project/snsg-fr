@@ -109,6 +109,8 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 
 ### 3.7 API 계층 분리
 
+- API 계약 기준 문서는 백엔드 저장소 `snsg-be` develop의 `docs/api-guide.md`·`docs/openapi.yaml`이다. 위치와 최신 여부 확인 방법은 AGENTS §6 "API 계약".
+
 ```
 화면 컴포넌트
   └─ 쿼리 훅 (예: useScheduleList, useJoinSchedule)   ← TanStack Query: 언제 가져오고 무엇을 무효화할지

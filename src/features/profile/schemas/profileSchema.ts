@@ -8,8 +8,8 @@ export const genderOptions = [
   { value: "FEMALE", label: "여성" },
 ] as const;
 
-// 이름: 2~20자 한글·영문. 띄어쓰기는 영문 사이에만 허용한다 (예: John Smith) (기능 요구사항 정의서 v0.3)
-const NAME_PATTERN = /^(?!.* [^a-zA-Z])(?!.*[^a-zA-Z] )[가-힣a-zA-Z ]{2,20}$/;
+// 이름: 2~20자의 한글 또는 영문, 공백 불가 (백엔드 SHI-146 기준, 팀 결정 2026-11-02. 정의서의 영문 사이 띄어쓰기는 따르지 않는다)
+const NAME_PATTERN = /^[가-힣a-zA-Z]{2,20}$/;
 
 // 닉네임 기준은 정책 POL-005를 따른다: 2~10자의 한글·영문·숫자·마침표(.)·밑줄(_) (2026-10-11 수정)
 // 마침표·밑줄만으로는 만들 수 없다. 한글·영문·숫자가 한 글자 이상 있어야 한다 (팀 결정 2026-10-11)
@@ -19,12 +19,11 @@ const NICKNAME_PATTERN = /^(?=.*[가-힣a-zA-Z0-9])[가-힣a-zA-Z0-9._]{2,10}$/;
 const MIN_SIGNUP_AGE = 18;
 const EMAIL_MAX_LENGTH = 100;
 
-// 프로필 사진 기준은 백엔드 업로드 API를 따른다: 5MB 이하의 PNG·JPG·WebP (WebP는 팀 결정으로 유지)
+// 프로필 사진 기준은 백엔드 업로드 API를 따른다: 5MB 이하의 JPG·PNG (백엔드 SHI-146에서 WebP 제외)
 export const PROFILE_IMAGE_MAX_MB = 5;
 export const PROFILE_IMAGE_TYPES: readonly string[] = [
   "image/png",
   "image/jpeg",
-  "image/webp",
 ];
 
 // 프로필 완성·수정에 같이 쓴다. 문구는 USER_FLOW §4.1 "유효성 검사 문구"를 그대로 옮긴다
@@ -34,8 +33,8 @@ export const profileSchema = z.object({
     .string()
     .trim()
     .min(1, "이름을 입력해주세요.")
-    // TODO: 기획서에 형식 오류 문구가 없어 임시 문구를 쓴다
-    .regex(NAME_PATTERN, "이름은 2~20자의 한글·영문만 쓸 수 있어요."),
+    // 기획서에 형식 오류 문구가 없어 백엔드 문구(INVALID_NAME)를 쓴다
+    .regex(NAME_PATTERN, "이름은 2~20자의 한글 또는 영문만 쓸 수 있어요."),
   nickname: z
     .string()
     .trim()
