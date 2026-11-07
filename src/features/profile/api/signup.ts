@@ -35,8 +35,7 @@ export async function postProfileImage(image: File) {
   return data.data.profileImageUrl;
 }
 
-/** 닉네임·사진을 빼면 서버가 카카오 정보를 쓴다 */
-// 필드와 규칙은 백엔드 api-guide "가입 요청의 입력 규칙"을 따른다 (SHI-146). email은 비우면 보내지 않는다
+/** 가입 요청. 필드와 입력 규칙은 api-guide "가입 요청의 입력 규칙"을 따른다. 사진을 빼면 서버가 카카오 사진을 쓴다 */
 export type SignupRequest = {
   name: string;
   nickname?: string;

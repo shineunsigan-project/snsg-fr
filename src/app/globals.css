@@ -81,6 +81,7 @@
   --color-brand-soft: var(--brand-soft);
   --color-brand-border: var(--brand-border);
   --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
   --color-danger-soft: var(--danger-soft);
   --color-danger-border: var(--danger-border);
   --color-warning: var(--warning);
@@ -142,8 +143,8 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --ring: oklch(0.708 0 0);
-  /* TODO(D-8): 오류 색 미확인 */
-  --destructive: oklch(0.577 0.245 27.325);
+  /* 입력 오류 문구·칸 테두리 (시안 AUTH-04 측정, D-8 해결 2026-11-07) */
+  --destructive: #c23f38;
   /* TODO(D-4): radius 수치 미확인 */
   --radius: 0.625rem;
 
@@ -154,14 +155,18 @@
   --brand-soft: #f1f7e8;
   /* 연두 배경 버튼의 테두리 — 상세 하단 `활동 진행 중` (시안 DTL-08 측정 근사치) */
   --brand-border: #d6e7bb;
-  /* 파괴적 동작 버튼 채움 — 확인 팝업 `초기화` (시안 HOST-01 팝업·MY-04 #D32F2E, 사용자 결정 2026-11-07) */
+  /* 파괴적 동작 버튼 — `일정 전체 취소`·팝업 `확인`·`탈퇴하기` 채움 / `참여 취소` 연한 배경·테두리 */
+  /* 채움은 최신 시안(HOST-01 팝업·MY-04)의 #D32F2E로 통일 (사용자 결정 2026-11-07. 이전 시안 HOST-01·DTL-07은 #C23F38) */
+  /* 연한 배경 위 글자는 대비(4.5:1)를 위해 더 진한 --danger-text (시안 DTL-05·06 `참여 취소` 측정) */
+  /* 입력 오류 색(--destructive)과는 따로 둔다 */
   --danger: #d32f2e;
-  /* 안내 팝업의 `!` 아이콘 글자·원 배경 (시안 MY-04 측정). 공용 ConfirmDialog가 쓴다 */
-  --warning: #925e1e;
-  --warning-soft: #fdf5e6;
+  --danger-text: #b63831;
   /* 파괴적 동작 보조 — `참여 취소` 연한 배경·테두리 (시안 DTL-05·DTL-07 측정). 채움 색은 --danger */
   --danger-soft: #faedea;
   --danger-border: #f0d1cb;
+  /* 안내 팝업의 `!` 아이콘 글자·원 배경 — 탈퇴 불가 팝업 (시안 MY-04 측정) */
+  --warning: #925e1e;
+  --warning-soft: #fdf5e6;
   /* 상태 때문에 누를 수 없는 버튼 배경 — `모집 마감`·`일정 취소됨`·`일정 완료` (시안 DTL-08 측정) */
   --inactive: #e6e9e2;
   /* 프로필 사진이 없을 때의 기본 아바타 바탕 (시안 DTL-01 측정). 위에 흰 사람 아이콘 */

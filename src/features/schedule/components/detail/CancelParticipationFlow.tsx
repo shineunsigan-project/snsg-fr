@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { useCancelParticipation } from "../../hooks/useCancelParticipation";
 import { showActionErrorToast } from "./actionErrorToast";
-import { DetailDialog } from "./DetailDialog";
+
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 
 /**
  * 참여 취소 (DTL-07): 확인 팝업 → 요청 → 완료 팝업 → 미참여자 상세 (USER_FLOW §7.4).
@@ -41,7 +42,7 @@ export function CancelParticipationFlow({
 
   return (
     <>
-      <DetailDialog
+      <ConfirmDialog
         open={open}
         onClose={onClose}
         title="참여를 취소할까요?"
@@ -52,9 +53,10 @@ export function CancelParticipationFlow({
         onConfirm={handleConfirm}
       />
       {/* 완료 문구는 시안 그대로 (팀 결정 N2) */}
-      <DetailDialog
+      <ConfirmDialog
         open={isDone}
         onClose={() => setIsDone(false)}
+        icon="check"
         title="일정이 정상 취소되었습니다."
         onConfirm={() => setIsDone(false)}
       />

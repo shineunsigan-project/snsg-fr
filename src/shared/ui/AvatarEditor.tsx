@@ -3,8 +3,10 @@
 import { Pencil } from "lucide-react";
 import { useRef } from "react";
 
+import { Avatar } from "./Avatar";
+
 type AvatarEditorProps = {
-  /** 보여줄 프로필 사진 URL (소셜 프로필 사진 또는 새로 고른 사진의 미리보기). 없으면 기본 원형 */
+  /** 보여줄 프로필 사진 URL (소셜 프로필 사진 또는 새로 고른 사진의 미리보기). 없으면 기본 아바타 */
   imageUrl?: string;
   /** 사용자가 기기에서 사진을 고르면 호출된다 */
   onFileSelect?: (file: File) => void;
@@ -16,16 +18,7 @@ export function AvatarEditor({ imageUrl, onFileSelect }: AvatarEditorProps) {
 
   return (
     <div className="relative size-20">
-      {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- 소셜 프로필 이미지·로컬 미리보기(blob URL)라 next/image 최적화 대상이 아니다
-        <img
-          src={imageUrl}
-          alt="프로필 사진"
-          className="size-full rounded-full object-cover"
-        />
-      ) : (
-        <div aria-hidden className="size-full rounded-full bg-stripe" />
-      )}
+      <Avatar src={imageUrl} alt="프로필 사진" className="size-full" />
       <button
         type="button"
         aria-label="프로필 사진 변경"
@@ -38,7 +31,7 @@ export function AvatarEditor({ imageUrl, onFileSelect }: AvatarEditorProps) {
       <input
         ref={inputRef}
         type="file"
-        // 업로드 API가 받는 형식만 고르게 한다. iOS는 HEIC 사진을 JPG로 바꿔 넘겨준다
+        // 업로드 API가 받는 형식(JPG·PNG)만 고르게 한다. iOS는 HEIC 사진을 JPG로 바꿔 넘겨준다
         accept="image/png,image/jpeg"
         tabIndex={-1}
         aria-hidden

@@ -4,8 +4,12 @@ import { cn } from "@/shared/lib/utils";
 
 type TextFieldProps = Omit<ComponentProps<"input">, "id"> & {
   label: string;
-  /** 입력칸 아래 안내·성공 문구 (녹색) */
+  /** 라벨 뒤에 더 연하게 붙는 말 (예: `· 수정 불가`, 시안 MY-02) */
+  labelNote?: string;
+  /** 입력칸 아래 안내 문구 */
   helperText?: string;
+  /** 안내 문구 색. 기본은 회색, 좋은 소식만 녹색 (결정 2026-11-07) */
+  helperTone?: "default" | "success";
   /** 입력칸 아래 오류 문구. 있으면 helperText 대신 보여준다 */
   errorMessage?: string;
   /** 입력칸 안 오른쪽에 붙는 값 (예: 생년월일 옆 연령대) */
@@ -15,7 +19,9 @@ type TextFieldProps = Omit<ComponentProps<"input">, "id"> & {
 /** 라벨(위) → 입력 → 도움말(아래) 구조의 입력 필드 (DESIGN §9.1, §13-9) */
 export function TextField({
   label,
+  labelNote,
   helperText,
+  helperTone = "default",
   errorMessage,
   trailing,
   className,
@@ -27,16 +33,14 @@ export function TextField({
 
   return (
     <div className={className}>
-      <label
-        htmlFor={id}
-        className="block text-xs font-bold text-muted-foreground"
-      >
-        {label}
-      </label>
+      <FieldLabel htmlFor={id} label={label} note={labelNote} />
       <div
         className={cn(
-          "mt-2 flex h-13 items-center gap-2 rounded-lg border bg-card px-4 focus-within:ring-3 focus-within:ring-ring/50",
-          errorMessage ? "border-destructive" : "border-input",
+          "mt-2 flex h-13 items-center gap-2 rounded-lg border bg-card px-4",
+          // 입력 중인 칸은 녹색 테두리가 포커스 표시를 대신한다 (시안 MY-02). 오류 테두리가 우선
+          errorMessage
+            ? "border-destructive"
+            : "border-input focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:ring-inset",
         )}
       >
         <input
@@ -49,17 +53,60 @@ export function TextField({
         {trailing}
       </div>
       {message && (
-        <p
+        <FieldMessage
           id={messageId}
-          className={cn(
-            "mt-2 text-xs",
-            // TODO(D-8): 오류 색은 디자인 미확인이라 shadcn 기본 오류 색을 쓴다
-            errorMessage ? "text-destructive" : "text-primary",
-          )}
-        >
-          {message}
-        </p>
+          tone={errorMessage ? "error" : helperTone}
+          message={message}
+        />
       )}
     </div>
+  );
+}
+
+/** 입력 칸 라벨. 읽기 전용 칸처럼 TextField 모양을 따로 만드는 곳에서도 쓴다 */
+export function FieldLabel({
+  htmlFor,
+  label,
+  note,
+}: {
+  htmlFor: string;
+  label: string;
+  note?: string;
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="block text-xs font-bold text-muted-foreground"
+    >
+      {label}
+      {note && (
+        <span className="font-normal text-subtle-foreground"> {note}</span>
+      )}
+    </label>
+  );
+}
+
+/** 입력 칸 아래 안내(회색)·좋은 소식(녹색)·오류(빨강) 문구 */
+export function FieldMessage({
+  id,
+  tone,
+  message,
+}: {
+  id: string;
+  tone: "default" | "success" | "error";
+  message: string;
+}) {
+  return (
+    <p
+      id={id}
+      className={cn(
+        "mt-2 text-xs",
+        tone === "error" && "font-semibold text-destructive",
+        tone === "success" && "text-primary",
+        tone === "default" && "text-muted-foreground",
+      )}
+    >
+      {message}
+    </p>
   );
 }

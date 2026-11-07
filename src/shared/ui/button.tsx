@@ -18,7 +18,8 @@ const buttonVariants = cva(
         /** 파괴적 동작: 일정 전체 취소, 확인 팝업 `확인`·`초기화` (시안 HOST-01·DTL-07·CRT-06 수정안) */
         danger: "bg-danger text-white",
         /** 참여 취소 (시안 DTL-05) */
-        "danger-soft": "border border-danger-border bg-danger-soft text-danger",
+        "danger-soft":
+          "border border-danger-border bg-danger-soft text-danger-text",
         /**
          * 일정 상태 때문에 누를 수 없는 상세 하단 버튼 `⊘ 모집 마감`·`⊘ 일정 취소됨`·`⊘ 일정 완료` (시안 DTL-08).
          * inactive·in-progress는 disabled와 함께 쓰고, 시안 색 그대로 보이도록 disabled 투명도를 끈다

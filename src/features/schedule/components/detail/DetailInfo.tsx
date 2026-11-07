@@ -1,6 +1,6 @@
 import { SCHEDULE_STATUS_LABEL } from "../../lib/scheduleDetailView";
 import type { ScheduleStatus } from "../../types";
-import { DetailAvatar } from "./DetailAvatar";
+import { Avatar } from "@/shared/ui/Avatar";
 import { cn } from "@/shared/lib/utils";
 import { Tag } from "@/shared/ui/Tag";
 
@@ -60,7 +60,7 @@ export function DetailInfo({
         <Tag tone="muted">{activityName}</Tag>
       </p>
       <div className="mt-3 flex flex-col items-center text-center">
-        <DetailAvatar
+        <Avatar
           src={hostProfileImageUrl}
           className="size-14 ring-2 ring-border"
         />

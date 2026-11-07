@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type { ParticipantRow } from "../../lib/scheduleDetailView";
-import { DetailAvatar } from "./DetailAvatar";
+import { Avatar } from "@/shared/ui/Avatar";
 import { cn } from "@/shared/lib/utils";
 import { Tag } from "@/shared/ui/Tag";
 
@@ -103,11 +103,7 @@ export function ParticipantSection({
             <span className="flex shrink-0 -space-x-2">
               {avatars.map((src, index) => (
                 // 같은 사진(기본 아바타 null 등)이 여러 개일 수 있어 순서로 구분한다. 목록은 다시 정렬하지 않는다
-                <DetailAvatar
-                  key={index}
-                  src={src}
-                  className="ring-2 ring-card"
-                />
+                <Avatar key={index} src={src} className="ring-2 ring-card" />
               ))}
             </span>
             <p className="min-w-0 text-sm break-keep text-muted-foreground">
@@ -155,7 +151,7 @@ function ParticipantList({
     >
       {rows.map((row) => (
         <li key={row.key} className="flex items-center gap-3 py-2.5">
-          <DetailAvatar src={row.profileImageUrl} className="size-10" />
+          <Avatar src={row.profileImageUrl} className="size-10" />
           <div className="flex min-w-0 flex-col">
             <p className="flex min-w-0 items-center gap-1.5">
               <span className="truncate text-md font-bold">{row.name}</span>

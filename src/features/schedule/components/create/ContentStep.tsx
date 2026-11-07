@@ -114,8 +114,10 @@ export function ContentStep({ onNext }: { onNext: () => void }) {
               )}
             />
             {errors.duration?.message ? (
-              // TODO(D-8): 오류 색은 디자인 미확인이라 shadcn 기본 오류 색을 쓴다
-              <p id={durationErrorId} className="mt-2 text-xs text-destructive">
+              <p
+                id={durationErrorId}
+                className="mt-2 text-xs font-semibold text-destructive"
+              >
                 {errors.duration.message}
               </p>
             ) : (
@@ -174,7 +176,7 @@ export function ContentStep({ onNext }: { onNext: () => void }) {
                 className={cn(
                   "mt-2 text-xs",
                   errors.description
-                    ? "text-destructive"
+                    ? "font-semibold text-destructive"
                     : "text-muted-foreground",
                 )}
               >
