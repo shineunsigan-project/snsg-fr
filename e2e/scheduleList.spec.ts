@@ -134,6 +134,20 @@ async function mockApis(
       }),
     ]),
   );
+  // 내 정보(로그아웃 경로)에서 쓰는 프로필
+  await page.route("**/api/v1/users/me", (route) =>
+    route.fulfill(
+      ok({
+        name: "김민준",
+        nickname: "딸기스무디",
+        gender: "MALE",
+        birthDate: "1998-03-14",
+        email: null,
+        profileImageUrl: null,
+        nicknameChangeableAt: null,
+      }),
+    ),
+  );
   return listRequests;
 }
 
@@ -397,7 +411,16 @@ test("로그아웃하면 받아 둔 참여한 일정을 보여주지 않는다",
   await page.goto("/?tab=joined");
   await expect(cards(page)).toHaveCount(2);
 
+  // 로그아웃은 내 정보에서만 한다 (USER_FLOW §4.4)
+  await page
+    .getByRole("navigation", { name: "주요 메뉴" })
+    .getByRole("button", { name: "내 정보" })
+    .click();
   await page.getByRole("button", { name: "로그아웃" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "로그아웃" })
+    .click();
   await expect(page).toHaveURL(/\/$/);
   await page.getByRole("tab", { name: "참여한 일정" }).click();
   await expect(

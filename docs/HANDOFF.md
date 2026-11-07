@@ -5,19 +5,20 @@
 마지막 갱신: 2026-11-08
 
 ## 지금 상태
-- 브랜치 `feature/SHI-155-schedule-detail`: develop(SHI-151·162·152 머지본) 위로 rebase(2026-11-08). 일정 상세·참여·취소 구현, 사용자 확인 대기. 작업 지시서 `.claude/tasks/SHI-155.md`.
-- 일정 개설은 실제 API(SHI-162). 일정 목록·상세 API는 백엔드에 없어 임시 계약 + MSW. 실제 연결은 SHI-163·SHI-164(Backlog).
-- 흐름 아티팩트: 일정 목록 https://claude.ai/artifact/5bK2wjP6XaKdZWki6AdtzN · 일정 상세 https://claude.ai/artifact/58pkc7eCb9JBiWSQexvRMF (옵시디언 `01_Projects/쉬는시간/`에도 노트)
+- 브랜치 `feature/SHI-158-my-page`: develop(SHI-151·162·152·155 머지본) 위로 옮김(2026-11-08). **SHI-158 내 정보·프로필 수정·로그아웃·탈퇴** — 지시서 `.claude/tasks/SHI-158.md`. 사용자 확인 대기.
+- 일정 개설은 실제 API(SHI-162). 일정 목록·상세·내 프로필 API는 백엔드에 없어 임시 계약 + MSW. 실제 연결은 SHI-163·164·165(Backlog).
+- 흐름 아티팩트: 일정 목록 https://claude.ai/artifact/5bK2wjP6XaKdZWki6AdtzN · 일정 상세 https://claude.ai/artifact/58pkc7eCb9JBiWSQexvRMF · 내 정보 https://claude.ai/artifact/XG7dmDKoeu4ENYX62vuZPS (옵시디언 `01_Projects/쉬는시간/`에도 노트)
 - 개발 서버: `localhost:3001` MSW 켜고 실행(`NEXT_PUBLIC_API_MOCKING=enabled pnpm exec next dev -p 3001`). mock은 로그인 상태로 시작(`MOCK_LOGGED_IN = true`).
 
 ## 다음에 할 일
-1. [ ] SHI-155 PR
-2. [ ] SHI-158·160을 develop 위로 차례로 옮기기
-3. [ ] 백엔드에 임시 계약 전달: 목록(SHI-163) + 상세·명단·참여·참여 취소·전체 취소(SHI-164: 에러 코드, 개설자 뺀 인원, 상세주소, 연령대 형식, 명단 정렬)
+1. [ ] SHI-158 사용자 확인 → PR
+2. [ ] SHI-160을 develop 위로 옮기기
+3. [ ] 백엔드 임시 계약: 목록(SHI-163)·상세(SHI-164)·내 프로필(SHI-165)
 4. [ ] `MOCK_LOGGED_IN` 원복 시점 정하기
 5. [ ] 남은 docs 정리 범위 정하기
 6. [ ] 백엔드 api-guide(`snsg-be` 64502e4) 반영 — 별도 이슈로. 결정(2026-11-05): 가입 규칙은 백엔드에 맞춤(이름 띄어쓰기 불가, 사진 JPG·PNG만, `INVALID_REQUEST` `errors[]` 필드 문구 표시, `UNDERAGE` 처리). 활동 목록 `GET /api/v1/activity-categories`(`id` UUID·`code`·`name`) 연결. 일정 ID 숫자 → UUID 문자열. 일정 개설은 장소 후보 API(T-11)가 나와야 연결 가능(`placeId`·`categoryId`·`durationType` NORMAL·201·`INVALID_START_AT` 등)
 7. [ ] 보류: 일정 시작 날짜 "오늘 + 30일 이내" 제한(백엔드 규칙, 기획 문서에 없음)
+8. [ ] 백엔드 확인: 카카오 사진이 없을 때 서버 기본 이미지(`default-profile.png`)를 넣으면 기본 아바타(사람 모양) 대신 그 이미지가 보인다 — 기본 이미지일 때 `profileImageUrl`을 비울지 (2026-11-07 아바타 통일 결정)
 
 ## 사용자 확인 목록 (SHI-155)
 `localhost:3001`에서. 초기화: 콘솔 `sessionStorage.removeItem("mswSchedules.v6")` 후 새로고침. 예시 일정 주소는 `/schedules/01a1a2b3-0000-7000-8000-000000000` + 번호(예: 101 → `…000000000101`).

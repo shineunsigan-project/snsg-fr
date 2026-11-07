@@ -100,6 +100,9 @@ const OTHERS: ActiveParticipant[] = [
   }),
 );
 
+/** 다른 사용자가 쓰는 닉네임 (닉네임 중복 판정용) */
+export const mockOtherNicknames = () => OTHERS.map(({ nickname }) => nickname);
+
 const WITHDRAWN: ScheduleParticipant = {
   userId: 199,
   isHost: false,
@@ -444,6 +447,23 @@ export function listMine(kind: "joined" | "mine") {
     .filter((schedule) => !isUpcoming(schedule.status))
     .sort((a, b) => b.startAt.localeCompare(a.startAt));
   return [...upcoming, ...past];
+}
+
+/** 탈퇴를 막는 일정 판정의 기준: 마지막 일정 시작 시각 + 24시간 (USER_FLOW §4.5) */
+const WITHDRAW_BLOCK_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * 서버가 하는 탈퇴 가능 판정 흉내: 내가 참여·개설한 일정 중 취소되지 않았고
+ * 시작 시각 + 24시간이 아직 지나지 않은 일정이 있으면 true (mock 전용)
+ */
+export function hasActiveMockSchedule() {
+  const now = Date.now();
+  return loadMockSchedules().some(
+    (schedule) =>
+      (schedule.joined || schedule.mine) &&
+      schedule.status !== "CANCELED" &&
+      Date.parse(`${schedule.startAt}+09:00`) + WITHDRAW_BLOCK_MS > now,
+  );
 }
 
 /** 응답 모양으로 자른다. 저장소 전용 필드는 빼고 NEW 여부를 붙인다 */

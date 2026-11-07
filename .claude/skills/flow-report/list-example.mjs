@@ -80,20 +80,10 @@ const log = [];
   await shot("14-joined", "참여한 일정");
   await page.getByRole("tab", { name: "개설한 일정" }).click();
   await shot("15-created", "개설한 일정");
-  // 비로그인: 같은 세션에서 로그아웃
+  // 비로그인: 같은 세션에서 mock 세션을 로그아웃 상태로 바꾸고 새로고침한다 (src/mocks/userStore.ts)
+  await page.evaluate(() => sessionStorage.setItem("mswSession", "out"));
   await page.goto(BASE + "/");
   await page.locator("[data-slot=tabs-content] li").first().waitFor();
-  await page.getByRole("button", { name: "로그아웃" }).click();
-  await page.waitForTimeout(800);
-  const dlg = page.getByRole("dialog");
-  if (await dlg.count()) {
-    await shot("17-logout-confirm", "로그아웃 확인");
-    await dlg
-      .getByRole("button", { name: /로그아웃|확인/ })
-      .last()
-      .click();
-    await page.waitForTimeout(800);
-  }
   await shot("18-guest-home", "비로그인 모집 중");
   await page.getByRole("tab", { name: "참여한 일정" }).click();
   await shot("19-guest-joined", "비로그인 참여한 일정");
