@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* 시간 휠 기본 CSS. 레이어 밖에 두면 Tailwind 유틸리티(글자 크기 등)보다 우선하므로 base 레이어로 넣는다 */
+@import "@ncdai/react-wheel-picker/style.css" layer(base);
 
 /* Pretendard 1.3.9 — SIL Open Font License (public/fonts/OFL.txt) */
 @font-face {
@@ -22,6 +24,21 @@
     "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   --font-heading: var(--font-sans);
+
+  /* 장소 선택(CRT-02) 목록 시트 */
+  /* 하단 `다음` 버튼 영역: 위 여백 0.75rem + 버튼 3.5rem + 간격·여백 0.625rem + 홈 인디케이터 */
+  --spacing-bottom-cta: calc(4.875rem + env(safe-area-inset-bottom, 0px));
+  /* 기본 높이: 손잡이·제목 약 4rem + 장소 3곳 약 16rem + 여백 0.75rem + 버튼 영역. 장소 3곳이 스크롤 없이 보인다 */
+  --spacing-place-sheet: calc(20.75rem + var(--spacing-bottom-cta));
+  --spacing-place-sheet-max: 90dvh;
+  /* 낮은 화면(예: iPhone SE 375×667)에서 지킬 지도 최소 높이. 시트가 그만큼 줄어든다 */
+  --spacing-place-map: 14rem;
+  /* 시트가 줄어들어도 손잡이·제목, 장소 1곳, 버튼 영역은 보인다 */
+  --spacing-place-sheet-min: calc(9.5rem + var(--spacing-bottom-cta));
+  /* 시트가 덜 올라와 화면 밖에 남은 높이(Base UI 값) + 버튼 영역. 목록 끝까지 스크롤되게 한다 */
+  --spacing-place-sheet-list-end: calc(
+    var(--drawer-hidden-height, 0px) + var(--spacing-bottom-cta) + 0.75rem
+  );
 
   /* 글자 크기 — Tailwind 기본 스케일에 없는 값만 추가 (Figma 로그인 화면 247:21229 측정) */
   --text-display: 1.75rem;
@@ -56,6 +73,9 @@
   /* 서비스 토큰 (DESIGN.md §6) */
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-kakao: var(--kakao);
   --color-on-brand-accent: var(--on-brand-accent);
   --color-on-brand-muted: var(--on-brand-muted);
@@ -121,6 +141,11 @@
   /* chip.selected / badge.recruiting — 선택된 칩, 모집중 배지, 선택된 토글 배경 */
   /* DESIGN §6은 #E8F1D8 부근이었으나 홈·프로필 캡처 두 곳에서 모두 #F1F7E8로 측정되어 맞춘다 */
   --brand-soft: #f1f7e8;
+  /* 파괴적 동작 버튼 채움 — 확인 팝업 `초기화` (시안 HOST-01 팝업·MY-04 #D32F2E, 사용자 결정 2026-11-07) */
+  --danger: #d32f2e;
+  /* 안내 팝업의 `!` 아이콘 글자·원 배경 (시안 MY-04 측정). 공용 ConfirmDialog가 쓴다 */
+  --warning: #925e1e;
+  --warning-soft: #fdf5e6;
   /* kakao.yellow — 카카오 로그인 버튼, 로그인 필요 모달 주요 버튼 */
   --kakao: #fee500;
   /* 브랜드 녹색 배경 위 글자 — 서비스명 라벨 / 보조 문구·약관 안내 (Figma 247:21229 측정) */
@@ -162,6 +187,10 @@
 }
 
 @layer base {
+  /* Base UI Drawer의 --drawer-snap-point-offset은 시트 요소에만 있고 안쪽 요소로 상속되지 않는다. 안쪽 목록이 쓸 수 있게 상속되는 이름으로 옮긴다 */
+  [data-slot="drawer-popup"] {
+    --drawer-hidden-height: var(--drawer-snap-point-offset, 0px);
+  }
   * {
     @apply border-border outline-ring/50;
   }

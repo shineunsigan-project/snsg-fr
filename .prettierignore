@@ -4,3 +4,8 @@ storybook-static/
 
 # 문서는 표 정렬이 바뀌지 않도록 포맷 대상에서 제외한다
 *.md
+
+# 개인 Obsidian 노트(기획 자료) — 저장소에 올리지 않는다
+snsg-fr-secondbrain/
+test-results/
+playwright-report/

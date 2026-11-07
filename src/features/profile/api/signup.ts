@@ -10,8 +10,12 @@ import {
 /** 카카오에서 받은 정보. 받지 못한 값은 비어 있다 */
 export type SignUpSession = {
   nickname?: string;
-  profileImageUrl?: string;
+  /** 카카오 기본 이미지였거나 사진을 받지 못하면 null. 이때 서버는 기본 이미지로 가입시킨다 */
+  profileImageUrl?: string | null;
 };
+
+/** 사진 없이 가입할 때 서버가 쓰는 기본 이미지. 도메인 없는 경로라 서버 주소를 붙인다 (api-guide 가입) */
+export const DEFAULT_PROFILE_IMAGE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/images/default-profile.png`;
 
 /** 가입 세션 조회 — 프로필 완성 화면의 기본값(카카오 닉네임·사진) */
 export async function getSignUpSession() {

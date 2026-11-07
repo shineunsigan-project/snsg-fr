@@ -62,3 +62,8 @@ export const LongText: Story = {
     place: "아주 길어서 한 줄에 다 들어가지 않는 미스터리 카페 지점 이름",
   },
 };
+
+/** 비용 없이 (일정 개설로 만든 일정. 비용은 저장하지 않는다) */
+export const WithoutPrice: Story = {
+  args: { price: undefined },
+};

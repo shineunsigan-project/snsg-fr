@@ -12,7 +12,8 @@ type ScheduleCardProps = {
   place: string;
   participantCount: number;
   capacity: number;
-  price: number;
+  /** 1인 비용. 없으면 그리지 않는다 (비용은 일정에 저장하지 않는다, USER_FLOW §1) */
+  price?: number;
   badge: StatusBadgeProps;
 };
 
@@ -67,9 +68,13 @@ export function ScheduleCard({
         <span>
           {participantCount}/{capacity}명
         </span>
-        <span aria-hidden className="h-3 w-px bg-border" />
-        {/* 결제는 현장 후불만 있다 (USER_FLOW §1) */}
-        <span>₩{priceFormatter.format(price)} 후불</span>
+        {price !== undefined && (
+          <>
+            <span aria-hidden className="h-3 w-px bg-border" />
+            {/* 결제는 현장 후불만 있다 (USER_FLOW §1) */}
+            <span>₩{priceFormatter.format(price)} 후불</span>
+          </>
+        )}
       </p>
     </article>
   );

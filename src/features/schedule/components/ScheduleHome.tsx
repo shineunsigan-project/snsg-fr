@@ -1,7 +1,9 @@
 "use client";
 
+import { format, parseISO } from "date-fns";
+import { ko } from "date-fns/locale";
 import { useRouter } from "next/navigation";
-import { useState, type ComponentProps } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 
 import { AuthHeaderButton } from "@/features/auth/components/AuthHeaderButton";
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
@@ -10,10 +12,18 @@ import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { AppHeader } from "@/shared/ui/AppHeader";
 import { BottomNav, type BottomNavItem } from "@/shared/ui/BottomNav";
 import { FilterChip } from "@/shared/ui/FilterChip";
-import { LoginRequiredDialog } from "@/shared/ui/LoginRequiredDialog";
 import { ScheduleCard } from "@/shared/ui/ScheduleCard";
 
-// TODO(API): 일정 목록 API가 정해지면 쿼리 훅으로 교체한다. 지금은 Figma 홈(430:28279)의 예시 데이터로 레이아웃만 보여준다
+import { useCreatedSchedule } from "../hooks/useCreatedSchedule";
+import {
+  clearCreatedScheduleId,
+  readCreatedScheduleId,
+} from "../lib/createdNotice";
+import type { ScheduleListItem } from "../api/schedules";
+import { useSchedules } from "../hooks/useSchedules";
+import { ScheduleCreatedDialog } from "./create/ScheduleCreatedDialog";
+
+// 목록 API가 주는 일정 뒤에 붙이는 예시. TODO(API): 실제 목록 API가 생기면 지운다 (Figma 홈 430:28279의 예시 데이터)
 const previewSchedules: Array<
   ComponentProps<typeof ScheduleCard> & { id: string }
 > = [
@@ -77,23 +87,60 @@ const previewSchedules: Array<
   },
 ];
 
+/** 목록 API 일정 → 카드. 시작 일시는 `11월 2일 (월) 17:30`처럼 보여준다 */
+function toCardProps(
+  schedule: ScheduleListItem,
+): ComponentProps<typeof ScheduleCard> {
+  const remaining = schedule.capacity - schedule.participantCount;
+  return {
+    category: schedule.activityName,
+    dateLabel: format(parseISO(schedule.startAt), "M월 d일 (EEE) HH:mm", {
+      locale: ko,
+    }),
+    title: schedule.title,
+    region: schedule.place.regionName,
+    place: schedule.place.name,
+    participantCount: schedule.participantCount,
+    capacity: schedule.capacity,
+    // 상태는 서버 값을 쓴다 (USER_FLOW §7.1). 모집 중이면서 자리가 적으면 남은 자리를 보여준다
+    badge:
+      schedule.status === "CLOSED"
+        ? { variant: "closed" }
+        : remaining <= 2
+          ? { variant: "seatsLeft", count: remaining }
+          : { variant: "recruiting" },
+  };
+}
+
 /**
  * 홈 = 모집 중 일정 목록 (USER_FLOW §5, DESIGN §3.5, Figma 430:28279)
  * - 참여한·개설한 일정 탭은 없앴다 (팀 결정 2026-10-11)
  * - TODO(F-7): 필터 칩 → 바텀시트, 필터 값은 URL로 관리. 칩 상태는 Figma의 필터 적용 상태를 그대로 보여준다
- * - 비로그인으로 GNB 일정 개설 → 로그인 필요 모달, GNB 로그인 → 로그인 화면 (USER_FLOW §4.2)
+ * - GNB 일정 개설 → 로그인 여부와 상관없이 개설 1단계. 로그인은 `일정 열기`에서 한다 (USER_FLOW §7.7)
+ * - GNB 로그인 → 로그인 화면 (USER_FLOW §4.2)
+ * - 일정을 열고 돌아오면 완료 팝업을 한 번 띄운다 (CRT-07). 일정 ID는 개설 화면이 탭 단위 저장소에 남긴다
  * - GNB 세 번째 항목은 로그인 상태면 내 정보다
  * - TODO: 카드 → 일정 상세
  */
 export function ScheduleHome() {
   const router = useRouter();
   const isLoggedIn = useIsLoggedIn();
-  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  // 처음 그릴 때 한 번만 읽는다. 서버 렌더링에서는 저장소가 없어 null이다
+  const [createdScheduleId, setCreatedScheduleId] = useState(() =>
+    typeof window === "undefined" ? null : readCreatedScheduleId(),
+  );
+  // 읽은 값은 바로 지워 새로고침이나 다시 방문했을 때 팝업이 또 뜨지 않게 한다
+  useEffect(() => {
+    if (createdScheduleId !== null) clearCreatedScheduleId();
+  }, [createdScheduleId]);
+  const { data: schedules } = useSchedules();
+  const { data: createdSchedule, isError: isCreatedScheduleError } =
+    useCreatedSchedule(createdScheduleId);
 
   const handleNavSelect = (item: BottomNavItem) => {
     if (item === "create") {
-      // TODO: 로그인 상태면 일정 개설 1단계로 이동한다 (화면 미구현)
-      if (isLoggedIn === false) setIsLoginDialogOpen(true);
+      // 입력하던 값은 유지하고 1단계부터 보여준다
+      router.push("/create?step=1");
       return;
     }
     // TODO: 내 정보 화면이 생기면 이동한다 (화면 미구현)
@@ -125,6 +172,11 @@ export function ScheduleHome() {
 
       <main className="flex-1 overflow-y-auto px-5 py-4">
         <ul className="flex flex-col gap-3">
+          {(schedules ?? []).map((schedule) => (
+            <li key={schedule.scheduleId}>
+              <ScheduleCard {...toCardProps(schedule)} />
+            </li>
+          ))}
           {previewSchedules.map(({ id, ...schedule }) => (
             <li key={id}>
               <ScheduleCard {...schedule} />
@@ -139,9 +191,14 @@ export function ScheduleHome() {
         onItemSelect={handleNavSelect}
       />
 
-      <LoginRequiredDialog
-        open={isLoginDialogOpen}
-        onOpenChange={setIsLoginDialogOpen}
+      <ScheduleCreatedDialog
+        // 일정 정보를 받으면 연다. 못 받으면 장소명 없이 연다
+        open={
+          createdScheduleId !== null &&
+          (createdSchedule !== undefined || isCreatedScheduleError)
+        }
+        placeName={createdSchedule?.place.name}
+        onConfirm={() => setCreatedScheduleId(null)}
       />
     </div>
   );

@@ -10,7 +10,7 @@ import {
   type Resolver,
 } from "react-hook-form";
 
-import type { SignUpSession } from "../api/signup";
+import { DEFAULT_PROFILE_IMAGE_URL, type SignUpSession } from "../api/signup";
 import { useSignup } from "../hooks/useSignup";
 import { useSignUpSession } from "../hooks/useSignUpSession";
 import { useUploadProfileImage } from "../hooks/useUploadProfileImage";
@@ -279,7 +279,11 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
 
         <div className="mt-5.5 flex flex-col items-center">
           <AvatarEditor
-            imageUrl={avatarPreviewUrl ?? session?.profileImageUrl}
+            imageUrl={
+              avatarPreviewUrl ??
+              session?.profileImageUrl ??
+              DEFAULT_PROFILE_IMAGE_URL
+            }
             onFileSelect={handleAvatarSelect}
           />
         </div>
