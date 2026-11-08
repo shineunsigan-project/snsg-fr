@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cn } from "@/shared/lib/utils";
@@ -5,6 +6,8 @@ import { cn } from "@/shared/lib/utils";
 import { StatusBadge, type StatusBadgeProps } from "./StatusBadge";
 
 type ScheduleCardProps = {
+  /** 카드를 누르면 가는 일정 상세 경로 */
+  href: string;
   /** 활동 이름 (예: "보드게임") */
   category: string;
   /** 활동 이름 옆에 붙는 표시 (참여한 일정: 참여 확정·D-DAY, 개설한 일정: 상태·NEW) */
@@ -26,9 +29,10 @@ type ScheduleCardProps = {
 
 /**
  * 일정 카드 (USER_FLOW §5, 시안 LIST-01·04·05, CRT-07). 썸네일 없이 글자만 있다.
- * 장소명·대표 이미지·비용은 보여주지 않는다
+ * 장소명·대표 이미지·비용은 보여주지 않는다. 카드 전체가 상세로 가는 링크다
  */
 export function ScheduleCard({
+  href,
   category,
   tags,
   badge,
@@ -41,9 +45,10 @@ export function ScheduleCard({
   isHighlighted = false,
 }: ScheduleCardProps) {
   return (
-    <article
+    <Link
+      href={href}
       className={cn(
-        "flex flex-col gap-1.5 rounded-2xl bg-card px-4 py-3.5",
+        "flex flex-col gap-1.5 rounded-2xl bg-card px-4 py-3.5 focus-visible:outline-3 focus-visible:outline-ring/50",
         isHighlighted && "ring-2 ring-brand ring-inset",
       )}
     >
@@ -85,6 +90,6 @@ export function ScheduleCard({
           {participantCount}/{capacity}명
         </span>
       </p>
-    </article>
+    </Link>
   );
 }

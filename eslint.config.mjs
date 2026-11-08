@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "storybook-static/**",
     "public/mockServiceWorker.js",
+    // e2e가 남기는 결과물(트레이스 뷰어 포함)
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

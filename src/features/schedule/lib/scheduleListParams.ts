@@ -11,7 +11,8 @@ import type { ScheduleListTab } from "../types";
 const TABS: readonly ScheduleListTab[] = ["recruiting", "joined", "created"];
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const REGION_PATTERN = /^\d{5}$/;
-const UUID_PATTERN =
+/** 활동·일정 ID 형식 (api-guide의 UUID 문자열) */
+export const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 

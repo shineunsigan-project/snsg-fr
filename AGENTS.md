@@ -18,7 +18,7 @@
 | API 계약 | 백엔드 저장소 `snsg-be` develop의 `docs/api-guide.md`·`docs/openapi.yaml` |
 | 이슈별 작업 지시서 | `.claude/tasks/SHI-<번호>.md` |
 | 세부 규칙 | `.claude/rules/` (디자인·컴포넌트·Storybook / API·MSW / 폼 / E2E / 코드 품질 / Git) |
-| 작업 절차 | `.claude/skills/` (`feature`, `api-contract`, `verify`, `pr`) |
+| 작업 절차 | `.claude/skills/` (`feature`, `api-contract`, `verify`, `pr`, `flow-report`, `obsidian-note`) |
 | 브랜치·커밋·PR, Linear | `CONTRIBUTING.md`, snsg-be `docs/linear-convention.md` |
 
 문서 표기: `✅` 확인됨 · `📝`·`추정`·`미확인`·`미정의`·`⚠️` 확정 안 됨(확정된 것처럼 구현하지 않는다) · `팀 결정`·`팀 확인`은 Figma보다 우선 · `F-x`·`D-x`·`T-x`는 각 문서의 Open Questions.

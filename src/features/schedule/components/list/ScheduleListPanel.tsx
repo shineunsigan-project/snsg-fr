@@ -84,7 +84,6 @@ function ListLoading() {
 /**
  * 탭 하나의 일정 목록 (LIST-01·02·04·05). 20개씩 불러오고 [더 보기]로 이어 붙인다
  * 참여한·개설한 일정은 로그인해야 볼 수 있다. 비로그인이면 안내와 로그인 버튼을 보여준다
- * TODO(DTL-01·DTL-05·HOST-01): 카드 → 일정 상세·개설자 화면은 화면이 생기면 연결한다
  */
 export function ScheduleListPanel({
   tab,

@@ -215,7 +215,7 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
   const firstCard = page.locator("[data-slot=tabs-content] li").first();
   await expect(firstCard).toContainText("초보 환영 보드게임");
   await expect(firstCard).toContainText("NEW");
-  await expect(firstCard.locator("article")).toHaveClass(/ring-brand/);
+  await expect(firstCard.locator("a")).toHaveClass(/ring-brand/);
 
   // 확인을 누르면 팝업이 닫히고 홈에 머문다
   await dialog.getByRole("button", { name: "확인" }).click();
@@ -225,16 +225,17 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
   // 모집 중 탭의 같은 일정 카드에는 테두리가 없다
   await page.getByRole("tab", { name: "모집 중" }).click();
   await expect(
-    page.locator("[data-slot=tabs-content] article.ring-brand"),
+    page.locator("[data-slot=tabs-content] a.ring-brand"),
   ).toHaveCount(0);
   await page.getByRole("tab", { name: "개설한 일정" }).click();
+  await expect(page).toHaveURL(/\/\?tab=created$/);
 
   // 새로고침하면 팝업이 다시 뜨지 않고, 녹색 테두리도 없다(NEW는 남는다) (사용자 결정 2026-11-08)
   await page.reload();
   await expect(page.getByRole("button", { name: "일정 개설" })).toBeVisible();
   await expect(dialog).toBeHidden();
   await expect(firstCard).toContainText("NEW");
-  await expect(firstCard.locator("article")).not.toHaveClass(/ring-brand/);
+  await expect(firstCard.locator("a")).not.toHaveClass(/ring-brand/);
 });
 
 test("일정을 열지 않고 홈에 오면 개설 완료 팝업이 뜨지 않는다", async ({
