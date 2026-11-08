@@ -86,7 +86,7 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 
 | shadcn 기반 | 직접 구현 |
 |---|---|
-| Dialog(확인 모달·로그인 필요 모달), Drawer(바텀시트), RadioGroup(`RadioList`, Base UI 직접 사용), Checkbox, Tabs(동작), Sonner(토스트), Calendar(월 달력), Wheel Picker(시간 휠, `TimeWheelPicker`) | Button 변형, Badge, FilterChip, ScheduleCard, BottomNav, Header, ImagePlaceholder, 일정 요약 블록, 성별 토글, Avatar Editor |
+| Dialog(확인 모달·로그인 필요 모달), Drawer(바텀시트), RadioGroup(`RadioList`, Base UI 직접 사용), Checkbox, Tabs(홈 3탭), Switch(토글, LIST-03 `시작 시각 설정`, 사용자 승인 2026-11-03), Sonner(토스트), Calendar(월 달력), Wheel Picker(시간 휠, `TimeWheelPicker`) | Button 변형, Badge, FilterChip, ScheduleCard, BottomNav, Header, ImagePlaceholder, 일정 요약 블록, 성별 토글, Avatar Editor |
 
 - 기준: 포커스 이동·키보드 조작·스크린리더 대응이 까다로운 요소만 shadcn을 쓴다. 도메인 전용 UI는 직접 만든다.
 - **Calendar·Wheel Picker (사용자 승인, 2026-10-31):** 일정 개설(CRT-04)의 날짜 달력과 시작 시각 휠을 직접 만들지 않고 라이브러리로 쓴다. 날짜 계산·키보드 이동(달력), 관성 스크롤·터치(휠)를 직접 구현하지 않기 위해서다. 둘 다 정확한 버전으로 고정한다.

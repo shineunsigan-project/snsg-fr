@@ -1,19 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { NewBadge } from "./NewBadge";
 import { ScheduleCard } from "./ScheduleCard";
+import { Tag } from "./Tag";
 
 const meta = {
   title: "Shared/ScheduleCard",
   component: ScheduleCard,
   args: {
     category: "보드게임",
-    dateLabel: "오늘 21:00",
     title: "퇴근 후 전략 게임",
-    region: "마포구",
-    place: "미스터리 하우스 합정",
+    region: "성동구",
+    dateLabel: "09월26일(토) 21:00",
     participantCount: 2,
     capacity: 6,
-    price: 26000,
     badge: { variant: "recruiting" },
   },
   decorators: [
@@ -28,42 +28,63 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** LIST-01 모집 중 */
 export const Recruiting: Story = {};
 
+/** LIST-01 모집완료: 약속 시간을 회색으로 */
 export const Closed: Story = {
   args: {
-    category: undefined,
-    region: undefined,
-    dateLabel: "9월 29일 (화) 15:00",
-    title: "붉은 달의 연회",
-    place: "셜록 미스터리 카페 홍대점",
+    title: "주말 오후 파티 게임",
+    dateLabel: "09월29일(화) 15:00",
     participantCount: 5,
     capacity: 5,
-    price: 28000,
     badge: { variant: "closed" },
+    isInactive: true,
   },
 };
 
-export const SeatsLeft: Story = {
+/** LIST-04 참여한 일정: 참여 확정 + D-DAY */
+export const Joined: Story = {
   args: {
-    dateLabel: "9.30 (수) 19:00",
-    title: "처음 만나는 협력 게임",
-    place: "추리극장 연남",
-    participantCount: 3,
-    capacity: 4,
-    price: 24000,
-    badge: { variant: "seatsLeft", count: 2 },
+    badge: undefined,
+    tags: (
+      <>
+        <Tag tone="brand">참여 확정</Tag>
+        <Tag tone="dark">D-DAY</Tag>
+      </>
+    ),
   },
 };
 
+/** LIST-05 개설한 일정: 모집완료 */
+export const Created: Story = {
+  args: {
+    badge: undefined,
+    title: "주말 오후 파티 게임",
+    participantCount: 5,
+    capacity: 5,
+    tags: <Tag tone="muted">모집완료</Tag>,
+  },
+};
+
+/** CRT-07 방금 개설한 일정: 모집 중 + NEW, 녹색 테두리 */
+export const CreatedNew: Story = {
+  args: {
+    badge: undefined,
+    participantCount: 1,
+    isHighlighted: true,
+    tags: (
+      <>
+        <Tag tone="brand">모집 중</Tag>
+        <NewBadge />
+      </>
+    ),
+  },
+};
+
+/** 긴 제목은 말줄임 */
 export const LongText: Story = {
   args: {
-    title: "아주 길어서 한 줄에 다 들어가지 않는 보드게임 일정 제목",
-    place: "아주 길어서 한 줄에 다 들어가지 않는 미스터리 카페 지점 이름",
+    title: "처음 만나는 사람들과 함께하는 아주 긴 이름의 협력 보드게임 모임",
   },
-};
-
-/** 비용 없이 (일정 개설로 만든 일정. 비용은 저장하지 않는다) */
-export const WithoutPrice: Story = {
-  args: { price: undefined },
 };

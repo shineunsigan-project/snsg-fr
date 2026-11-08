@@ -40,7 +40,7 @@ const SHEET_RESTORE_WINDOW_MS = 300;
 const TOAST_DURATION = 2000;
 
 /**
- * CRT-02 장소 선택. 지역 칩은 URL(`region`)에 둔다 (AGENTS §6)
+ * CRT-02 장소 선택. 지역 칩은 URL(`region`)에 둔다 (rules/api.md 상태 위치)
  * 장소 목록은 지도 위 하단 시트이고, 위로 끌어올리면 넓어진다 (시안 CRT-02)
  */
 export function PlaceStep({ onNext }: { onNext: () => void }) {

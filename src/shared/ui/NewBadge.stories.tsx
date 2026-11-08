@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { NewBadge } from "./NewBadge";
-import { StatusBadge } from "./StatusBadge";
+import { Tag } from "./Tag";
 
 const meta = {
   title: "Shared/NewBadge",
@@ -13,11 +13,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-/** CRT-07 시안: 상태 배지 옆에 붙는 모습 */
-export const WithStatusBadge: Story = {
+/** CRT-07 시안: 상태 태그 옆에 붙는 모습 */
+export const WithStatusTag: Story = {
   render: () => (
     <div className="flex gap-1.5">
-      <StatusBadge variant="recruiting" />
+      <Tag tone="brand">모집 중</Tag>
       <NewBadge />
     </div>
   ),

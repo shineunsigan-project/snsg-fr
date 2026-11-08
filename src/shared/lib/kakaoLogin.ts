@@ -9,11 +9,16 @@ export function saveLoginRedirect(path: string) {
   sessionStorage.setItem(LOGIN_REDIRECT_KEY, path);
 }
 
+/**
+ * 사이트 안의 경로만 쓴다 (open redirect 방지).
+ * `//host`와 `/\host`는 브라우저가 다른 사이트 주소로 읽으므로 막는다
+ */
+const SAME_SITE_PATH = /^\/(?![/\\])/;
+
 /** 저장한 돌아갈 화면. 없거나 사이트 밖 주소면 홈 */
 export function getLoginRedirect() {
   const path = sessionStorage.getItem(LOGIN_REDIRECT_KEY);
-  // 사이트 안의 경로만 쓴다 (open redirect 방지)
-  return path?.startsWith("/") && !path.startsWith("//") ? path : "/";
+  return path && SAME_SITE_PATH.test(path) ? path : "/";
 }
 
 // 인증 페이지로 넘어가는 중에 버튼을 다시 눌러도 한 번만 이동한다 (기능 요구사항 정의서 v0.3)

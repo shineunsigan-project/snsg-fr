@@ -1,5 +1,5 @@
 /**
- * Loading·Error·Empty 상태의 공통 임시 표시 (AGENTS §2, DESIGN D-5)
+ * Loading·Error·Empty 상태의 공통 임시 표시 (rules/ui.md, DESIGN D-5)
  * 디자인이 정해지기 전까지 텍스트만 화면 가운데에 보여준다
  */
 export function PageStatus({ message }: { message: string }) {

@@ -1,80 +1,89 @@
-import { StatusBadge, type StatusBadgeProps } from "./StatusBadge";
+import type { ReactNode } from "react";
+
 import { cn } from "@/shared/lib/utils";
 
+import { StatusBadge, type StatusBadgeProps } from "./StatusBadge";
+
 type ScheduleCardProps = {
-  /** 활동 종류 태그 (예: "보드게임"). 시안의 모집완료 카드처럼 없으면 그리지 않는다 */
-  category?: string;
-  /** 표시용 날짜·시간 문자열 (예: "오늘 21:00", "9월 29일 (화) 15:00") */
-  dateLabel: string;
+  /** 활동 이름 (예: "보드게임") */
+  category: string;
+  /** 활동 이름 옆에 붙는 표시 (참여한 일정: 참여 확정·D-DAY, 개설한 일정: 상태·NEW) */
+  tags?: ReactNode;
+  /** 오른쪽 위 모집 상태 (모집 중 탭) */
+  badge?: StatusBadgeProps;
   title: string;
-  /** 지역 (예: "마포구"). 있으면 장소 앞에 붙인다 */
-  region?: string;
-  place: string;
+  /** 시·군·구 (예: "마포구") */
+  region: string;
+  /** 약속 시간 (예: "09월26일(토) 19:30") */
+  dateLabel: string;
   participantCount: number;
   capacity: number;
-  /** 1인 비용. 없으면 그리지 않는다 (비용은 일정에 저장하지 않는다, USER_FLOW §1) */
-  price?: number;
-  badge: StatusBadgeProps;
+  /** 모집이 끝난 일정이면 약속 시간을 회색으로 약하게 보여준다 (DESIGN §13, 시안 LIST-01) */
+  isInactive?: boolean;
+  /** 방금 개설한 일정을 녹색 테두리로 강조한다 (시안 CRT-07) */
+  isHighlighted?: boolean;
 };
 
-const priceFormatter = new Intl.NumberFormat("ko-KR");
-
-/** 일정 카드 (DESIGN §3.5, Figma 430:28279). 썸네일 없이 글자만 있다 */
+/**
+ * 일정 카드 (USER_FLOW §5, 시안 LIST-01·04·05, CRT-07). 썸네일 없이 글자만 있다.
+ * 장소명·대표 이미지·비용은 보여주지 않는다
+ */
 export function ScheduleCard({
   category,
-  dateLabel,
+  tags,
+  badge,
   title,
   region,
-  place,
+  dateLabel,
   participantCount,
   capacity,
-  price,
-  badge,
+  isInactive = false,
+  isHighlighted = false,
 }: ScheduleCardProps) {
-  // 모집완료 일정은 날짜를 회색으로 약하게 보여준다 (DESIGN §13)
-  const isClosed = badge.variant === "closed";
-
   return (
-    <article className="flex flex-col gap-1 rounded-2xl bg-card px-4 py-3.5">
+    <article
+      className={cn(
+        "flex flex-col gap-1.5 rounded-2xl bg-card px-4 py-3.5",
+        isHighlighted && "ring-2 ring-brand ring-inset",
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          {category && (
-            <span className="shrink-0 rounded-sm bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
-              {category}
-            </span>
-          )}
-          <p
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <span
             className={cn(
-              "truncate text-sm font-semibold",
-              isClosed ? "text-subtle-foreground" : "text-primary",
+              "shrink-0 bg-secondary text-muted-foreground",
+              // 태그가 함께 붙는 카드(LIST-04·05)는 활동 이름도 태그 크기로 맞춘다 (시안)
+              tags
+                ? "rounded-md px-2 py-1 text-tag"
+                : "rounded-sm px-1.5 py-0.5 text-xs",
             )}
           >
-            {dateLabel}
-          </p>
+            {category}
+          </span>
+          {tags}
         </div>
-        <StatusBadge {...badge} />
+        {badge && <StatusBadge {...badge} />}
       </div>
       <h3 className="truncate text-base font-bold">{title}</h3>
-      <p className="truncate text-sm text-subtle-foreground">
-        {region && (
-          <>
-            <span className="font-medium text-muted-foreground">{region}</span>
-            {" · "}
-          </>
-        )}
-        {place}
-      </p>
-      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <span>
+      <p className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+        <span className="shrink-0">{region}</span>
+        <span aria-hidden className="text-subtle-foreground">
+          ·
+        </span>
+        <span
+          className={cn(
+            "truncate font-semibold",
+            isInactive ? "text-subtle-foreground" : "text-primary",
+          )}
+        >
+          {dateLabel}
+        </span>
+        <span aria-hidden className="text-subtle-foreground">
+          ·
+        </span>
+        <span className="shrink-0 font-medium">
           {participantCount}/{capacity}명
         </span>
-        {price !== undefined && (
-          <>
-            <span aria-hidden className="h-3 w-px bg-border" />
-            {/* 결제는 현장 후불만 있다 (USER_FLOW §1) */}
-            <span>₩{priceFormatter.format(price)} 후불</span>
-          </>
-        )}
       </p>
     </article>
   );

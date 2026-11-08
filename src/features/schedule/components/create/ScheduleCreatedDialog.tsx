@@ -20,7 +20,7 @@ type ScheduleCreatedDialogProps = {
 
 /**
  * CRT-07 개설 완료 팝업 (시안 CRT-07)
- * TODO(LIST-05): "개설한 일정" 탭이 생기면 확인 후 그 탭으로 보낸다. 지금은 홈(모집 중)에 머문다
+ * 개설한 일정 탭(LIST-05) 위에 띄운다. 확인을 누르면 그 탭에 머문다
  */
 export function ScheduleCreatedDialog({
   open,

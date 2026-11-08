@@ -48,6 +48,9 @@
   /* 입력값·토글·보조 버튼 라벨 (로그인 247:21229, 프로필 완성 132:16466 측정) */
   --text-md: 0.9375rem;
   --text-md--line-height: 1.375rem;
+  /* 참여한·개설한 일정 카드의 태그 (시안 LIST-04·05 측정 근사치, D-4) */
+  --text-tag: 0.8125rem;
+  --text-tag--line-height: 1.125rem;
 
   /* shadcn 시맨틱 토큰 */
   --color-background: var(--background);

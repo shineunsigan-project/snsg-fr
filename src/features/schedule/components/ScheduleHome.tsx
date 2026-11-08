@@ -1,135 +1,66 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
-import { ko } from "date-fns/locale";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, type ComponentProps } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { AuthHeaderButton } from "@/features/auth/components/AuthHeaderButton";
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
 
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
+import { cn } from "@/shared/lib/utils";
 import { AppHeader } from "@/shared/ui/AppHeader";
 import { BottomNav, type BottomNavItem } from "@/shared/ui/BottomNav";
-import { FilterChip } from "@/shared/ui/FilterChip";
-import { ScheduleCard } from "@/shared/ui/ScheduleCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
+import type { ScheduleFilter } from "../api/schedules";
 import { clearCreatedNotice, readCreatedNotice } from "../lib/createdNotice";
-import type { ScheduleListItem } from "../api/schedules";
-import { useSchedules } from "../hooks/useSchedules";
+import {
+  readScheduleFilter,
+  readScheduleTab,
+  toScheduleListQuery,
+} from "../lib/scheduleListParams";
+import type { ScheduleListTab } from "../types";
 import { ScheduleCreatedDialog } from "./create/ScheduleCreatedDialog";
+import { ScheduleFilterBar } from "./list/ScheduleFilterBar";
+import { ScheduleListPanel } from "./list/ScheduleListPanel";
 
-// 목록 API가 주는 일정 뒤에 붙이는 예시. TODO(API): 실제 목록 API가 생기면 지운다 (Figma 홈 430:28279의 예시 데이터)
-const previewSchedules: Array<
-  ComponentProps<typeof ScheduleCard> & { id: string }
-> = [
-  {
-    id: "1",
-    category: "보드게임",
-    dateLabel: "오늘 19:30",
-    title: "보드게임 추리 한 판",
-    region: "마포구",
-    place: "셜록 미스터리 카페 홍대점",
-    participantCount: 4,
-    capacity: 6,
-    price: 25000,
-    badge: { variant: "recruiting" },
-  },
-  {
-    id: "2",
-    category: "보드게임",
-    dateLabel: "오늘 21:00",
-    title: "퇴근 후 전략 게임",
-    region: "마포구",
-    place: "미스터리 하우스 합정",
-    participantCount: 2,
-    capacity: 6,
-    price: 26000,
-    badge: { variant: "recruiting" },
-  },
-  {
-    id: "3",
-    dateLabel: "9월 29일 (화) 15:00",
-    title: "붉은 달의 연회",
-    place: "셜록 미스터리 카페 홍대점",
-    participantCount: 5,
-    capacity: 5,
-    price: 28000,
-    badge: { variant: "closed" },
-  },
-  {
-    id: "4",
-    category: "보드게임",
-    dateLabel: "9.30 (수) 19:00",
-    title: "처음 만나는 협력 게임",
-    region: "마포구",
-    place: "추리극장 연남",
-    participantCount: 3,
-    capacity: 4,
-    price: 24000,
-    badge: { variant: "seatsLeft", count: 2 },
-  },
-  {
-    id: "5",
-    category: "보드게임",
-    dateLabel: "10월 1일 (목) 20:00",
-    title: "마지막 열차의 증언",
-    region: "마포구",
-    place: "미스터리 하우스 합정",
-    participantCount: 4,
-    capacity: 6,
-    price: 25000,
-    badge: { variant: "recruiting" },
-  },
+const TAB_LABELS: Array<{ value: ScheduleListTab; label: string }> = [
+  { value: "recruiting", label: "모집 중" },
+  { value: "joined", label: "참여한 일정" },
+  { value: "created", label: "개설한 일정" },
 ];
 
-/** 목록 API 일정 → 카드. 시작 일시는 `11월 2일 (월) 17:30`처럼 보여준다 */
-function toCardProps(
-  schedule: ScheduleListItem,
-): ComponentProps<typeof ScheduleCard> {
-  const remaining = schedule.capacity - schedule.participantCount;
-  return {
-    category: schedule.activityName,
-    dateLabel: format(parseISO(schedule.startAt), "M월 d일 (EEE) HH:mm", {
-      locale: ko,
-    }),
-    title: schedule.title,
-    region: schedule.place.regionName,
-    place: schedule.place.name,
-    participantCount: schedule.participantCount,
-    capacity: schedule.capacity,
-    // 상태는 서버 값을 쓴다 (USER_FLOW §7.1). 모집 중이면서 자리가 적으면 남은 자리를 보여준다
-    badge:
-      schedule.status === "CLOSED"
-        ? { variant: "closed" }
-        : remaining <= 2
-          ? { variant: "seatsLeft", count: remaining }
-          : { variant: "recruiting" },
-  };
-}
-
 /**
- * 홈 = 모집 중 일정 목록 (USER_FLOW §5, DESIGN §3.5, Figma 430:28279)
- * - 참여한·개설한 일정 탭은 없앴다 (팀 결정 2026-10-11)
- * - TODO(F-7): 필터 칩 → 바텀시트, 필터 값은 URL로 관리. 칩 상태는 Figma의 필터 적용 상태를 그대로 보여준다
+ * 홈 = 일정 목록 (USER_FLOW §5, 화면 기능 명세서 LIST-01 ~ LIST-05)
+ * - 탭: 모집 중 / 참여한 일정 / 개설한 일정. 탭과 필터 값은 URL에 둔다(기기에 저장하지 않는다)
+ * - 필터(활동·지역·날짜)는 모집 중 탭에만 있다
  * - GNB 일정 개설 → 로그인 여부와 상관없이 개설 1단계. 로그인은 `일정 열기`에서 한다 (USER_FLOW §7.7)
- * - GNB 로그인 → 로그인 화면 (USER_FLOW §4.2)
- * - 일정을 열고 돌아오면 완료 팝업을 한 번 띄운다 (CRT-07). 장소명은 개설 화면이 탭 단위 저장소에 남긴다
- * - GNB 세 번째 항목은 로그인 상태면 내 정보다
- * - TODO: 카드 → 일정 상세
+ * - GNB 로그인 → 로그인 화면, 로그인 후 지금 보던 탭으로 돌아온다 (USER_FLOW §4.2)
+ * - 일정을 열고 오면(개설한 일정 탭) 완료 팝업을 한 번 띄운다 (CRT-07). 방금 연 일정 카드는 이번 방문에만 녹색 테두리로 강조한다(사용자 결정 2026-11-08). 일정 ID·장소명은 개설 화면이 탭 단위 저장소에 남긴다
  */
 export function ScheduleHome() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = readScheduleTab(searchParams);
+  const filter = readScheduleFilter(searchParams);
   const isLoggedIn = useIsLoggedIn();
+
   // 처음 그릴 때 한 번만 읽는다. 서버 렌더링에서는 저장소가 없어 null이다
-  const [createdPlaceName, setCreatedPlaceName] = useState(() =>
+  const [createdNotice] = useState(() =>
     typeof window === "undefined" ? null : readCreatedNotice(),
   );
-  // 읽은 값은 바로 지워 새로고침이나 다시 방문했을 때 팝업이 또 뜨지 않게 한다
+  const [isCreatedDialogOpen, setIsCreatedDialogOpen] = useState(
+    createdNotice !== null,
+  );
+  // 읽은 값은 바로 지워 새로고침이나 다시 방문했을 때 팝업·강조가 또 보이지 않게 한다
   useEffect(() => {
-    if (createdPlaceName !== null) clearCreatedNotice();
-  }, [createdPlaceName]);
-  const { data: schedules } = useSchedules();
+    if (createdNotice !== null) clearCreatedNotice();
+  }, [createdNotice]);
+
+  const showList = (nextTab: ScheduleListTab, nextFilter: ScheduleFilter) =>
+    router.replace(toScheduleListQuery(nextTab, nextFilter), {
+      scroll: false,
+    });
 
   const handleNavSelect = (item: BottomNavItem) => {
     if (item === "create") {
@@ -139,45 +70,72 @@ export function ScheduleHome() {
     }
     // TODO: 내 정보 화면이 생기면 이동한다 (화면 미구현)
     if (item === "login") {
-      // 로그인을 마치면 홈으로 돌아온다 (USER_FLOW §4.3)
-      saveLoginRedirect("/");
+      saveLoginRedirect(toScheduleListQuery(tab, filter));
       router.push("/login");
     }
   };
 
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-background">
-      <header className="relative z-10 border-b border-border bg-card pt-safe shadow-header">
-        <div className="flex items-center justify-between px-5 pt-4">
-          <AppHeader />
-          <AuthHeaderButton />
-        </div>
-        <div className="mx-5 mt-3 border-b border-border">
-          <h2 className="-mb-px inline-block border-b-2 border-primary px-1 pb-2.5 text-base font-bold">
-            모집 중
-          </h2>
-        </div>
-        <div className="flex gap-2 overflow-x-auto px-5 py-3.5">
-          <FilterChip label="보드게임" state="selected" />
-          <FilterChip label="마포구" state="selected" />
-          <FilterChip label="날짜" />
-        </div>
-      </header>
+      <Tabs
+        value={tab}
+        // Base UI가 값을 any로 넘겨서, 주소를 읽을 때와 같은 함수로 탭 값을 좁힌다
+        onValueChange={(value) =>
+          showList(
+            readScheduleTab(new URLSearchParams({ tab: String(value) })),
+            filter,
+          )
+        }
+        className="min-h-0 flex-1 gap-0"
+      >
+        {/* 모집 중 탭만 흰 헤더 + 그림자, 참여한·개설한 일정 탭은 앱 배경 (시안 LIST-01·04·05) */}
+        <header
+          className={cn(
+            "relative z-10 pt-safe",
+            tab === "recruiting" ? "bg-card shadow-header" : "bg-background",
+          )}
+        >
+          <div className="flex items-center justify-between px-5 pt-4">
+            <AppHeader />
+            <AuthHeaderButton />
+          </div>
+          <div className="px-5 pt-3">
+            {/* 탭 버튼 높이 44px(터치 영역)가 되게 트랙을 52px로 둔다. 시안 트랙은 약 45pt */}
+            <TabsList className="h-13 w-full rounded-xl bg-secondary p-1">
+              {TAB_LABELS.map(({ value, label }) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="h-full rounded-lg text-sm font-semibold text-muted-foreground data-active:bg-card data-active:text-foreground"
+                >
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+          {tab === "recruiting" && (
+            <ScheduleFilterBar
+              filter={filter}
+              onApply={(next) => showList("recruiting", next)}
+            />
+          )}
+        </header>
 
-      <main className="flex-1 overflow-y-auto px-5 py-4">
-        <ul className="flex flex-col gap-3">
-          {(schedules ?? []).map((schedule) => (
-            <li key={schedule.scheduleId}>
-              <ScheduleCard {...toCardProps(schedule)} />
-            </li>
-          ))}
-          {previewSchedules.map(({ id, ...schedule }) => (
-            <li key={id}>
-              <ScheduleCard {...schedule} />
-            </li>
-          ))}
-        </ul>
-      </main>
+        {TAB_LABELS.map(({ value }) => (
+          <TabsContent
+            key={value}
+            value={value}
+            className="min-h-0 overflow-y-auto px-5 py-4"
+          >
+            <ScheduleListPanel
+              tab={value}
+              filter={filter}
+              isLoggedIn={isLoggedIn}
+              highlightedScheduleId={createdNotice?.scheduleId}
+            />
+          </TabsContent>
+        ))}
+      </Tabs>
 
       <BottomNav
         activeItem="schedule"
@@ -186,9 +144,9 @@ export function ScheduleHome() {
       />
 
       <ScheduleCreatedDialog
-        open={createdPlaceName !== null}
-        placeName={createdPlaceName || undefined}
-        onConfirm={() => setCreatedPlaceName(null)}
+        open={isCreatedDialogOpen}
+        placeName={createdNotice?.placeName || undefined}
+        onConfirm={() => setIsCreatedDialogOpen(false)}
       />
     </div>
   );

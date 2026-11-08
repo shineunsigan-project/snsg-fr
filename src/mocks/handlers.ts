@@ -5,13 +5,25 @@ import type {
   SignupRequest,
 } from "@/features/profile/api/signup";
 import type { Region } from "@/features/schedule/api/regions";
-import type { ScheduleListItem } from "@/features/schedule/api/schedules";
+import {
+  SCHEDULE_PAGE_SIZE,
+  type ScheduleFilter,
+  type SchedulePage,
+} from "@/features/schedule/api/schedules";
 import type { Activity } from "@/features/schedule/api/activities";
 import type {
   CreateScheduleRequest,
   CreateScheduleResponse,
   Place,
 } from "@/features/schedule/api/scheduleCreate";
+import {
+  MOCK_ACTIVITIES,
+  listMine,
+  listRecruiting,
+  loadMockSchedules,
+  saveMockSchedules,
+  toPage,
+} from "./scheduleStore";
 import type {
   ApiFailure,
   ApiSuccess,
@@ -31,21 +43,6 @@ const TIME_CONFLICT_TITLE = "시간겹침";
 /** 시작 시각은 요청 시점 + 1시간 이후여야 한다 */
 const MIN_LEAD_MS = 60 * 60 * 1000;
 
-/** 활동 목록 (api-guide 응답 예시). 화면 기능 명세서 CRT-01 순서: 보드게임 / 방탈출 / 산책 */
-const mockActivities: Activity[] = [
-  {
-    id: "01a19cc6-3d80-7000-8000-000000000001",
-    code: "BOARD_GAME",
-    name: "보드게임",
-  },
-  {
-    id: "01a19cc6-3d80-7000-8000-000000000002",
-    code: "ESCAPE_ROOM",
-    name: "방탈출",
-  },
-  { id: "01a19cc6-3d80-7000-8000-000000000003", code: "WALK", name: "산책" },
-];
-
 /** 지역 목록 (api-guide 응답 예시) */
 const mockRegions: Region[] = [
   { code: "11440", name: "마포구" },
@@ -62,28 +59,33 @@ const REGION_CENTERS: Record<string, { latitude: number; longitude: number }> =
   };
 
 /** 장소 후보 예시. 활동·지역마다 3곳. 산책(공원)은 실제 서버처럼 아직 비어 있다 (api-guide 장소 후보) */
-const mockPlaces: Array<{ categoryId: string; place: Place }> = mockActivities
-  .filter((activity) => activity.code !== "WALK")
-  .flatMap((activity, activityIndex) =>
-    mockRegions.flatMap((region) =>
-      [1, 2, 3].map((number) => ({ activity, activityIndex, region, number })),
-    ),
-  )
-  .map(({ activity, activityIndex, region, number }, index) => {
-    const center = REGION_CENTERS[region.code];
-    return {
-      categoryId: activity.id,
-      place: {
-        id: `01a178b9-b980-7000-8000-${String(index + 1).padStart(12, "0")}`,
-        name: `${region.name} ${activity.name} 예시 ${number}`,
-        roadAddress: `서울특별시 ${region.name} 예시로 ${number}`,
-        addressDetail: number === 3 ? "" : `${number + 1}층`,
-        latitude: center.latitude + (number - 2) * 0.003,
-        longitude: center.longitude + (activityIndex - 0.5) * 0.004,
-        regionCode: region.code,
-      },
-    };
-  });
+const mockPlaces: Array<{ categoryId: string; place: Place }> =
+  MOCK_ACTIVITIES.filter((activity) => activity.code !== "WALK")
+    .flatMap((activity, activityIndex) =>
+      mockRegions.flatMap((region) =>
+        [1, 2, 3].map((number) => ({
+          activity,
+          activityIndex,
+          region,
+          number,
+        })),
+      ),
+    )
+    .map(({ activity, activityIndex, region, number }, index) => {
+      const center = REGION_CENTERS[region.code];
+      return {
+        categoryId: activity.id,
+        place: {
+          id: `01a178b9-b980-7000-8000-${String(index + 1).padStart(12, "0")}`,
+          name: `${region.name} ${activity.name} 예시 ${number}`,
+          roadAddress: `서울특별시 ${region.name} 예시로 ${number}`,
+          addressDetail: number === 3 ? "" : `${number + 1}층`,
+          latitude: center.latitude + (number - 2) * 0.003,
+          longitude: center.longitude + (activityIndex - 0.5) * 0.004,
+          regionCode: region.code,
+        },
+      };
+    });
 
 /**
  * TODO(원복): 백엔드(ngrok)가 꺼져 있어도 개설 → 목록 반영을 확인하려고, mock에서는 로그인된 상태로 시작한다 (2026-11-02)
@@ -91,18 +93,24 @@ const mockPlaces: Array<{ categoryId: string; place: Place }> = mockActivities
  */
 const MOCK_LOGGED_IN = true;
 
-/** 만든 일정. 새로고침해도 남게 탭 단위 저장소에 둔다 */
-const SCHEDULES_KEY = "mswSchedules";
-function loadMockSchedules(): ScheduleListItem[] {
-  try {
-    return JSON.parse(sessionStorage.getItem(SCHEDULES_KEY) ?? "[]");
-  } catch {
-    return [];
-  }
+/** 한 번에 요청할 수 있는 최대 개수 (mock 전용 상한) */
+const MAX_PAGE_SIZE = 100;
+
+/** 목록 요청의 page·size. 0 이상 정수 page, 1~상한 정수 size가 아니면 null (400) */
+function readPage(query: URLSearchParams): [number, number] | null {
+  const page = Number(query.get("page") ?? 0);
+  const size = Number(query.get("size") ?? SCHEDULE_PAGE_SIZE);
+  const isValid =
+    Number.isInteger(page) &&
+    page >= 0 &&
+    Number.isInteger(size) &&
+    size >= 1 &&
+    size <= MAX_PAGE_SIZE;
+  return isValid ? [page, size] : null;
 }
-function saveMockSchedules(schedules: ScheduleListItem[]) {
-  sessionStorage.setItem(SCHEDULES_KEY, JSON.stringify(schedules));
-}
+
+const invalidRequest = () =>
+  failure(400, "INVALID_REQUEST", "요청 형식이 올바르지 않습니다.");
 
 /** 카카오 정보 (임시 닉네임) */
 const mockSignUpSession: SignUpSession = {
@@ -132,7 +140,7 @@ export const handlers: AnyHandler[] = [
   http.get("*/api/v1/activity-categories", () =>
     HttpResponse.json<ApiSuccess<Activity[]>>({
       isSuccess: true,
-      data: mockActivities,
+      data: MOCK_ACTIVITIES,
     }),
   ),
 
@@ -150,7 +158,7 @@ export const handlers: AnyHandler[] = [
           "요청 형식이 올바르지 않습니다.",
         );
       }
-      if (!mockActivities.some((activity) => activity.id === categoryId)) {
+      if (!MOCK_ACTIVITIES.some((activity) => activity.id === categoryId)) {
         return failure(
           400,
           "INVALID_CATEGORY",
@@ -217,43 +225,73 @@ export const handlers: AnyHandler[] = [
       );
     }
     const schedules = loadMockSchedules();
-    // 목록(임시 계약)은 숫자 ID를 쓴다. 개설 응답은 api-guide대로 UUID다
-    const listId =
-      Math.max(0, ...schedules.map((schedule) => schedule.scheduleId)) + 1;
+    const scheduleId = crypto.randomUUID();
     saveMockSchedules([
       ...schedules,
       {
-        scheduleId: listId,
+        scheduleId,
+        activityId: body.categoryId,
         activityName:
-          mockActivities.find((activity) => activity.id === body.categoryId)
+          MOCK_ACTIVITIES.find((activity) => activity.id === body.categoryId)
             ?.name ?? "",
         title: body.title,
         startAt: body.startAt,
-        place: {
-          name: place.name,
-          regionName: mockRegions.find(({ code }) => code === place.regionCode)
-            ?.name,
-        },
+        regionCode: place.regionCode,
+        regionName:
+          mockRegions.find(({ code }) => code === place.regionCode)?.name ?? "",
+        placeName: place.name,
         // 개설자 = 확정 인원 1명 (USER_FLOW §7.7)
         participantCount: 1,
         capacity: body.capacity,
         status: "RECRUITING",
+        createdAt: new Date().toISOString(),
+        joined: false,
+        mine: true,
       },
     ]);
     return HttpResponse.json<ApiSuccess<CreateScheduleResponse>>(
-      { isSuccess: true, data: { scheduleId: crypto.randomUUID() } },
+      { isSuccess: true, data: { scheduleId } },
       { status: 201 },
     );
   }),
 
-  // getSchedules — TODO(API): 임시 계약. 시작이 빠른 순
-  http.get("*/api/v1/schedules", () =>
-    HttpResponse.json<ApiSuccess<ScheduleListItem[]>>({
-      isSuccess: true,
-      data: loadMockSchedules().sort((a, b) =>
-        a.startAt.localeCompare(b.startAt),
-      ),
-    }),
+  // getScheduleList(모집 중) — TODO(API): 임시 계약. 필터·20개씩
+  http.get<never, never, ApiSuccess<SchedulePage> | ApiFailure>(
+    "*/api/v1/schedules",
+    ({ request }) => {
+      const query = new URL(request.url).searchParams;
+      const page = readPage(query);
+      if (!page) return invalidRequest();
+      const filter: ScheduleFilter = {
+        activityId: query.get("activityId") ?? undefined,
+        regionCode: query.get("regionCode") ?? undefined,
+        startDate: query.get("startDate") ?? undefined,
+        endDate: query.get("endDate") ?? undefined,
+        startTime: query.get("startTime") ?? undefined,
+      };
+      return HttpResponse.json<ApiSuccess<SchedulePage>>({
+        isSuccess: true,
+        data: toPage(listRecruiting(filter), ...page),
+      });
+    },
+  ),
+
+  // getScheduleList(참여한·개설한) — TODO(API): 임시 계약. 로그인해야 한다
+  ...(["joined", "created"] as const).map((tab) =>
+    http.get<never, never, ApiSuccess<SchedulePage> | ApiFailure>(
+      `*/api/v1/users/me/schedules/${tab}`,
+      ({ request }) => {
+        if (!request.headers.get("Authorization")) {
+          return failure(401, "UNAUTHENTICATED", "로그인이 필요합니다.");
+        }
+        const page = readPage(new URL(request.url).searchParams);
+        if (!page) return invalidRequest();
+        return HttpResponse.json<ApiSuccess<SchedulePage>>({
+          isSuccess: true,
+          data: toPage(listMine(tab === "joined" ? "joined" : "mine"), ...page),
+        });
+      },
+    ),
   ),
 
   // refreshAccessToken — mock에는 refresh token 쿠키가 없어 항상 비로그인으로 시작한다

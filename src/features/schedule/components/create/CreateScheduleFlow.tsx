@@ -29,6 +29,7 @@ import {
   saveDraft,
 } from "../../lib/createDraft";
 import { saveCreatedNotice } from "../../lib/createdNotice";
+import { toScheduleListQuery } from "../../lib/scheduleListParams";
 import { toStartAt } from "../../lib/startTime";
 import {
   createScheduleSchema,
@@ -245,12 +246,11 @@ function CreateScheduleForm() {
         startAt: toStartAt(date, startTime),
       },
       {
-        onSuccess: () => {
+        onSuccess: ({ scheduleId }) => {
           clearDraft();
-          // 팝업 `일정이 열렸어요`는 홈에서 띄운다. 응답에는 일정 ID만 있어 고른 장소명을 넘긴다
-          // TODO(LIST-05): 개설한 일정 탭이 생기면 그 탭으로 보낸다
-          saveCreatedNotice(place.name);
-          router.replace("/");
+          // 개설한 일정 탭(LIST-05)으로 가서 완료 팝업을 띄운다. 응답에는 일정 ID만 있어 고른 장소명을 넘긴다
+          saveCreatedNotice({ scheduleId, placeName: place.name });
+          router.replace(toScheduleListQuery("created", {}));
         },
         onError: (error) => {
           const code = getApiErrorCode(error);

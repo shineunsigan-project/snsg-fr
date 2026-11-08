@@ -8,7 +8,7 @@ export type StatusBadgeProps =
 const variantClassName: Record<StatusBadgeProps["variant"], string> = {
   recruiting: "bg-brand-soft text-brand",
   closed: "bg-secondary text-muted-foreground",
-  seatsLeft: "bg-brand text-white",
+  seatsLeft: "bg-brand text-primary-foreground",
 };
 
 function getLabel(props: StatusBadgeProps) {
