@@ -1,5 +1,7 @@
 import { useId, type Ref } from "react";
 
+import { cn } from "@/shared/lib/utils";
+
 type ToggleButtonGroupProps<T extends string> = {
   label: string;
   name: string;
@@ -34,7 +36,11 @@ export function ToggleButtonGroup<T extends string>({
         {options.map((option, index) => (
           <label
             key={option.value}
-            className="flex h-13 cursor-pointer items-center justify-center rounded-lg border border-input bg-card text-md text-foreground has-checked:border-primary has-checked:bg-brand-soft has-checked:font-bold has-checked:text-brand has-checked:ring-1 has-checked:ring-primary has-checked:ring-inset has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+            className={cn(
+              "flex h-13 cursor-pointer items-center justify-center rounded-lg border bg-card text-md text-foreground has-checked:border-primary has-checked:bg-brand-soft has-checked:font-bold has-checked:text-brand has-checked:ring-1 has-checked:ring-primary has-checked:ring-inset has-focus-visible:ring-3 has-focus-visible:ring-ring/50",
+              // 오류면 모든 선택지에 빨간 테두리 (시안 AUTH-04)
+              errorMessage ? "border-destructive" : "border-input",
+            )}
           >
             <input
               ref={index === 0 ? ref : undefined}
@@ -51,8 +57,10 @@ export function ToggleButtonGroup<T extends string>({
         ))}
       </div>
       {errorMessage && (
-        // TODO(D-8): 오류 색은 디자인 미확인이라 shadcn 기본 오류 색을 쓴다
-        <p id={messageId} className="mt-2 text-xs text-destructive">
+        <p
+          id={messageId}
+          className="mt-2 text-xs font-semibold text-destructive"
+        >
           {errorMessage}
         </p>
       )}

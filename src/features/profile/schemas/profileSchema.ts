@@ -13,13 +13,18 @@ const NAME_PATTERN = /^[가-힣a-zA-Z]{2,20}$/;
 
 // 닉네임 기준은 정책 POL-005를 따른다: 2~10자의 한글·영문·숫자·마침표(.)·밑줄(_) (2026-10-11 수정)
 // 마침표·밑줄만으로는 만들 수 없다. 한글·영문·숫자가 한 글자 이상 있어야 한다 (팀 결정 2026-10-11)
-const NICKNAME_PATTERN = /^(?=.*[가-힣a-zA-Z0-9])[가-힣a-zA-Z0-9._]{2,10}$/;
+const NICKNAME_MIN_LENGTH = 2;
+/** 화면의 글자 수 표시(n/10)도 이 값을 쓴다 */
+export const NICKNAME_MAX_LENGTH = 10;
+const NICKNAME_PATTERN = new RegExp(
+  `^(?=.*[가-힣a-zA-Z0-9])[가-힣a-zA-Z0-9._]{${NICKNAME_MIN_LENGTH},${NICKNAME_MAX_LENGTH}}$`,
+);
 
 // 만 18세 이상만 가입할 수 있다 (기능 요구사항 정의서 v0.3, F-14 해결)
 const MIN_SIGNUP_AGE = 18;
 const EMAIL_MAX_LENGTH = 100;
 
-// 프로필 사진 기준은 백엔드 업로드 API를 따른다: 5MB 이하의 JPG·PNG (백엔드 SHI-146에서 WebP 제외)
+// 프로필 사진 기준은 백엔드 업로드 API를 따른다: 5MB 이하의 JPG·PNG (api-guide 가입, 사용자 결정 2026-11-05)
 export const PROFILE_IMAGE_MAX_MB = 5;
 export const PROFILE_IMAGE_TYPES: readonly string[] = [
   "image/png",

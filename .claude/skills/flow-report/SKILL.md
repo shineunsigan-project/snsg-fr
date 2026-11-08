@@ -17,7 +17,7 @@ description: 기능(이슈) 하나를 마치면 사용자가 누르는 순서대
 - Playwright 스크립트를 scratchpad에 만든다. `list-example.mjs`(SHI-152)를 복사해 단계만 바꾼다. 프로젝트 폴더에서 실행: `BASE=http://localhost:3001 OUT=<scratchpad>/shots/ node <script>`
   - 390×844, deviceScaleFactor 2, `timezoneId: Asia/Seoul`. Next 개발 표시(`nextjs-portal`)는 숨긴다(예시에 있음).
   - 요소는 role·이름으로 찾는다(e2e 규칙과 같음).
-  - **비로그인 화면:** MSW 개발 서버에서 service worker를 막으면 앱이 뜨지 않는다. 같은 세션에서 헤더 `로그아웃`을 눌러 만든다.
+  - **비로그인 화면:** MSW 개발 서버에서 service worker를 막으면 앱이 뜨지 않는다. 같은 세션에서 `sessionStorage.setItem("mswSession", "out")` 후 새로고침해 만든다(mock 세션 로그아웃, `src/mocks/userStore.ts`). 다시 로그인은 `removeItem("mswSession")`.
   - 매번 처음 상태로 시작: `sessionStorage.clear()` 후 새로고침.
 - 찍은 뒤 한 장으로 모아(contact sheet) 한 번 보고, 개발 표시·로딩 중 화면·빈 화면이 잘못 찍힌 것만 다시 찍는다.
 

@@ -11,7 +11,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** 프로필 사진이 없을 때 기본 원형 */
+/** 프로필 사진이 없을 때 기본 아바타(사람 모양) */
 export const Default: Story = {};
 
 /** 편집 버튼으로 사진을 고르면 미리보기로 바뀐다 */

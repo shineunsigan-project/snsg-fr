@@ -21,9 +21,11 @@ import {
   toIsoBirthDate,
 } from "../lib/birthDate";
 import {
+  getProfileImageUploadErrorMessage,
+  loadProfileImage,
+} from "../lib/profileImage";
+import {
   genderOptions,
-  PROFILE_IMAGE_MAX_MB,
-  PROFILE_IMAGE_TYPES,
   profileSchema,
   type ProfileFormInput,
   type ProfileFormValues,
@@ -53,9 +55,6 @@ const profileResolver: Resolver<
   }
   return { values: {}, errors };
 };
-
-/** 사진 형식 오류 문구 (기획서, 백엔드 INVALID_PROFILE_IMAGE와 같다) */
-const PROFILE_IMAGE_TYPE_MESSAGE = "JPG, PNG 형식의 사진만 올릴 수 있어요.";
 
 /** 서버가 errors로 알려 주는 가입 요청 필드 중 화면에 칸이 있는 것 */
 const profileFields = [
@@ -151,32 +150,12 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
 
   // 사진 오류는 토스트로 알린다 (기능 요구사항 정의서 v0.3)
   const handleAvatarSelect = async (file: File) => {
-    if (!PROFILE_IMAGE_TYPES.includes(file.type)) {
-      showToast(PROFILE_IMAGE_TYPE_MESSAGE, {
-        variant: "error",
-      });
+    const result = await loadProfileImage(file);
+    if ("errorMessage" in result) {
+      showToast(result.errorMessage, { variant: "error" });
       return;
     }
-    if (file.size > PROFILE_IMAGE_MAX_MB * 1024 * 1024) {
-      showToast(`${PROFILE_IMAGE_MAX_MB}MB 이하의 이미지만 등록할 수 있어요.`, {
-        variant: "error",
-      });
-      return;
-    }
-    // 형식은 맞아도 깨진 파일은 미리보기를 그릴 수 없으므로 먼저 열어 본다
-    const previewUrl = URL.createObjectURL(file);
-    const image = new Image();
-    image.src = previewUrl;
-    try {
-      await image.decode();
-    } catch {
-      URL.revokeObjectURL(previewUrl);
-      showToast("사진을 불러올 수 없어요. 다른 사진을 골라주세요.", {
-        variant: "error",
-      });
-      return;
-    }
-    setAvatar({ file, previewUrl });
+    setAvatar({ file, previewUrl: result.previewUrl });
   };
 
   const submit = async (values: ProfileFormValues) => {
@@ -197,12 +176,7 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
           restartLogin(router);
           return;
         }
-        // 서버는 파일 내용으로 형식을 판별한다. 확장자만 바꾼 파일은 여기서 걸린다
-        if (getApiErrorCode(error) === "INVALID_PROFILE_IMAGE") {
-          showToast(PROFILE_IMAGE_TYPE_MESSAGE, { variant: "error" });
-          return;
-        }
-        showToast("사진을 올리지 못했어요. 다시 시도해주세요.", {
+        showToast(getProfileImageUploadErrorMessage(error), {
           variant: "error",
         });
         return;
@@ -268,13 +242,15 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
       className="mx-auto flex min-h-dvh max-w-md flex-col bg-card"
     >
       <div className="flex-1 px-5 pt-safe">
-        <h1 className="pt-9 text-2xl leading-8.5 font-bold">
-          함께할 사람들에게
-          <br />
-          보여줄 정보를 확인해주세요
+        {/* 제목·소개는 시안 AUTH-03·04 (결정 2026-11-07) */}
+        <h1 className="pt-9 text-2xl leading-8.5 font-bold break-keep">
+          프로필을 완성해주세요
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          일정에는 성별과 연령대만 표시돼요.
+        <p className="mt-2 text-sm break-keep text-muted-foreground">
+          {/* 줄바꿈 위치는 시안 AUTH-03과 같게 둔다 (사용자 결정 2026-11-07) */}
+          일정에는 성별과 연령대만 표시돼요. 이름과 이메일은
+          <br />
+          공개되지 않아요.
         </p>
 
         <div className="mt-5.5 flex flex-col items-center">
@@ -293,12 +269,16 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
           <TextField
             label="이름"
             autoComplete="name"
+            placeholder="이름을 입력해주세요"
+            helperText="이름은 가입 후 바꿀 수 없어요."
             errorMessage={errors.name?.message}
             {...register("name", { onChange: () => clearErrors("name") })}
           />
           <TextField
             label="닉네임"
             autoComplete="nickname"
+            placeholder="닉네임을 입력해주세요"
+            helperTone="success"
             helperText={
               showKakaoNicknameHint
                 ? "카카오 닉네임을 불러왔어요. 바꿀 수 있어요."
@@ -340,7 +320,7 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
               <TextField
                 label="생년월일"
                 inputMode="numeric"
-                placeholder="1996. 04. 12"
+                placeholder="YYYY. MM. DD"
                 autoComplete="bday"
                 ref={field.ref}
                 name={field.name}
@@ -377,7 +357,6 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
 
       <div className="sticky bottom-0 bg-card px-5 pt-3 pb-safe">
         {submitError && (
-          // TODO(D-8): 오류 색은 디자인 미확인이라 shadcn 기본 오류 색을 쓴다
           <p role="alert" className="mb-2 text-center text-xs text-destructive">
             {submitError}
           </p>

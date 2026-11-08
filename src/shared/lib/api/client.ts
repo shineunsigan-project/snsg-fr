@@ -45,11 +45,20 @@ export function getApiErrorMessage(error: unknown) {
   return typeof message === "string" ? message : undefined;
 }
 
-/** 필드 검증 실패 항목. 없으면 빈 배열 */
+/** 400 INVALID_REQUEST의 `errors[]`. 없거나 형식이 다르면 빈 배열 */
 export function getApiFieldErrors(error: unknown): ApiFieldError[] {
-  if (!isAxiosError<Partial<ApiFailure>>(error)) return [];
+  if (!isAxiosError<{ errors?: unknown }>(error)) return [];
   const errors = error.response?.data?.errors;
-  return Array.isArray(errors) ? errors : [];
+  if (!Array.isArray(errors)) return [];
+  return errors.filter(
+    (item): item is ApiFieldError =>
+      typeof item === "object" &&
+      item !== null &&
+      "field" in item &&
+      typeof item.field === "string" &&
+      "message" in item &&
+      typeof item.message === "string",
+  );
 }
 
 let refreshRequest: Promise<string | null> | null = null;

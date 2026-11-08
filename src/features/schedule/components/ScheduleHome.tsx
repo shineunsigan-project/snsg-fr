@@ -68,7 +68,10 @@ export function ScheduleHome() {
       router.push("/create?step=1");
       return;
     }
-    // TODO: 내 정보 화면이 생기면 이동한다 (화면 미구현)
+    if (item === "my") {
+      router.push("/my");
+      return;
+    }
     if (item === "login") {
       saveLoginRedirect(toScheduleListQuery(tab, filter));
       router.push("/login");

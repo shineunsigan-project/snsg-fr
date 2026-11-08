@@ -10,7 +10,8 @@ import { useCancelSchedule } from "../../hooks/useCancelSchedule";
 import { isValidCancelReason } from "../../schemas/cancelScheduleSchema";
 import { showActionErrorToast } from "./actionErrorToast";
 import { CancelScheduleSheet } from "./CancelScheduleSheet";
-import { DetailDialog } from "./DetailDialog";
+
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 
 type Step = "confirm" | "reason";
 
@@ -66,7 +67,7 @@ export function CancelScheduleFlow({
 
   return (
     <>
-      <DetailDialog
+      <ConfirmDialog
         open={open && step === "confirm"}
         onClose={close}
         title="일정을 전체 취소할까요?"
@@ -89,10 +90,11 @@ export function CancelScheduleFlow({
         onSubmit={handleSubmit}
         isPending={cancelSchedule.isPending}
       />
-      {/* TODO(F-20): 알림이 생기면 둘째 줄 "참여자 N명에게 취소 사유를 전달했어요."(시안)를 넣는다 */}
-      <DetailDialog
+      {/* TODO(F-20): 알림 기능을 추가할 때 둘째 줄 "참여자 N명에게 취소 사유를 전달했어요."(시안)를 넣는다. 넣을 목록은 USER_FLOW §7.5 */}
+      <ConfirmDialog
         open={isDoneOpen}
         onClose={() => setIsDoneOpen(false)}
+        icon="check"
         title="일정이 정상 취소되었습니다."
         onConfirm={() => setIsDoneOpen(false)}
       />

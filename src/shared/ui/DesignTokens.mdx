@@ -104,8 +104,13 @@ import { ColorItem, ColorPalette, Meta } from "@storybook/addon-docs/blocks";
 <ColorPalette>
   <ColorItem
     title="danger"
-    subtitle="`일정 전체 취소`·팝업 `확인` 채움, `참여 취소` 글자"
+    subtitle="`일정 전체 취소`·팝업 `확인`·`탈퇴하기` 채움 (HOST-01 팝업·MY-04)"
     colors={{ danger: "var(--danger)" }}
+  />
+  <ColorItem
+    title="danger-text"
+    subtitle="연한 빨강 배경 위 글자 — `참여 취소` (DTL-05·06)"
+    colors={{ "danger-text": "var(--danger-text)" }}
   />
   <ColorItem
     title="danger-soft / danger-border"
@@ -132,12 +137,25 @@ import { ColorItem, ColorPalette, Meta } from "@storybook/addon-docs/blocks";
   />
 </ColorPalette>
 
-## 미확인 (shadcn 기본값 유지)
+## 내 정보 (시안 MY-04 측정 근사치)
+
+<ColorPalette>
+  <ColorItem
+    title="warning / warning-soft"
+    subtitle="안내 팝업 `!` 아이콘 글자 / 원 배경 (탈퇴 불가)"
+    colors={{
+      warning: "var(--warning)",
+      "warning-soft": "var(--warning-soft)",
+    }}
+  />
+</ColorPalette>
+
+## 입력 오류 (시안 AUTH-04 측정)
 
 <ColorPalette>
   <ColorItem
     title="destructive"
-    subtitle="오류 색 미확인 (D-8)"
+    subtitle="입력 오류 문구·칸 테두리 (D-8 해결)"
     colors={{ destructive: "var(--destructive)" }}
   />
 </ColorPalette>
