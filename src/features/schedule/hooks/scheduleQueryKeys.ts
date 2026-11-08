@@ -3,8 +3,7 @@ export const scheduleQueryKeys = {
   schedules: ["schedules"] as const,
   activities: ["activities"] as const,
   regions: ["regions"] as const,
-  created: (scheduleId: number) =>
-    ["schedules", "created", scheduleId] as const,
-  places: (keyword: string, regionCodes: readonly string[]) =>
-    ["places", keyword, ...regionCodes] as const,
+  /** 지역 코드가 빈 문자열이면 전체 지역 */
+  places: (categoryId: string, regionCode: string) =>
+    ["places", categoryId, regionCode] as const,
 };

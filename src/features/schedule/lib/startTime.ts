@@ -7,10 +7,12 @@ const MINUTES_PER_DAY = 24 * 60;
 const START_TIME_STEP_MINUTES = 30;
 /** 시작 시각은 현재 시각으로부터 최소 1시간 뒤 */
 const MIN_LEAD_MINUTES = 60;
+/** 시작 날짜는 오늘 + 30일까지. 30일째 날은 23:30까지 고를 수 있다 (api-guide 일정 개설 `startAt`) */
+const MAX_START_DAYS = 30;
 
 const DURATION_HOURS: Record<ScheduleDuration, number> = {
   SHORT: 1,
-  MEDIUM: 2,
+  NORMAL: 2,
   LONG: 3,
 };
 
@@ -76,6 +78,11 @@ export function getEarliestStart() {
 
 export function getKstToday() {
   return getKstNow().date;
+}
+
+/** 고를 수 있는 가장 늦은 시작 날짜 (오늘 + 30일, 한국 날짜) */
+export function getLatestStartDate() {
+  return addDays(getKstNow().date, MAX_START_DAYS);
 }
 
 /** `YYYY-MM-DD` → 달력에 넘길 기기 시간대의 그날 0시 */

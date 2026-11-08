@@ -14,11 +14,7 @@ import { BottomNav, type BottomNavItem } from "@/shared/ui/BottomNav";
 import { FilterChip } from "@/shared/ui/FilterChip";
 import { ScheduleCard } from "@/shared/ui/ScheduleCard";
 
-import { useCreatedSchedule } from "../hooks/useCreatedSchedule";
-import {
-  clearCreatedScheduleId,
-  readCreatedScheduleId,
-} from "../lib/createdNotice";
+import { clearCreatedNotice, readCreatedNotice } from "../lib/createdNotice";
 import type { ScheduleListItem } from "../api/schedules";
 import { useSchedules } from "../hooks/useSchedules";
 import { ScheduleCreatedDialog } from "./create/ScheduleCreatedDialog";
@@ -118,7 +114,7 @@ function toCardProps(
  * - TODO(F-7): 필터 칩 → 바텀시트, 필터 값은 URL로 관리. 칩 상태는 Figma의 필터 적용 상태를 그대로 보여준다
  * - GNB 일정 개설 → 로그인 여부와 상관없이 개설 1단계. 로그인은 `일정 열기`에서 한다 (USER_FLOW §7.7)
  * - GNB 로그인 → 로그인 화면 (USER_FLOW §4.2)
- * - 일정을 열고 돌아오면 완료 팝업을 한 번 띄운다 (CRT-07). 일정 ID는 개설 화면이 탭 단위 저장소에 남긴다
+ * - 일정을 열고 돌아오면 완료 팝업을 한 번 띄운다 (CRT-07). 장소명은 개설 화면이 탭 단위 저장소에 남긴다
  * - GNB 세 번째 항목은 로그인 상태면 내 정보다
  * - TODO: 카드 → 일정 상세
  */
@@ -126,16 +122,14 @@ export function ScheduleHome() {
   const router = useRouter();
   const isLoggedIn = useIsLoggedIn();
   // 처음 그릴 때 한 번만 읽는다. 서버 렌더링에서는 저장소가 없어 null이다
-  const [createdScheduleId, setCreatedScheduleId] = useState(() =>
-    typeof window === "undefined" ? null : readCreatedScheduleId(),
+  const [createdPlaceName, setCreatedPlaceName] = useState(() =>
+    typeof window === "undefined" ? null : readCreatedNotice(),
   );
   // 읽은 값은 바로 지워 새로고침이나 다시 방문했을 때 팝업이 또 뜨지 않게 한다
   useEffect(() => {
-    if (createdScheduleId !== null) clearCreatedScheduleId();
-  }, [createdScheduleId]);
+    if (createdPlaceName !== null) clearCreatedNotice();
+  }, [createdPlaceName]);
   const { data: schedules } = useSchedules();
-  const { data: createdSchedule, isError: isCreatedScheduleError } =
-    useCreatedSchedule(createdScheduleId);
 
   const handleNavSelect = (item: BottomNavItem) => {
     if (item === "create") {
@@ -192,13 +186,9 @@ export function ScheduleHome() {
       />
 
       <ScheduleCreatedDialog
-        // 일정 정보를 받으면 연다. 못 받으면 장소명 없이 연다
-        open={
-          createdScheduleId !== null &&
-          (createdSchedule !== undefined || isCreatedScheduleError)
-        }
-        placeName={createdSchedule?.place.name}
-        onConfirm={() => setCreatedScheduleId(null)}
+        open={createdPlaceName !== null}
+        placeName={createdPlaceName || undefined}
+        onConfirm={() => setCreatedPlaceName(null)}
       />
     </div>
   );

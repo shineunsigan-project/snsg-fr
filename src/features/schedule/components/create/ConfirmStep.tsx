@@ -36,7 +36,7 @@ export function ConfirmStep({
   const values = useWatch({ control });
   const { data: activities } = useActivities();
   const activityName = activities?.find(
-    (activity) => activity.activityId === values.activityId,
+    (activity) => activity.id === values.activityId,
   )?.name;
   const durationLabel = durationOptions.find(
     (option) => option.value === values.duration,
