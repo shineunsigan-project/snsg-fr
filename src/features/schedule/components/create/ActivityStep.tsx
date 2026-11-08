@@ -51,19 +51,19 @@ export function ActivityStep({ onNext }: { onNext: () => void }) {
                 <RadioList
                   aria-label="활동"
                   // 고르기 전에도 제어 컴포넌트로 두려고 빈 문자열을 넘긴다
-                  value={field.value === null ? "" : String(field.value)}
+                  value={field.value ?? ""}
                   onValueChange={(value) => {
-                    // 활동이 바뀌면 장소 검색어도 바뀌므로 고른 장소를 비운다
-                    if (Number(value) !== field.value) {
+                    // 장소 후보는 활동마다 다르므로 활동이 바뀌면 고른 장소를 비운다
+                    if (value !== field.value) {
                       setValue("place", null, { shouldDirty: true });
                     }
-                    field.onChange(Number(value));
+                    field.onChange(value);
                   }}
                 >
                   {activities.map((activity) => (
                     <RadioListItem
-                      key={activity.activityId}
-                      value={String(activity.activityId)}
+                      key={activity.id}
+                      value={activity.id}
                       label={activity.name}
                     />
                   ))}

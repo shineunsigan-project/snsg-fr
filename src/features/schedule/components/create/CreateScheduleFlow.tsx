@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -10,9 +11,16 @@ import {
 } from "react-hook-form";
 
 import {
-  INVALID_START_TIME,
+  INVALID_CAPACITY,
+  INVALID_CATEGORY,
+  INVALID_DESCRIPTION,
+  INVALID_PLACE,
+  INVALID_START_AT,
+  INVALID_TITLE,
   SCHEDULE_TIME_CONFLICT,
+  USER_NOT_ACTIVE,
 } from "../../api/scheduleCreate";
+import { scheduleQueryKeys } from "../../hooks/scheduleQueryKeys";
 import { useCreateSchedule } from "../../hooks/useCreateSchedule";
 import {
   clearDraft,
@@ -20,7 +28,7 @@ import {
   loadDraft,
   saveDraft,
 } from "../../lib/createDraft";
-import { saveCreatedScheduleId } from "../../lib/createdNotice";
+import { saveCreatedNotice } from "../../lib/createdNotice";
 import { toStartAt } from "../../lib/startTime";
 import {
   createScheduleSchema,
@@ -35,7 +43,12 @@ import { CreateStepHeader } from "./CreateStepHeader";
 import { DateTimeStep } from "./DateTimeStep";
 import { PlaceStep } from "./PlaceStep";
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
-import { getApiErrorCode } from "@/shared/lib/api/client";
+import { setAccessToken } from "@/shared/lib/api/accessToken";
+import {
+  getApiErrorCode,
+  getApiErrorMessage,
+  getApiFieldErrors,
+} from "@/shared/lib/api/client";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { PageStatus } from "@/shared/ui/PageStatus";
@@ -51,6 +64,26 @@ const STEP_FIELDS: Record<number, Array<keyof CreateScheduleInput>> = {
 };
 
 const stepPath = (step: number) => `/create?step=${step}`;
+
+/** 개설 요청 필드 → 입력 칸과 그 칸이 있는 단계. 칸별 오류(`errors`)를 해당 칸 아래에 보여준다 */
+const REQUEST_FIELDS: Partial<
+  Record<string, { field: keyof CreateScheduleInput; step: number }>
+> = {
+  title: { field: "title", step: 3 },
+  durationType: { field: "duration", step: 3 },
+  description: { field: "description", step: 3 },
+};
+
+/** 다시 고르게 할 오류 code → 그 값을 고르는 단계 (api-guide 일정 개설 오류) */
+const RESELECT_STEPS: Partial<Record<string, number>> = {
+  [INVALID_CATEGORY]: 1,
+  [INVALID_PLACE]: 2,
+  [INVALID_START_AT]: 4,
+  [INVALID_CAPACITY]: 5,
+  // 서버의 안전망. 요청 검증을 통과한 값이면 나지 않는다
+  [INVALID_TITLE]: 3,
+  [INVALID_DESCRIPTION]: 3,
+};
 
 const contentSchema = createScheduleSchema.pick({
   title: true,
@@ -106,11 +139,17 @@ export function CreateScheduleFlow() {
 
 function CreateScheduleForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const requestedStep = parseStep(useSearchParams().get("step"));
   const isLoggedIn = useIsLoggedIn();
   const { mutate: createSchedule, isPending } = useCreateSchedule();
   const [initialValues] = useState(() => loadDraft() ?? createEmptyDraft());
   const [isRestartOpen, setIsRestartOpen] = useState(false);
+  // 서버가 준 칸별 오류. 단계를 옮기면 칸이 새로 그려지며 오류가 사라지므로, 그 단계에 도착한 뒤 넣는다
+  const pendingFieldErrorsRef = useRef<{
+    step: number;
+    errors: Array<{ field: keyof CreateScheduleInput; message: string }>;
+  } | null>(null);
 
   const form = useForm<CreateScheduleInput, unknown, CreateScheduleValues>({
     resolver: createScheduleResolver,
@@ -144,6 +183,15 @@ function CreateScheduleForm() {
       });
     }
   }, [requestedStep, firstIncompleteStep, router]);
+
+  useEffect(() => {
+    const pending = pendingFieldErrorsRef.current;
+    if (!pending || step !== pending.step) return;
+    pendingFieldErrorsRef.current = null;
+    for (const { field, message } of pending.errors) {
+      form.setError(field, { message });
+    }
+  }, [step, form]);
 
   const goTo = (next: number) => router.push(stepPath(next));
   const openRestart = () => setIsRestartOpen(true);
@@ -186,40 +234,87 @@ function CreateScheduleForm() {
       return;
     }
 
-    const { date, startTime, ...values } = result.data;
+    const { activityId, place, duration, date, startTime, ...values } =
+      result.data;
     createSchedule(
-      { ...values, startAt: toStartAt(date, startTime) },
       {
-        onSuccess: ({ scheduleId }) => {
+        ...values,
+        categoryId: activityId,
+        placeId: place.id,
+        durationType: duration,
+        startAt: toStartAt(date, startTime),
+      },
+      {
+        onSuccess: () => {
           clearDraft();
-          // 팝업 `일정이 열렸어요`는 홈에서 띄운다
+          // 팝업 `일정이 열렸어요`는 홈에서 띄운다. 응답에는 일정 ID만 있어 고른 장소명을 넘긴다
           // TODO(LIST-05): 개설한 일정 탭이 생기면 그 탭으로 보낸다
-          // 홈에서 개설 완료 팝업을 띄운다. 팝업 내용은 일정 ID로 서버에서 받는다
-          saveCreatedScheduleId(scheduleId);
+          saveCreatedNotice(place.name);
           router.replace("/");
         },
         onError: (error) => {
           const code = getApiErrorCode(error);
+          const fieldErrors = getApiFieldErrors(error);
+          // 📝 TODO(F-19): 그 밖의 오류 문구 확정 필요. 화면을 유지하고 다시 누를 수 있다
+          const showGenericError = () =>
+            showToast("일정을 열지 못했어요. 잠시 후 다시 시도해주세요.", {
+              variant: "error",
+              duration: TOAST_DURATION,
+            });
           if (code === SCHEDULE_TIME_CONFLICT) {
             // 📝 TODO(F-19): 시간 겹침 안내 문구 확정 필요
             showToast("같은 시간대에 참여하거나 개설한 일정이 있어요.", {
               variant: "error",
               duration: TOAST_DURATION,
             });
-          } else if (code === INVALID_START_TIME) {
-            // 📝 TODO(F-19): 시작 시각 재검사 실패 문구 확정 필요
-            router.push(stepPath(4));
-            showToast("시작 시각은 지금부터 1시간 이후로 골라주세요.", {
-              variant: "error",
-              duration: TOAST_DURATION,
+          } else if (code === USER_NOT_ACTIVE) {
+            // 탈퇴한 사용자다. 남은 토큰을 버리고 로그인 화면으로 보낸다. 로그인하면 이 화면으로 돌아온다
+            setAccessToken(null);
+            saveLoginRedirect(stepPath(LAST_STEP));
+            router.push("/login");
+          } else if (fieldErrors.length > 0) {
+            // 칸별 오류: 해당 칸이 있는 단계로 가서 칸 아래에 문구를 보여준다
+            // errors 순서는 정해져 있지 않아, 칸이 있는 오류 중 가장 앞 단계로 간다
+            const targets = fieldErrors.flatMap(({ field, message }) => {
+              const target = REQUEST_FIELDS[field];
+              return target ? [{ ...target, message }] : [];
             });
+            const errors = targets.map(({ field, message }) => ({
+              field,
+              message,
+            }));
+            const errorStep = targets.length
+              ? Math.min(...targets.map(({ step }) => step))
+              : undefined;
+            if (errorStep) {
+              pendingFieldErrorsRef.current = { step: errorStep, errors };
+              router.push(stepPath(errorStep));
+            } else {
+              showGenericError();
+            }
+          } else if (code && RESELECT_STEPS[code]) {
+            // 고를 수 없는 활동·장소·일시·인원: 그 단계로 보내 다시 고르게 한다
+            // 📝 TODO(F-19): 화면 문구가 정해지지 않아 서버 message를 보여준다
+            if (code === INVALID_CATEGORY) {
+              queryClient.invalidateQueries({
+                queryKey: scheduleQueryKeys.activities,
+              });
+              form.setValue("activityId", null);
+              form.setValue("place", null);
+            } else if (code === INVALID_PLACE) {
+              form.setValue("place", null);
+            }
+            router.push(stepPath(RESELECT_STEPS[code]));
+            const message = getApiErrorMessage(error);
+            if (message) {
+              showToast(message, {
+                variant: "error",
+                duration: TOAST_DURATION,
+              });
+            }
           } else if (code !== "UNAUTHENTICATED") {
             // 로그인 만료(UNAUTHENTICATED)는 공통 클라이언트가 로그인 화면으로 보낸다
-            // 📝 TODO(F-19): 그 밖의 오류 문구 확정 필요. 화면을 유지하고 다시 누를 수 있다
-            showToast("일정을 열지 못했어요. 잠시 후 다시 시도해주세요.", {
-              variant: "error",
-              duration: TOAST_DURATION,
-            });
+            showGenericError();
           }
         },
       },

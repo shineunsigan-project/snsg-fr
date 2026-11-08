@@ -34,11 +34,6 @@ const DEFAULT_ZOOM = 13;
 /** 키 인증이 실패하면 지도 스크립트가 naver.maps를 null로 바꾼다. 그 뒤로는 지도 API를 부르지 않는다 */
 const isMapsAvailable = () => Boolean(window.naver?.maps);
 
-/** 장소 목록의 키. 외부 장소 ID가 없으면 장소명 + 주소로 구분한다 */
-export function getPlaceKey(place: Place) {
-  return place.externalPlaceId ?? `${place.name}|${place.roadAddress}`;
-}
-
 // 물방울 모양 번호 핀 (시안 CRT-02). viewBox 32×40, 아래 꼭짓점이 장소 위치다
 const PIN_PATH =
   "M16 1C7.7 1 1 7.6 1 15.8c0 6 3.6 10.6 8.4 14.6L16 39l6.6-8.6C27.4 26.4 31 21.8 31 15.8 31 7.6 24.3 1 16 1z";
@@ -144,7 +139,7 @@ export function PlaceMap({ places, selectedKey, onSelect }: PlaceMapProps) {
           onSelectRef.current(place),
         ),
       );
-      return { key: getPlaceKey(place), marker };
+      return { key: place.id, marker };
     });
     markersRef.current = markers;
 
@@ -183,7 +178,7 @@ export function PlaceMap({ places, selectedKey, onSelect }: PlaceMapProps) {
       marker.setIcon(pinIcon(index + 1, selected, places[index]?.name ?? ""));
       marker.setZIndex(selected ? 1 : 0);
     });
-    const selected = places.find((place) => getPlaceKey(place) === selectedKey);
+    const selected = places.find((place) => place.id === selectedKey);
     if (selected) {
       const latLng = new naver.maps.LatLng(
         selected.latitude,

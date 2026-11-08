@@ -1,11 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // 일정 개설 CRT-01~07: 로그인한 사용자가 1~6단계를 마치고 개설 완료 팝업을 본다
-// 로그인·활동·지역·장소·일정 생성 API는 모두 가짜 응답이다 (백엔드 로그인이 아직 동작하지 않는다)
+// 로그인·활동·지역·장소 후보·일정 생성 API는 모두 가짜 응답이다
 
 const PLACE = {
+  id: "01a178b9-b980-7000-8000-000000000001",
   name: "보드게임카페 더조커 홍대점",
-  roadAddress: "서울특별시 마포구 잔다리로2길 19 2층",
+  roadAddress: "서울특별시 마포구 잔다리로2길 19",
+  addressDetail: "2층",
   latitude: 37.5517301,
   longitude: 126.920971,
   regionCode: "11440",
@@ -40,12 +42,24 @@ async function mockApis(page: Page) {
   await page.route("**/api/v1/auth/tokens", (route) =>
     route.fulfill(ok({ accessToken: "e2e-access-token" })),
   );
-  await page.route("**/api/v1/activities", (route) =>
+  await page.route("**/api/v1/activity-categories", (route) =>
     route.fulfill(
       ok([
-        { activityId: 1, name: "보드게임", searchKeyword: "보드게임카페" },
-        { activityId: 2, name: "방탈출", searchKeyword: "방탈출카페" },
-        { activityId: 3, name: "산책", searchKeyword: "산책" },
+        {
+          id: "01a19cc6-3d80-7000-8000-000000000001",
+          code: "BOARD_GAME",
+          name: "보드게임",
+        },
+        {
+          id: "01a19cc6-3d80-7000-8000-000000000002",
+          code: "ESCAPE_ROOM",
+          name: "방탈출",
+        },
+        {
+          id: "01a19cc6-3d80-7000-8000-000000000003",
+          code: "WALK",
+          name: "산책",
+        },
       ]),
     ),
   );
@@ -58,13 +72,15 @@ async function mockApis(page: Page) {
       ]),
     ),
   );
-  await page.route("**/api/places?**", (route) =>
+  await page.route("**/api/v1/place-candidates?**", (route) =>
     route.fulfill(
       ok([
         PLACE,
         {
+          id: "01a178b9-b980-7000-8000-000000000002",
           name: "홈즈앤루팡 보드게임카페 홍대점",
-          roadAddress: "서울특별시 마포구 홍익로3길 8 5층",
+          roadAddress: "서울특별시 마포구 홍익로3길 8",
+          addressDetail: "5층",
           latitude: 37.554176,
           longitude: 126.9221472,
           regionCode: "11440",
@@ -72,7 +88,7 @@ async function mockApis(page: Page) {
       ]),
     ),
   );
-  // 목록 조회(GET)는 만든 일정을 돌려주고, 생성(POST)은 요청을 기록한다 (임시 계약)
+  // 목록 조회(GET, 임시 계약)는 만든 일정을 돌려주고, 생성(POST)은 요청을 기록한다
   await page.route("**/api/v1/schedules", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill(
@@ -95,12 +111,11 @@ async function mockApis(page: Page) {
       );
     }
     createRequests.push(route.request().postDataJSON());
-    return route.fulfill(ok({ scheduleId: 1 }));
+    return route.fulfill({
+      ...ok({ scheduleId: "01a1a2b3-4c5d-7e6f-8a9b-0c1d2e3f4a5b" }),
+      status: 201,
+    });
   });
-  // 개설 완료 팝업 내용 (임시 계약)
-  await page.route("**/api/v1/schedules/1/created", (route) =>
-    route.fulfill(ok({ scheduleId: 1, place: { name: PLACE.name } })),
-  );
 
   return createRequests;
 }
@@ -162,10 +177,10 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
   // 보낸 일정 생성 요청
   expect(createRequests).toHaveLength(1);
   expect(createRequests[0]).toMatchObject({
-    activityId: 1,
-    place: PLACE,
+    categoryId: "01a19cc6-3d80-7000-8000-000000000001",
+    placeId: PLACE.id,
     title: "초보 환영 보드게임",
-    duration: "MEDIUM",
+    durationType: "NORMAL",
     capacity: 4,
   });
 
@@ -231,4 +246,169 @@ test("초기화 확인 팝업에서 [초기화]를 누르면 입력값을 비우
   await expect(page).toHaveURL(/step=1$/);
   await expect(activity).not.toBeChecked();
   await expect(page.getByRole("button", { name: "다음" })).toBeDisabled();
+});
+
+/** 1~5단계를 모두 고른 입력값을 기기에 넣고 그 단계(기본 6단계 최종 확인)를 연다. 시작은 기본 내일 19:30(한국 시간) */
+/** 오늘 + days일의 한국 날짜 `YYYY-MM-DD` */
+const kstDate = (days: number) =>
+  new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(
+    Date.now() + days * 24 * 60 * 60 * 1000,
+  );
+
+async function openConfirmStep(
+  page: Page,
+  { step = 6, date = kstDate(1) }: { step?: number; date?: string } = {},
+) {
+  await page.addInitScript(
+    (draft) => {
+      if (!sessionStorage.getItem("scheduleCreateDraft")) {
+        sessionStorage.setItem("scheduleCreateDraft", JSON.stringify(draft));
+      }
+    },
+    {
+      activityId: "01a19cc6-3d80-7000-8000-000000000001",
+      place: PLACE,
+      title: "초보 환영 보드게임",
+      duration: "NORMAL",
+      description: "처음 오시는 분도 환영해요.",
+      date,
+      startTime: "19:30",
+      capacity: 4,
+    },
+  );
+  await page.goto(`/create?step=${step}`);
+  if (step === 6) {
+    await expect(page.getByText("초보 환영 보드게임")).toBeVisible();
+  }
+}
+
+/** 일정 생성(POST)만 실패 응답으로 바꾼다 */
+async function failCreate(page: Page, status: number, body: object) {
+  await page.route("**/api/v1/schedules", (route) =>
+    route.request().method() === "POST"
+      ? route.fulfill({
+          status,
+          contentType: "application/json",
+          body: JSON.stringify({ isSuccess: false, ...body }),
+        })
+      : route.fallback(),
+  );
+}
+
+test("장소 목록은 상세주소를 붙여 보여주고, [전체]는 지역 없이 부른다", async ({
+  page,
+}) => {
+  await mockApis(page);
+  const placeRequests: URL[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1/place-candidates")) {
+      placeRequests.push(new URL(request.url()));
+    }
+  });
+
+  await page.goto("/create?step=1");
+  await page.getByText("보드게임", { exact: true }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+
+  await expect(
+    page.getByRole("button", { name: /잔다리로2길 19 2층/ }),
+  ).toBeVisible();
+  expect(placeRequests.at(-1)?.searchParams.get("categoryId")).toBe(
+    "01a19cc6-3d80-7000-8000-000000000001",
+  );
+  expect(placeRequests.at(-1)?.searchParams.get("regionCode")).toBe("11440");
+
+  await page.getByRole("button", { name: "전체" }).click();
+  await expect
+    .poll(() => placeRequests.at(-1)?.searchParams.has("regionCode"))
+    .toBe(false);
+});
+
+test("고를 수 없는 장소(INVALID_PLACE)면 장소 단계로 돌아가 다시 고르게 한다", async ({
+  page,
+}) => {
+  await mockApis(page);
+  await failCreate(page, 400, {
+    code: "INVALID_PLACE",
+    message: "선택할 수 없는 장소예요. 장소를 다시 골라주세요.",
+  });
+  await openConfirmStep(page);
+
+  await page.getByRole("button", { name: "일정 열기" }).click();
+
+  await expect(page).toHaveURL(/step=2/);
+  await expect(
+    page.getByText("선택할 수 없는 장소예요. 장소를 다시 골라주세요."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "다음" })).toBeDisabled();
+});
+
+test("칸별 오류(errors)는 그 칸이 있는 단계로 가서 칸 아래에 보여준다", async ({
+  page,
+}) => {
+  await mockApis(page);
+  await failCreate(page, 400, {
+    code: "INVALID_REQUEST",
+    message: "요청 형식이 올바르지 않습니다.",
+    errors: [{ field: "title", message: "활동명은 1~20자로 입력해주세요." }],
+  });
+  await openConfirmStep(page);
+
+  await page.getByRole("button", { name: "일정 열기" }).click();
+
+  await expect(page).toHaveURL(/step=3/);
+  await expect(page.getByText("활동명은 1~20자로 입력해주세요.")).toBeVisible();
+});
+
+test("장소 후보가 고를 수 없는 활동(INVALID_CATEGORY)이면 1단계로 돌아가 다시 고르게 한다", async ({
+  page,
+}) => {
+  await mockApis(page);
+  await page.route("**/api/v1/place-candidates?**", (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: "application/json",
+      body: JSON.stringify({
+        isSuccess: false,
+        code: "INVALID_CATEGORY",
+        message: "선택할 수 없는 활동이에요. 활동을 다시 골라주세요.",
+      }),
+    }),
+  );
+
+  await page.goto("/create?step=1");
+  await page.getByText("보드게임", { exact: true }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+
+  await expect(page).toHaveURL(/step=1$/);
+  await expect(
+    page.getByText("선택할 수 없는 활동이에요. 활동을 다시 골라주세요."),
+  ).toBeVisible();
+  await expect(page.getByRole("radio", { name: "보드게임" })).not.toBeChecked();
+});
+
+test("시작 날짜는 오늘 + 30일까지다. 보관한 날짜가 더 늦으면 그날로 맞춘다", async ({
+  page,
+}) => {
+  await mockApis(page);
+  await openConfirmStep(page, { step: 4, date: kstDate(40) });
+
+  const [, month, day] = kstDate(30).split("-");
+  await expect(
+    page.getByRole("button", { name: new RegExp(`날짜 ${month}\\.${day}`) }),
+  ).toBeVisible();
+});
+
+test("활동명은 이모지도 한 글자로 세어 20자까지 쓸 수 있다", async ({
+  page,
+}) => {
+  await mockApis(page);
+  await openConfirmStep(page, { step: 3 });
+
+  const title = page.getByLabel("콘텐츠 활동명");
+  await title.fill("🎲".repeat(21));
+  await expect(title).toHaveValue("🎲".repeat(20));
+  await expect(page.getByText("20/20")).toBeVisible();
+  await page.getByRole("button", { name: "다음" }).click();
+  await expect(page).toHaveURL(/step=4/);
 });

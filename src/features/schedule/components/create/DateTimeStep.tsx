@@ -10,6 +10,7 @@ import {
   fromCalendarDate,
   getEarliestStart,
   getKstToday,
+  getLatestStartDate,
   toCalendarDate,
   toMinutes,
 } from "../../lib/startTime";
@@ -25,7 +26,7 @@ import { Calendar } from "@/shared/ui/calendar";
 import { TimeWheelPicker } from "@/shared/ui/TimeWheelPicker";
 
 /**
- * CRT-04 날짜·시작 시각. 오늘 이전 날짜와 지금 + 1시간 이전 시각은 고를 수 없다.
+ * CRT-04 날짜·시작 시각. 오늘 이전 날짜, 지금 + 1시간 이전 시각, 오늘 + 30일 뒤 날짜는 고를 수 없다.
  * 서버가 `일정 열기` 때 다시 검사한다
  */
 export function DateTimeStep({ onNext }: { onNext: () => void }) {
@@ -42,11 +43,14 @@ export function DateTimeStep({ onNext }: { onNext: () => void }) {
   // 이 화면을 연 시각 기준. 머무는 동안 지난 시각은 서버가 거부한다
   const [earliest] = useState(getEarliestStart);
   const [today] = useState(getKstToday);
+  const [latestDate] = useState(getLatestStartDate);
   const minTime = date === earliest.date ? earliest.time : undefined;
 
-  // 보관해 둔 날짜·시각이 그사이 지났으면 고를 수 있는 가장 이른 값으로 맞춘다
+  // 보관해 둔 날짜·시각이 고를 수 있는 범위 밖이면 가장 가까운 값으로 맞춘다
   useEffect(() => {
-    if (date < earliest.date) {
+    if (date > latestDate) {
+      setValue("date", latestDate);
+    } else if (date < earliest.date) {
       setValue("date", earliest.date);
       setValue("startTime", earliest.time);
     } else if (
@@ -55,7 +59,7 @@ export function DateTimeStep({ onNext }: { onNext: () => void }) {
     ) {
       setValue("startTime", earliest.time);
     }
-  }, [date, startTime, earliest, setValue]);
+  }, [date, startTime, earliest, latestDate, setValue]);
 
   const selectDate = (day: Date) => {
     setValue("date", fromCalendarDate(day));
@@ -110,7 +114,11 @@ export function DateTimeStep({ onNext }: { onNext: () => void }) {
                 defaultMonth={toCalendarDate(date)}
                 today={toCalendarDate(today)}
                 startMonth={toCalendarDate(today)}
-                disabled={{ before: toCalendarDate(earliest.date) }}
+                endMonth={toCalendarDate(latestDate)}
+                disabled={[
+                  { before: toCalendarDate(earliest.date) },
+                  { after: toCalendarDate(latestDate) },
+                ]}
               />
             </div>
           )}

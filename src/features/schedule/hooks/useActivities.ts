@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getActivities } from "../api/scheduleCreate";
+import { getActivities } from "../api/activities";
 import { scheduleQueryKeys } from "./scheduleQueryKeys";
 
 export function useActivities() {

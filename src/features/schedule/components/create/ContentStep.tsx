@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type ChangeEvent } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 
 import {
@@ -10,6 +10,7 @@ import {
   type CreateScheduleInput,
   type CreateScheduleValues,
 } from "../../schemas/createScheduleSchema";
+import { countChars, limitChars } from "../../lib/charCount";
 import { StepTitle } from "./StepTitle";
 import { cn } from "@/shared/lib/utils";
 import { BottomCta } from "@/shared/ui/BottomCta";
@@ -25,6 +26,7 @@ export function ContentStep({ onNext }: { onNext: () => void }) {
   const {
     control,
     register,
+    setValue,
     clearErrors,
     formState: { errors },
   } = useFormContext<CreateScheduleInput, unknown, CreateScheduleValues>();
@@ -56,15 +58,20 @@ export function ContentStep({ onNext }: { onNext: () => void }) {
         <div className="mt-6 flex flex-col gap-6">
           <TextField
             label="콘텐츠 활동명"
-            maxLength={TITLE_MAX_LENGTH}
             helperText="입력한 활동명이 일정 제목으로 쓰여요."
             errorMessage={errors.title?.message}
             trailing={
               <span className="shrink-0 text-xs text-subtle-foreground tabular-nums">
-                {title.length}/{TITLE_MAX_LENGTH}
+                {countChars(title)}/{TITLE_MAX_LENGTH}
               </span>
             }
-            {...register("title", { onChange: () => clearErrors("title") })}
+            {...register("title", {
+              onChange: (event: ChangeEvent<HTMLInputElement>) => {
+                clearErrors("title");
+                const value = limitChars(event.target.value, TITLE_MAX_LENGTH);
+                if (value !== event.target.value) setValue("title", value);
+              },
+            })}
           />
 
           <div>
@@ -138,7 +145,6 @@ export function ContentStep({ onNext }: { onNext: () => void }) {
               <textarea
                 id={descriptionId}
                 rows={2}
-                maxLength={DESCRIPTION_MAX_LENGTH}
                 aria-invalid={errors.description ? true : undefined}
                 aria-describedby={
                   descriptionMessage ? descriptionMessageId : undefined
@@ -146,11 +152,20 @@ export function ContentStep({ onNext }: { onNext: () => void }) {
                 // 내용에 맞춰 늘어나되 최대 높이를 넘으면 칸 안에서 스크롤한다. field-sizing을 지원하지 않는 브라우저는 2줄 높이에서 스크롤
                 className="block field-sizing-content max-h-28 min-h-14 w-full resize-none overflow-y-auto bg-transparent text-md text-foreground outline-none"
                 {...register("description", {
-                  onChange: () => clearErrors("description"),
+                  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => {
+                    clearErrors("description");
+                    const value = limitChars(
+                      event.target.value,
+                      DESCRIPTION_MAX_LENGTH,
+                    );
+                    if (value !== event.target.value) {
+                      setValue("description", value);
+                    }
+                  },
                 })}
               />
               <p className="mt-1 text-right text-xs text-subtle-foreground tabular-nums">
-                {description.length}/{DESCRIPTION_MAX_LENGTH}
+                {countChars(description)}/{DESCRIPTION_MAX_LENGTH}
               </p>
             </div>
             {descriptionMessage && (

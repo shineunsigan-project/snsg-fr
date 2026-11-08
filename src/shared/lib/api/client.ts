@@ -38,6 +38,13 @@ export function getApiErrorCode(error: unknown) {
   return typeof code === "string" ? code : undefined;
 }
 
+/** 실패 응답의 message. 표시용이고 분기에는 쓰지 않는다. 봉투가 아니면 undefined */
+export function getApiErrorMessage(error: unknown) {
+  if (!isAxiosError<Partial<ApiFailure>>(error)) return undefined;
+  const message = error.response?.data?.message;
+  return typeof message === "string" ? message : undefined;
+}
+
 /** 필드 검증 실패 항목. 없으면 빈 배열 */
 export function getApiFieldErrors(error: unknown): ApiFieldError[] {
   if (!isAxiosError<Partial<ApiFailure>>(error)) return [];

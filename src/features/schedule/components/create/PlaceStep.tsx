@@ -2,23 +2,31 @@
 
 import { CheckIcon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import type { Place } from "../../api/scheduleCreate";
-import { useActivities } from "../../hooks/useActivities";
+import {
+  formatPlaceAddress,
+  INVALID_CATEGORY,
+  INVALID_REGION,
+  type Place,
+} from "../../api/scheduleCreate";
 import { usePlaces } from "../../hooks/usePlaces";
 import { useRegions } from "../../hooks/useRegions";
+import { scheduleQueryKeys } from "../../hooks/scheduleQueryKeys";
 import type {
   CreateScheduleInput,
   CreateScheduleValues,
 } from "../../schemas/createScheduleSchema";
-import { getPlaceKey, PlaceMap } from "./PlaceMap";
+import { PlaceMap } from "./PlaceMap";
 import { StepTitle } from "./StepTitle";
+import { getApiErrorCode, getApiErrorMessage } from "@/shared/lib/api/client";
 import { cn } from "@/shared/lib/utils";
 import { BottomCta } from "@/shared/ui/BottomCta";
 import { Button } from "@/shared/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/shared/ui/drawer";
+import { showToast } from "@/shared/ui/sonner";
 
 /** URL `region` 값. 지역 코드이거나 `ALL`(`전체` 칩)이다 */
 const ALL_REGIONS = "ALL";
@@ -28,6 +36,8 @@ const DEFAULT_REGION_CODE = "11440";
 const SHEET_EXPANDED = 0.9;
 /** 닫기를 막은 뒤 Base UI가 직전 높이로 되돌리는 요청을 무시할 시간 */
 const SHEET_RESTORE_WINDOW_MS = 300;
+/** 토스트 노출 시간 (화면 기능 명세서 00 공통 기준) */
+const TOAST_DURATION = 2000;
 
 /**
  * CRT-02 장소 선택. 지역 칩은 URL(`region`)에 둔다 (AGENTS §6)
@@ -37,6 +47,7 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { control, setValue } = useFormContext<
     CreateScheduleInput,
     unknown,
@@ -44,14 +55,6 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
   >();
   const selectedPlace = useWatch({ control, name: "place" });
   const activityId = useWatch({ control, name: "activityId" });
-  const {
-    data: activities,
-    isError: isActivitiesError,
-    refetch: refetchActivities,
-  } = useActivities();
-  const keyword = activities?.find(
-    (activity) => activity.activityId === activityId,
-  )?.searchKeyword;
 
   const {
     data: regions,
@@ -66,26 +69,60 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
     ? undefined
     : (regions?.find(({ code }) => code === regionParam) ??
       (selectedPlace &&
-        regions?.find(({ code }) =>
-          selectedPlace.regionCode.startsWith(code),
-        )) ??
+        regions?.find(({ code }) => code === selectedPlace.regionCode)) ??
       regions?.find(({ code }) => code === DEFAULT_REGION_CODE) ??
       regions?.[0]);
 
+  // `전체` 칩이면 지역 코드를 빼고 부른다. 그 밖에는 지역을 정한 뒤에 부른다
   const {
     data: places,
     isPending,
     isError,
+    error,
     refetch,
-  } = usePlaces(keyword, isAllRegions ? regions : region && [region]);
-  const isListError = isActivitiesError || isRegionsError || isError;
-  const selectedKey = selectedPlace ? getPlaceKey(selectedPlace) : undefined;
+  } = usePlaces({
+    categoryId: activityId,
+    regionCode: region?.code,
+    enabled: isAllRegions || region !== undefined,
+  });
+  const isListError = isRegionsError || isError;
+  const selectedKey = selectedPlace?.id;
 
   const retryList = () => {
-    if (isActivitiesError) refetchActivities();
     if (isRegionsError) refetchRegions();
     if (isError) refetch();
   };
+
+  // 고를 수 없는 활동·지역이면 다시 고르게 한다 (api-guide 장소 후보)
+  // 주소가 바뀌어 effect가 다시 돌아도 같은 오류는 한 번만 처리한다
+  const handledErrorRef = useRef<unknown>(null);
+  useEffect(() => {
+    if (!error || error === handledErrorRef.current) return;
+    const code = getApiErrorCode(error);
+    // INVALID_REQUEST: 보관한 활동 값이 잘못됐다. 활동부터 다시 고르게 한다
+    const isInvalidActivity =
+      code === INVALID_CATEGORY || code === "INVALID_REQUEST";
+    if (!isInvalidActivity && code !== INVALID_REGION) return;
+    handledErrorRef.current = error;
+    const message = getApiErrorMessage(error);
+    // 📝 TODO(F-19): 화면 문구가 정해지지 않아 서버 message를 보여준다
+    if (message) {
+      showToast(message, { variant: "error", duration: TOAST_DURATION });
+    }
+    if (isInvalidActivity) {
+      // 활동 목록을 다시 받고 1단계로 간다
+      queryClient.invalidateQueries({ queryKey: scheduleQueryKeys.activities });
+      setValue("activityId", null, { shouldDirty: true });
+      setValue("place", null, { shouldDirty: true });
+      router.replace(`${pathname}?step=1`);
+      return;
+    }
+    // 지역 목록을 다시 받고 기본 지역으로 돌아간다
+    queryClient.invalidateQueries({ queryKey: scheduleQueryKeys.regions });
+    const params = new URLSearchParams(searchParams);
+    params.delete("region");
+    router.replace(`${pathname}?${params}`);
+  }, [error, queryClient, setValue, searchParams, router, pathname]);
 
   // 지역을 바꾸면 고른 장소를 비운다. 다른 지역의 장소가 선택된 채로 남지 않게 한다
   const selectRegion = (code: string) => {
@@ -104,7 +141,7 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
     selectPlace(place);
     const list = placeListRef.current;
     const item = list?.querySelector(
-      `[data-place-key="${CSS.escape(getPlaceKey(place))}"]`,
+      `[data-place-key="${CSS.escape(place.id)}"]`,
     );
     if (!list || !item) return;
     list.scrollTo({
@@ -243,7 +280,7 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
                     다시 시도
                   </Button>
                 </div>
-              ) : !keyword || !regions || (regions.length > 0 && isPending) ? (
+              ) : !regions || (regions.length > 0 && isPending) ? (
                 <p role="status" className="py-6 text-sm text-muted-foreground">
                   불러오는 중...
                 </p>
@@ -254,12 +291,9 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
               ) : (
                 <ul className="flex flex-col gap-2.5">
                   {places.map((place, index) => {
-                    const isSelected = getPlaceKey(place) === selectedKey;
+                    const isSelected = place.id === selectedKey;
                     return (
-                      <li
-                        key={getPlaceKey(place)}
-                        data-place-key={getPlaceKey(place)}
-                      >
+                      <li key={place.id} data-place-key={place.id}>
                         <button
                           type="button"
                           aria-pressed={isSelected}
@@ -287,7 +321,7 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
                               {place.name}
                             </span>
                             <span className="mt-1 block truncate text-sm text-muted-foreground">
-                              {place.roadAddress}
+                              {formatPlaceAddress(place)}
                             </span>
                           </span>
                           {isSelected && (
