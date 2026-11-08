@@ -21,7 +21,7 @@
 | 작업 절차 | `.claude/skills/` (`feature`, `api-contract`, `verify`, `pr`, `flow-report`, `obsidian-note`) |
 | 브랜치·커밋·PR, Linear | `CONTRIBUTING.md`, snsg-be `docs/linear-convention.md` |
 
-문서 표기: `✅` 확인됨 · `📝`·`추정`·`미확인`·`미정의`·`⚠️` 확정 안 됨(확정된 것처럼 구현하지 않는다) · `팀 결정`·`팀 확인`은 Figma보다 우선 · `F-x`·`D-x`·`T-x`는 각 문서의 Open Questions.
+문서 표기: `✅` 확인됨 · `📝`·`추정`·`미확인`·`미정의`·`⚠️` 확정 안 됨(확정된 것처럼 구현하지 않는다) · `팀 결정`·`팀 확인`은 Figma보다 우선 · 기획 문서끼리 다르면 **기능 요구사항 정의서**가 화면 기능 명세서·시안보다 우선(사용자 결정 2026-11-07) · `F-x`·`D-x`·`T-x`는 각 문서의 Open Questions.
 
 ## 일하는 방식
 - 하루를 시작하면 `docs/HANDOFF.md`를 먼저 읽는다. 기능 작업은 그 이슈의 작업 지시서를 읽는다.

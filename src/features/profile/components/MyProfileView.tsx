@@ -1,3 +1,5 @@
+import { ChevronRight } from "lucide-react";
+
 import type { MyProfile } from "../api/myProfile";
 import { formatBirthDate } from "../lib/birthDate";
 import { genderOptions } from "../schemas/profileSchema";
@@ -8,6 +10,8 @@ import { Button } from "@/shared/ui/button";
 type MyProfileViewProps = {
   profile: MyProfile;
   onEdit: () => void;
+  /** `홈 화면에 추가하는 방법 ›` — 홈 화면 추가 안내(ONB-01·01-1)를 다시 연다 (SHI-160). 없으면 메뉴를 숨긴다(PC, F-23) */
+  onHomeScreenGuide?: () => void;
   onLogout: () => void;
   onWithdraw: () => void;
 };
@@ -28,6 +32,7 @@ export function MyProfileHeader() {
 export function MyProfileView({
   profile,
   onEdit,
+  onHomeScreenGuide,
   onLogout,
   onWithdraw,
 }: MyProfileViewProps) {
@@ -71,6 +76,20 @@ export function MyProfileView({
         </section>
 
         <section className="mt-4 overflow-hidden rounded-3xl bg-card">
+          {/* 정의서 UI 예시대로 로그아웃 위에. MY-01 시안에 없어 로그아웃 줄 모양을 따른다 (SHI-160 결정) */}
+          {onHomeScreenGuide && (
+            <button
+              type="button"
+              onClick={onHomeScreenGuide}
+              className="flex min-h-14 w-full items-center gap-2 border-b border-border px-5 text-left text-base"
+            >
+              <span className="flex-1">홈 화면에 추가하는 방법</span>
+              <ChevronRight
+                aria-hidden
+                className="size-5 shrink-0 text-subtle-foreground"
+              />
+            </button>
+          )}
           <button
             type="button"
             onClick={onLogout}

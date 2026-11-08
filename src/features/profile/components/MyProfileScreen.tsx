@@ -2,9 +2,19 @@
 
 import { isAxiosError } from "axios";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
+import {
+  isMobileDevice,
+  markHomeScreenGuideOpenedInApp,
+  toHomeScreenGuidePath,
+} from "@/features/onboarding/lib/homeScreenGuide";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { getApiErrorCode } from "@/shared/lib/api/client";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
@@ -22,6 +32,8 @@ import { MyProfileHeader, MyProfileView } from "./MyProfileView";
 
 const MY_PATH = "/my";
 
+const subscribeNothing = () => () => {};
+
 /**
  * 내 정보 MY-01 (USER_FLOW §8). GNB `내 정보`로 들어온다
  * - 비로그인이거나 조회가 401이면 로그인 화면으로 보내고, 로그인 후 이 화면으로 돌아오게 한다 (USER_FLOW §4.3)
@@ -30,6 +42,12 @@ const MY_PATH = "/my";
  * - 회원 탈퇴(MY-04): 확인 팝업 → 탈퇴 → 완료 팝업 → 로그인 화면. 진행 중 일정이 있으면(409) 불가 팝업 (USER_FLOW §4.5)
  */
 export function MyProfileScreen() {
+  // 기기 종류는 브라우저에서만 안다. 서버 렌더링과 첫 그림에서는 메뉴를 숨긴다
+  const isMobile = useSyncExternalStore(
+    subscribeNothing,
+    isMobileDevice,
+    () => false,
+  );
   const router = useRouter();
   const isLoggedIn = useIsLoggedIn();
   const { data: profile, error, refetch } = useMyProfile(isLoggedIn === true);
@@ -107,6 +125,15 @@ export function MyProfileScreen() {
       <MyProfileView
         profile={shownProfile}
         onEdit={() => router.push("/my/edit")}
+        // 메뉴로 연 안내는 7일 기록에 영향이 없다 (SHI-160 결정 2026-11-07). PC에는 보여 줄 안내가 없어 메뉴를 숨긴다 (F-23)
+        onHomeScreenGuide={
+          isMobile
+            ? () => {
+                markHomeScreenGuideOpenedInApp();
+                router.push(toHomeScreenGuidePath("menu"));
+              }
+            : undefined
+        }
         onLogout={() => setIsLogoutOpen(true)}
         onWithdraw={() => setIsWithdrawOpen(true)}
       />,

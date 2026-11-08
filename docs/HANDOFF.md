@@ -2,17 +2,17 @@
 
 하루를 시작하면 이 문서부터 읽는다. 작업을 멈출 때 "지금 상태"와 "다음에 할 일"을 고친다.
 
-마지막 갱신: 2026-11-08
+마지막 갱신: 2026-11-09
 
 ## 지금 상태
-- 브랜치 `feature/SHI-158-my-page`: develop(SHI-151·162·152·155 머지본) 위로 옮김(2026-11-08). **SHI-158 내 정보·프로필 수정·로그아웃·탈퇴** — 지시서 `.claude/tasks/SHI-158.md`. 사용자 확인 완료(2026-11-08), PR 준비.
+- 브랜치 `feature/SHI-160-home-screen-guide`(메인 폴더): develop(SHI-158까지 머지) 위로 다시 얹음(2026-11-08). **SHI-160 홈 화면 추가 안내** — 지시서 `.claude/tasks/SHI-160.md`. 2026-11-09 결정 반영(PC 메뉴 숨김, 가입 직후 바로 나중에 기록, 재가입 기기는 건너뜀). 옛 기준 상태는 `backup/SHI-160-before-rebase` 브랜치와 stash에 보관
 - 일정 개설은 실제 API(SHI-162). 일정 목록·상세·내 프로필 API는 백엔드에 없어 임시 계약 + MSW. 실제 연결은 SHI-163·164·165(Backlog).
 - 흐름 아티팩트: 일정 목록 https://claude.ai/artifact/5bK2wjP6XaKdZWki6AdtzN · 일정 상세 https://claude.ai/artifact/58pkc7eCb9JBiWSQexvRMF · 내 정보 https://claude.ai/artifact/XG7dmDKoeu4ENYX62vuZPS (옵시디언 `01_Projects/쉬는시간/`에도 노트)
 - 개발 서버: `localhost:3001` MSW 켜고 실행(`NEXT_PUBLIC_API_MOCKING=enabled pnpm exec next dev -p 3001`). mock은 로그인 상태로 시작(`MOCK_LOGGED_IN = true`).
 
 ## 다음에 할 일
-1. [ ] SHI-158 PR
-2. [ ] SHI-160을 develop 위로 옮기기
+1. [ ] SHI-160 사용자 확인 → PR
+2. [ ] 작업 폴더 `../snsg-fr-151`·백업 브랜치(`backup/SHI-*`) 정리
 3. [ ] 백엔드 임시 계약: 목록(SHI-163)·상세(SHI-164)·내 프로필(SHI-165)
 4. [ ] `MOCK_LOGGED_IN` 원복 시점 정하기
 5. [ ] 남은 docs 정리 범위 정하기

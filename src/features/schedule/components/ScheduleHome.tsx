@@ -5,6 +5,14 @@ import { useEffect, useState } from "react";
 
 import { AuthHeaderButton } from "@/features/auth/components/AuthHeaderButton";
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
+import {
+  detectHomeScreenGuidePlatform,
+  markHomeScreenGuideOpenedInApp,
+  readHomeScreenGuideRecord,
+  saveHomeScreenGuideRecord,
+  shouldShowOnHome,
+  toHomeScreenGuidePath,
+} from "@/features/onboarding/lib/homeScreenGuide";
 
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { cn } from "@/shared/lib/utils";
@@ -56,6 +64,18 @@ export function ScheduleHome() {
   useEffect(() => {
     if (createdNotice !== null) clearCreatedNotice();
   }, [createdNotice]);
+  // 홈 화면 추가 안내: `나중에` 7일 뒤 홈에 처음 들어올 때 한 번 (USER_FLOW §9.1, 결정 Q4)
+  // 개설 완료 팝업(CRT-07)을 띄울 때는 다음 홈 진입으로 미룬다
+  const hasCreatedNotice = createdNotice !== null;
+  useEffect(() => {
+    if (hasCreatedNotice) return;
+    if (!shouldShowOnHome(readHomeScreenGuideRecord(), Date.now())) return;
+    if (!detectHomeScreenGuidePlatform()) return;
+    // 보여주는 순간 기록해 두어, 버튼 없이 뒤로 가도 다시 띄우지 않는다(두 번째는 마지막)
+    saveHomeScreenGuideRecord({ status: "done" });
+    markHomeScreenGuideOpenedInApp();
+    router.push(toHomeScreenGuidePath("home"));
+  }, [hasCreatedNotice, router]);
 
   const showList = (nextTab: ScheduleListTab, nextFilter: ScheduleFilter) =>
     router.replace(toScheduleListQuery(nextTab, nextFilter), {
