@@ -16,7 +16,7 @@ const LIST_STALE_TIME = 30_000;
  * 처음 나온 것만 남긴다 (TODO(API): 커서 방식 문의)
  */
 function toUniqueSchedules(data: InfiniteData<SchedulePage>) {
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   return data.pages
     .flatMap((page) => page.schedules)
     .filter((schedule) => {

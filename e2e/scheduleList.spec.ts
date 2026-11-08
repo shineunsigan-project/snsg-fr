@@ -23,7 +23,7 @@ function kstDate(offset = 0) {
 }
 
 const makeSchedule = (index: number, overrides: object = {}) => ({
-  scheduleId: index + 1,
+  scheduleId: `01a1a2b3-0000-7000-8000-${String(index + 1).padStart(12, "0")}`,
   activityName: "보드게임",
   title: `예시 일정 ${index + 1}`,
   startAt: "2026-12-24T19:30:00",
@@ -342,6 +342,10 @@ test("로그인하면 참여한 일정에 참여 확정·D-day, 개설한 일정
   await expect(created).toHaveCount(1);
   await expect(created.first()).toContainText("모집 중");
   await expect(created.first()).toContainText("NEW");
+  // 녹색 테두리는 방금 연 일정에만 보인다. NEW라도 강조하지 않는다 (사용자 결정 2026-11-08)
+  await expect(created.first().locator("article")).not.toHaveClass(
+    /ring-brand/,
+  );
 });
 
 test("비로그인이 참여한 일정 탭을 누르면 로그인 안내를 보여준다", async ({

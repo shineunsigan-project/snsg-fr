@@ -246,10 +246,10 @@ function CreateScheduleForm() {
         startAt: toStartAt(date, startTime),
       },
       {
-        onSuccess: () => {
+        onSuccess: ({ scheduleId }) => {
           clearDraft();
           // 개설한 일정 탭(LIST-05)으로 가서 완료 팝업을 띄운다. 응답에는 일정 ID만 있어 고른 장소명을 넘긴다
-          saveCreatedNotice(place.name);
+          saveCreatedNotice({ scheduleId, placeName: place.name });
           router.replace(toScheduleListQuery("created", {}));
         },
         onError: (error) => {

@@ -17,9 +17,12 @@ const isUpcoming = (status: ScheduleStatus) =>
 export function ScheduleListCard({
   schedule,
   tab,
+  isHighlighted = false,
 }: {
   schedule: ScheduleListItem;
   tab: ScheduleListTab;
+  /** 방금 연 일정 (개설한 일정 탭). 시안의 녹색 테두리를 개설 직후에만 보여준다 (사용자 결정 2026-11-08) */
+  isHighlighted?: boolean;
 }) {
   const common = {
     category: schedule.activityName,
@@ -72,7 +75,7 @@ export function ScheduleListCard({
   return (
     <ScheduleCard
       {...common}
-      isHighlighted={schedule.isNew}
+      isHighlighted={isHighlighted}
       tags={
         <>
           {statusTag}

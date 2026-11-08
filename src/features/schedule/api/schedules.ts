@@ -9,7 +9,8 @@ export const SCHEDULE_PAGE_SIZE = 20;
 
 /** 목록 카드에 필요한 정보 (USER_FLOW §5). 장소명·비용은 목록에 보여주지 않아 받지 않는다 */
 export type ScheduleListItem = {
-  scheduleId: number;
+  /** 일정 ID(UUID 문자열, api-guide 일정 개설 응답과 같은 형식) */
+  scheduleId: string;
   /** 활동 이름 (예: 보드게임) */
   activityName: string;
   title: string;

@@ -27,13 +27,17 @@ export type MockSchedule = ScheduleListItem & {
   mine: boolean;
 };
 
-const STORE_KEY = "mswSchedules.v4";
+const STORE_KEY = "mswSchedules.v5";
 /** NEW 배지 기준(mock): 개설 후 24시간. 실제 기준은 서버가 정한다 */
 const NEW_HOURS = 24;
 
 /** 한국 날짜 기준 오늘 + offset일의 time 시각 (`YYYY-MM-DDTHH:mm:ss`) */
 const dayAt = (offset: number, time: string) =>
   `${format(addDays(parseISO(toKstDate(new Date())), offset), "yyyy-MM-dd")}T${time}:00`;
+
+/** 예시 일정 ID. 실제 일정 ID처럼 UUID 모양 문자열로 만든다 */
+const mockScheduleId = (number: number) =>
+  `01a1a2b3-0000-7000-8000-${String(number).padStart(12, "0")}`;
 
 /** 활동 목록 (api-guide 응답 예시). 화면 기능 명세서 CRT-01 순서: 보드게임 / 방탈출 / 산책 */
 export const MOCK_ACTIVITIES: Activity[] = [
@@ -78,7 +82,7 @@ function createSeed(): MockSchedule[] {
     const capacity = 4 + (index % 3) * 2;
     const isFull = index % 7 === 2;
     return {
-      scheduleId: 1000 + index,
+      scheduleId: mockScheduleId(1000 + index),
       ...activity,
       ...region,
       title: TITLES[index % TITLES.length],
@@ -97,7 +101,7 @@ function createSeed(): MockSchedule[] {
     { ...recruiting[10], joined: true },
     {
       ...recruiting[1],
-      scheduleId: 900,
+      scheduleId: mockScheduleId(900),
       title: "지난주 보드게임 모임",
       startAt: dayAt(-6, "19:00"),
       status: "COMPLETED",
@@ -110,7 +114,7 @@ function createSeed(): MockSchedule[] {
   const mine: MockSchedule[] = [
     {
       ...recruiting[5],
-      scheduleId: 901,
+      scheduleId: mockScheduleId(901),
       title: "주말 오후 파티 게임",
       participantCount: 5,
       capacity: 5,

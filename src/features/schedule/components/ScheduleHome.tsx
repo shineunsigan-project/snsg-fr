@@ -36,7 +36,7 @@ const TAB_LABELS: Array<{ value: ScheduleListTab; label: string }> = [
  * - 필터(활동·지역·날짜)는 모집 중 탭에만 있다
  * - GNB 일정 개설 → 로그인 여부와 상관없이 개설 1단계. 로그인은 `일정 열기`에서 한다 (USER_FLOW §7.7)
  * - GNB 로그인 → 로그인 화면, 로그인 후 지금 보던 탭으로 돌아온다 (USER_FLOW §4.2)
- * - 일정을 열고 오면(개설한 일정 탭) 완료 팝업을 한 번 띄운다 (CRT-07). 장소명은 개설 화면이 탭 단위 저장소에 남긴다
+ * - 일정을 열고 오면(개설한 일정 탭) 완료 팝업을 한 번 띄운다 (CRT-07). 방금 연 일정 카드는 이번 방문에만 녹색 테두리로 강조한다(사용자 결정 2026-11-08). 일정 ID·장소명은 개설 화면이 탭 단위 저장소에 남긴다
  */
 export function ScheduleHome() {
   const router = useRouter();
@@ -46,13 +46,16 @@ export function ScheduleHome() {
   const isLoggedIn = useIsLoggedIn();
 
   // 처음 그릴 때 한 번만 읽는다. 서버 렌더링에서는 저장소가 없어 null이다
-  const [createdPlaceName, setCreatedPlaceName] = useState(() =>
+  const [createdNotice] = useState(() =>
     typeof window === "undefined" ? null : readCreatedNotice(),
   );
-  // 읽은 값은 바로 지워 새로고침이나 다시 방문했을 때 팝업이 또 뜨지 않게 한다
+  const [isCreatedDialogOpen, setIsCreatedDialogOpen] = useState(
+    createdNotice !== null,
+  );
+  // 읽은 값은 바로 지워 새로고침이나 다시 방문했을 때 팝업·강조가 또 보이지 않게 한다
   useEffect(() => {
-    if (createdPlaceName !== null) clearCreatedNotice();
-  }, [createdPlaceName]);
+    if (createdNotice !== null) clearCreatedNotice();
+  }, [createdNotice]);
 
   const showList = (nextTab: ScheduleListTab, nextFilter: ScheduleFilter) =>
     router.replace(toScheduleListQuery(nextTab, nextFilter), {
@@ -128,6 +131,7 @@ export function ScheduleHome() {
               tab={value}
               filter={filter}
               isLoggedIn={isLoggedIn}
+              highlightedScheduleId={createdNotice?.scheduleId}
             />
           </TabsContent>
         ))}
@@ -140,9 +144,9 @@ export function ScheduleHome() {
       />
 
       <ScheduleCreatedDialog
-        open={createdPlaceName !== null}
-        placeName={createdPlaceName || undefined}
-        onConfirm={() => setCreatedPlaceName(null)}
+        open={isCreatedDialogOpen}
+        placeName={createdNotice?.placeName || undefined}
+        onConfirm={() => setIsCreatedDialogOpen(false)}
       />
     </div>
   );

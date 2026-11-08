@@ -90,11 +90,14 @@ export function ScheduleListPanel({
   tab,
   filter,
   isLoggedIn,
+  highlightedScheduleId,
 }: {
   tab: ScheduleListTab;
   filter: ScheduleFilter;
   /** 로그인 확인 중이면 undefined */
   isLoggedIn: boolean | undefined;
+  /** 방금 연 일정. 개설한 일정 탭에서 이 카드만 강조한다 */
+  highlightedScheduleId?: string;
 }) {
   const router = useRouter();
   const needsLogin = tab !== "recruiting";
@@ -157,7 +160,11 @@ export function ScheduleListPanel({
       <ul className="flex flex-col gap-3">
         {schedules.map((schedule) => (
           <li key={schedule.scheduleId}>
-            <ScheduleListCard schedule={schedule} tab={tab} />
+            <ScheduleListCard
+              schedule={schedule}
+              tab={tab}
+              isHighlighted={schedule.scheduleId === highlightedScheduleId}
+            />
           </li>
         ))}
       </ul>

@@ -225,13 +225,11 @@ export const handlers: AnyHandler[] = [
       );
     }
     const schedules = loadMockSchedules();
-    // 목록(임시 계약)은 숫자 ID를 쓴다. 개설 응답은 api-guide대로 UUID다
-    const listId =
-      Math.max(0, ...schedules.map((schedule) => schedule.scheduleId)) + 1;
+    const scheduleId = crypto.randomUUID();
     saveMockSchedules([
       ...schedules,
       {
-        scheduleId: listId,
+        scheduleId,
         activityId: body.categoryId,
         activityName:
           MOCK_ACTIVITIES.find((activity) => activity.id === body.categoryId)
@@ -252,7 +250,7 @@ export const handlers: AnyHandler[] = [
       },
     ]);
     return HttpResponse.json<ApiSuccess<CreateScheduleResponse>>(
-      { isSuccess: true, data: { scheduleId: crypto.randomUUID() } },
+      { isSuccess: true, data: { scheduleId } },
       { status: 201 },
     );
   }),
