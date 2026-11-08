@@ -98,13 +98,6 @@ export function toParticipantRows(
   );
 }
 
-/** 주소 `주소 복사`·화면 표시용. 상세주소가 있으면 뒤에 붙인다 */
-export function getFullAddress(place: ScheduleDetail["place"]) {
-  return place.detailAddress
-    ? `${place.roadAddress} ${place.detailAddress}`
-    : place.roadAddress;
-}
-
 /**
  * 앱 안에서 이동해 온 기록이 있는지 (팀 결정 Q7: 있으면 뒤로, 없으면 홈).
  * Navigation API의 canGoBack은 같은 출처(이 앱)의 이전 기록이 있을 때만 true다.

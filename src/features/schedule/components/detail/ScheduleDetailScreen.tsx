@@ -1,5 +1,7 @@
 "use client";
 
+import { UUID_PATTERN } from "../../lib/scheduleListParams";
+import { formatPlaceAddress } from "../../api/scheduleCreate";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -12,7 +14,6 @@ import {
   canGoBackInApp,
   canViewParticipants,
   getDurationLabel,
-  getFullAddress,
   getHostName,
   getParticipantGenderLabel,
   getParticipantSummaryLabel,
@@ -35,9 +36,6 @@ import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { Button } from "@/shared/ui/button";
 import { PageStatus } from "@/shared/ui/PageStatus";
 import { showToast } from "@/shared/ui/sonner";
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** 주소의 일정 ID(UUID 문자열, api-guide 일정 개설 응답과 같은 형식). 형식이 다르면 없는 일정과 같이 처리한다 */
 function parseScheduleId(value: string) {
@@ -173,7 +171,7 @@ export function ScheduleDetailScreen({
     );
   }
 
-  const address = getFullAddress(detail.place);
+  const address = formatPlaceAddress(detail.place);
 
   return (
     // 화면 전체가 스크롤되고 헤더는 위에 붙는다. 넓은 화면에서는 모바일 폭(max-w-md)으로 가운데 둔다
@@ -242,12 +240,8 @@ export function ScheduleDetailScreen({
         open={openFlow === "cancelSchedule"}
         onClose={() => setOpenFlow(null)}
         // 확정 인원은 개설자를 포함한다 (정의서 v0.3 04). 표시만 한다
-        // TODO(API): 개설자를 뺀 확정 참여자 수를 서버가 줄지 미정. 아바타(요약 사진)에도 개설자가 섞여 있다
+        // TODO(API): 개설자를 뺀 확정 참여자 수를 서버가 줄지 미정
         participantCount={detail.participantCount - 1}
-        participantAvatars={getSummaryAvatars(detail.participantSummary)}
-        hostName={detail.host.nickname}
-        hostProfileImageUrl={detail.host.profileImageUrl}
-        placeName={detail.place.name}
       />
     </div>
   );

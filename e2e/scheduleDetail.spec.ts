@@ -39,6 +39,7 @@ const makeDetail = (viewerRole: string, status: string) => ({
   place: {
     name: "보드게임카페 A",
     roadAddress: "서울 마포구 와우산로 00",
+    addressDetail: "2층",
     latitude: 37.5563,
     longitude: 126.9236,
   },
@@ -450,7 +451,7 @@ test("참여 취소는 확인 팝업 → 완료 팝업 뒤 미참여자 상세�
   await expect(page.getByRole("button", { name: "참여하기" })).toBeVisible();
 });
 
-test("일정 전체 취소: 사유가 비면 막고, 미리보기에서 수정 뒤 확인하면 일정 취소됨이 된다", async ({
+test("일정 전체 취소: 사유가 비면 막고, 확인하면 바로 취소되어 일정 취소됨이 된다", async ({
   page,
 }) => {
   const calls = await mockActions(page, { viewerRole: "HOST" });
@@ -474,24 +475,16 @@ test("일정 전체 취소: 사유가 비면 막고, 미리보기에서 수정 �
   await expect(next).toBeDisabled();
   await reason.fill("개인 사정");
   await expect(reasonSheet).toContainText("5/200");
-  await next.click();
-
-  const preview = page.getByRole("dialog", {
-    name: "참여자에게 이렇게 전달돼요",
-  });
-  await expect(preview).toContainText("확정 참여자 4명 전원에게");
-  await expect(preview).toContainText("보드게임카페 A 일정이 취소되었어요");
-  await expect(preview).toContainText("개인 사정");
-  await preview.getByRole("button", { name: "수정" }).click();
-  await expect(reason).toHaveValue("개인 사정");
+  // 알림 기능이 없어 "참여자에게 전달" 안내·미리보기는 없다 (사용자 결정 2026-11-08)
+  await expect(reasonSheet).not.toContainText("전달");
   await reason.fill("  개인 사정이 생겼어요  ");
-  await reasonSheet.getByRole("button", { name: "확인" }).click();
-  await preview.getByRole("button", { name: "확인" }).click();
+  // 빠르게 두 번 눌러도 요청은 한 번만 보낸다
+  await next.dblclick();
 
   const done = page.getByRole("dialog", {
     name: "일정이 정상 취소되었습니다.",
   });
-  await expect(done).toContainText("참여자 4명에게 취소 사유를 전달했어요.");
+  await expect(done).not.toContainText("전달했어요");
   // 앞뒤 공백을 빼고 보낸다
   expect(calls.bodies).toEqual([{ reason: "개인 사정이 생겼어요" }]);
   await done.getByRole("button", { name: "확인" }).click();
@@ -516,18 +509,10 @@ test("확정 참여자가 없으면 일정 전체 취소에서 참여자·알림
   const reasonSheet = page.getByRole("dialog", {
     name: "취소 사유를 알려주세요",
   });
-  await expect(reasonSheet).not.toContainText("확정 참여자에게 전달돼요");
   await reasonSheet
     .getByRole("textbox", { name: "취소 사유" })
     .fill("개인 사정");
   await reasonSheet.getByRole("button", { name: "확인" }).click();
-
-  const preview = page.getByRole("dialog", {
-    name: "참여자에게 이렇게 전달돼요",
-  });
-  await expect(preview).toContainText("개인 사정");
-  await expect(preview).not.toContainText("전원에게");
-  await preview.getByRole("button", { name: "확인" }).click();
 
   const done = page.getByRole("dialog", {
     name: "일정이 정상 취소되었습니다.",
@@ -577,7 +562,7 @@ test("참여 취소가 거부(409)되면 토스트로 알리고 참여 상태를
   await expect(bottomBar(page)).toContainText("참여 확정");
 });
 
-test("일정 전체 취소가 실패하면 미리보기와 입력한 사유를 그대로 둔다", async ({
+test("일정 전체 취소가 실패하면 사유 시트와 입력한 사유를 그대로 둔다", async ({
   page,
 }) => {
   await mockActions(page, {
@@ -598,16 +583,11 @@ test("일정 전체 취소가 실패하면 미리보기와 입력한 사유를 �
     .getByRole("textbox", { name: "취소 사유" })
     .fill("개인 사정");
   await reasonSheet.getByRole("button", { name: "확인" }).click();
-  const preview = page.getByRole("dialog", {
-    name: "참여자에게 이렇게 전달돼요",
-  });
-  await preview.getByRole("button", { name: "확인" }).click();
 
   await expect(
     page.getByText("요청을 처리하지 못했어요. 다시 시도해주세요."),
   ).toBeVisible();
-  await expect(preview).toBeVisible();
-  await preview.getByRole("button", { name: "수정" }).click();
+  await expect(reasonSheet).toBeVisible();
   await expect(page.getByRole("textbox", { name: "취소 사유" })).toHaveValue(
     "개인 사정",
   );
@@ -653,3 +633,18 @@ for (const [status, label] of [
     await expect(bottomBar(page)).toContainText("내가 연 일정5 / 6명");
   });
 }
+
+test("주소 복사는 도로명주소 뒤에 상세주소를 붙여 복사한다", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await mockApis(page, { loggedIn: false, viewerRole: "GUEST" });
+  await page.goto(`/schedules/${SCHEDULE_ID}`);
+
+  await expect(page.getByText("서울 마포구 와우산로 00 2층")).toBeVisible();
+  await page.getByRole("button", { name: "주소 복사" }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    "서울 마포구 와우산로 00 2층",
+  );
+});

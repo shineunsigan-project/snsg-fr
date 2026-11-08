@@ -29,6 +29,8 @@ export type MockSchedule = ScheduleListItem & {
   regionCode: string;
   placeName: string;
   roadAddress: string;
+  /** 상세주소. 없으면 빈 문자열 */
+  addressDetail: string;
   latitude: number;
   longitude: number;
   duration: ScheduleDuration;
@@ -306,6 +308,7 @@ function createSeed(): MockSchedule[] {
       startAt: dayAt(Math.floor(index / 2), index % 2 ? "21:00" : "19:30"),
       placeName: `${region.regionName} 예시 장소 ${index + 1}`,
       roadAddress: `서울 ${region.regionName} 예시로 ${index + 1}`,
+      addressDetail: index % 2 ? "2층" : "",
       latitude,
       longitude,
       duration: "NORMAL",
@@ -356,6 +359,7 @@ function createSeed(): MockSchedule[] {
       ...recruiting[0],
       placeName: "보드게임카페 A",
       roadAddress: "서울 마포구 와우산로 00",
+      addressDetail: "3층",
       createdAt: now,
     }),
   ];
@@ -530,6 +534,7 @@ export function toDetail(
     place: {
       name: schedule.placeName,
       roadAddress: schedule.roadAddress,
+      addressDetail: schedule.addressDetail,
       latitude: schedule.latitude,
       longitude: schedule.longitude,
     },

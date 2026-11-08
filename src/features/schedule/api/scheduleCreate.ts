@@ -17,7 +17,9 @@ export type Place = {
 };
 
 /** 표시용 주소. 상세주소는 도로명주소 뒤에 붙인다 */
-export const formatPlaceAddress = (place: Place) =>
+export const formatPlaceAddress = (
+  place: Pick<Place, "roadAddress" | "addressDetail">,
+) =>
   place.addressDetail
     ? `${place.roadAddress} ${place.addressDetail}`
     : place.roadAddress;

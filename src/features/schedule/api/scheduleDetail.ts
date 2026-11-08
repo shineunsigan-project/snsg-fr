@@ -9,7 +9,7 @@ import type { Gender } from "@/features/auth/types";
 import { apiClient, type ApiSuccess } from "@/shared/lib/api/client";
 
 // TODO(API): 미확정 — 일정 상세·참여자 명단·참여·참여 취소·일정 전체 취소 임시 계약.
-// api-guide에 일정 API가 아직 없다(snsg-be develop 87b3c36, 2026-11-03). 지금은 MSW로만 응답한다
+// api-guide에 일정 API가 아직 없다(snsg-be develop b873383, 2026-11-08). 지금은 MSW로만 응답한다
 // 백엔드에 확인할 것: 경로·필드 이름, 일정 없음(404)의 code, 명단 접근 거부·참여/취소 거부 사유별 code, 명단 정렬
 
 /** 일정 상세 (USER_FLOW §7.2). 일정에 저장된 값이며 외부 장소 API를 다시 부르지 않는다 */
@@ -46,8 +46,8 @@ export type ScheduleDetail = {
   place: {
     name: string;
     roadAddress: string;
-    /** TODO(API): 개설 요청에 상세주소 입력이 없다. 서버가 주는지 확인 */
-    detailAddress?: string;
+    /** 상세주소(층 등). 없으면 빈 문자열. 장소 후보 API의 `addressDetail`과 같게 가정한다. TODO(API) */
+    addressDetail: string;
     latitude: number;
     longitude: number;
   };

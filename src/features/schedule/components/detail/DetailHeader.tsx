@@ -30,8 +30,9 @@ export function DetailHeader({ onBack, onShare }: DetailHeaderProps) {
           onClick={onShare}
           className="group flex min-h-11 items-center outline-none"
         >
-          {/* 누르는 동안 흰 바탕 + 녹색 테두리 (시안 DTL-04) */}
-          <span className="flex h-9 items-center rounded-full bg-secondary px-3.5 text-sm font-bold group-focus-visible:ring-3 group-focus-visible:ring-ring/50 group-active:bg-card group-active:ring-2 group-active:ring-primary group-active:ring-inset">
+          {/* 마우스를 올리면 흰 바탕 + 녹색 테두리 (시안 DTL-04). 누르는 순간만 보이면 깜빡임처럼 보여 hover로 둔다 (사용자 결정 2026-11-08).
+              Tailwind의 hover는 마우스가 있는 기기에서만 적용되어 휴대폰에서는 표시가 없다 */}
+          <span className="flex h-9 items-center rounded-full bg-secondary px-3.5 text-sm font-bold group-hover:bg-card group-hover:ring-2 group-hover:ring-primary group-hover:ring-inset group-focus-visible:ring-3 group-focus-visible:ring-ring/50">
             공유
           </span>
         </button>

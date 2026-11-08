@@ -144,7 +144,7 @@ const unauthenticated = () =>
 /** TODO(API): 백엔드 code가 정해지지 않은 거부. 화면은 어떤 code 분기에도 걸리지 않는 일반 실패로 다룬다 */
 const UNDEFINED_CODE = "TODO_API_UNDEFINED";
 
-/** mock 서버의 거부 사유 → 응답. 404의 code도 미정이라 개설 완료 조회 mock과 같은 값을 쓴다 */
+/** mock 서버의 거부 사유 → 응답. 404의 code도 미정이라 임시 이름을 쓴다 */
 const REJECTIONS: Record<MockRejection, () => HttpResponse<ApiFailure>> = {
   NOT_FOUND: () =>
     failure(404, "SCHEDULE_NOT_FOUND", "일정을 찾을 수 없습니다."),
@@ -278,6 +278,7 @@ export const handlers: AnyHandler[] = [
           mockRegions.find(({ code }) => code === place.regionCode)?.name ?? "",
         placeName: place.name,
         roadAddress: place.roadAddress,
+        addressDetail: place.addressDetail,
         latitude: place.latitude,
         longitude: place.longitude,
         duration: body.durationType,
