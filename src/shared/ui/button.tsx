@@ -28,6 +28,8 @@ const buttonVariants = cva(
         /** `● 활동 진행 중` (시안 DTL-08 활동 진행 중) */
         "in-progress":
           "border border-brand-border bg-brand-soft text-brand disabled:opacity-100",
+        /** 배경 없는 회색 글자 버튼 — 홈 화면 추가 안내 `나중에 할게요` (시안 ONB-01) */
+        text: "font-normal text-muted-foreground",
       },
       size: {
         default: "h-13 px-4 text-base",

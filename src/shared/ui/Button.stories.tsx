@@ -86,3 +86,12 @@ export const InProgress: Story = {
     ),
   },
 };
+
+/** 배경 없는 회색 글자 버튼 (ONB-01 `나중에 할게요`). 높이는 쓰는 곳에서 정한다 */
+export const Text: Story = {
+  args: {
+    variant: "text",
+    children: "나중에 할게요",
+    className: "h-11 w-full text-sm",
+  },
+};

@@ -20,6 +20,7 @@ const meta = {
       nicknameChangeableAt: null,
     },
     onEdit: () => {},
+    onHomeScreenGuide: () => {},
     onLogout: () => {},
     onWithdraw: () => {},
   },

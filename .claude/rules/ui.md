@@ -44,6 +44,7 @@ paths:
 - 낮은 화면에서 넘칠 때 줄어들 영역을 정해 `min-h-0`으로 줄이고, 그래도 넘치면 스크롤. 세로 가운데 정렬은 `justify-center-safe`.
 - 한국어는 `break-keep`. 길어질 수 있는 텍스트(카드 제목, 장소명)는 말줄임.
 - **기기 감지 금지:** user-agent 분기, `isIPhone` 같은 판별, 특정 기기 크기 비교 분기를 만들지 않는다. 필요해 보이면 추가 전에 필요성과 대안을 설명한다.
+  - 예외(사용자 결정 2026-11-07): 홈 화면 추가 안내(ONB)의 OS·앱 안 브라우저 판별은 user-agent를 쓴다(`features/onboarding/lib/homeScreenGuide.ts`). 화면 배치에는 쓰지 않는다.
 - **Safe area:** `viewport-fit=cover`라 가장자리 UI(하단 GNB·고정 CTA·바텀시트·모달·상단 고정 헤더)는 `env(safe-area-inset-*)`를 고려한다. 상하는 `pt-safe`·`pb-safe`. 가로 모드·iPhone Duo는 좌우 inset도 생길 수 있다.
 - **iPhone Duo·폴더블:** 닫힘↔열림은 화면 크기 변경으로 다룬다(처음 크기를 JS로 저장해 고정하지 않는다). 웹 CSS 크기는 공개되지 않아 특정 값을 쓰지 않는다. 폴더블 전용 코드(Viewport Segments·Device Posture API)는 접힘 영역 문제가 실제로 확인될 때만, 지원하지 않는 환경에서도 그대로 동작하게 넣는다. 세부 사실은 DESIGN §12.
 

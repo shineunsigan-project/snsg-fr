@@ -30,6 +30,13 @@ import {
   type ProfileFormInput,
   type ProfileFormValues,
 } from "../schemas/profileSchema";
+import {
+  detectHomeScreenGuidePlatform,
+  readHomeScreenGuideRecord,
+  recordHomeScreenGuideShownAfterSignup,
+  shouldShowAfterSignup,
+  toHomeScreenGuidePath,
+} from "@/features/onboarding/lib/homeScreenGuide";
 import { getApiErrorCode, getApiFieldErrors } from "@/shared/lib/api/client";
 import { getLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { AvatarEditor } from "@/shared/ui/AvatarEditor";
@@ -232,6 +239,15 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
     // 노출 시간 2초는 제안값이다 (USER_FLOW §4.1)
     showToast("회원가입이 완료되었어요. 환영해요!", { duration: 2000 });
     // 로그인을 요청한 원래 화면으로 돌아간다 (USER_FLOW §4.3)
+    // 홈 화면 추가 안내 대상이면 안내를 먼저 보여주고, 안내가 복귀 경로로 보낸다 (USER_FLOW §9.1)
+    if (
+      detectHomeScreenGuidePlatform() &&
+      shouldShowAfterSignup(readHomeScreenGuideRecord())
+    ) {
+      recordHomeScreenGuideShownAfterSignup();
+      router.replace(toHomeScreenGuidePath("signup"));
+      return;
+    }
     router.replace(getLoginRedirect());
   };
 
