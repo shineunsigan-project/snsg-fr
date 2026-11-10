@@ -52,11 +52,13 @@ async function mockApis(page: Page) {
     route.fulfill(ok({ accessToken: "e2e-access-token" })),
   );
   await page.route("**/api/v1/schedules?**", (route) =>
-    route.fulfill(ok({ schedules: [], hasNext: false })),
+    route.fulfill(ok({ items: [], nextCursor: null })),
   );
-  await page.route("**/api/v1/users/me/schedules/**", (route) =>
-    route.fulfill(ok({ schedules: [], hasNext: false })),
-  );
+  for (const path of ["participating", "hosted"]) {
+    await page.route(`**/api/v1/schedules/${path}?**`, (route) =>
+      route.fulfill(ok({ items: [], nextCursor: null })),
+    );
+  }
   await page.route("**/api/v1/users/me", (route) =>
     route.fulfill(
       ok({

@@ -96,17 +96,22 @@ async function mockApis(
   await page.route("**/api/v1/schedules?**", (route) =>
     route.fulfill(
       ok({
-        hasNext: false,
-        schedules: [
+        nextCursor: null,
+        items: [
           {
-            scheduleId: SCHEDULE_ID,
-            activityName: "보드게임",
+            id: SCHEDULE_ID,
+            category: {
+              id: "01a19cc6-3d80-7000-8000-000000000001",
+              name: "보드게임",
+            },
             title: TITLE,
-            startAt: "2026-12-24T19:30:00",
             regionName: "마포구",
-            participantCount: 5,
+            startAt: "2026-12-24T19:30:00",
+            confirmedCount: 5,
             capacity: 6,
-            status: "RECRUITING",
+            remainingSeats: 1,
+            displayStatus: "RECRUITING",
+            createdAt: "2026-11-01T09:00:00",
           },
         ],
       }),
@@ -254,7 +259,7 @@ test("모집 마감이면 조회자는 비활성 모집 마감만 보고 안내 
   await mockApis(page, {
     loggedIn: false,
     viewerRole: "GUEST",
-    status: "CLOSED",
+    status: "RECRUITMENT_CLOSED",
   });
   await page.goto(`/schedules/${SCHEDULE_ID}`);
 
@@ -272,7 +277,7 @@ test("확정 참여자는 모집 마감이어도 참여 확정과 참여 취소�
   await mockApis(page, {
     loggedIn: true,
     viewerRole: "PARTICIPANT",
-    status: "CLOSED",
+    status: "RECRUITMENT_CLOSED",
   });
   await page.goto(`/schedules/${SCHEDULE_ID}`);
 
@@ -332,7 +337,7 @@ async function mockActions(
     if (result.status !== 200) {
       // 서버가 거부한 뒤의 최신 상태: 마감
       if (result.code === "RECRUIT_CLOSED") {
-        state.status = "CLOSED";
+        state.status = "RECRUITMENT_CLOSED";
         state.participantCount = 6;
       }
       return route.fulfill(fail(result.status, result.code ?? ""));
@@ -620,7 +625,7 @@ test("상세를 불러오지 못하면(5xx) 다시 시도로 다시 받는다", 
 });
 
 for (const [status, label] of [
-  ["CLOSED", "모집 마감"],
+  ["RECRUITMENT_CLOSED", "모집 마감"],
   ["CANCELED", "일정 취소됨"],
 ] as const) {
   test(`개설자는 ${label}에서도 하단 왼쪽에 내가 연 일정과 인원을 본다`, async ({

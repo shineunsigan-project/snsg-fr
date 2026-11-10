@@ -1,12 +1,15 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
-import type { ScheduleFilter } from "../../api/schedules";
+import { INVALID_CURSOR, type ScheduleFilter } from "../../api/schedules";
+import { scheduleQueryKeys } from "../../hooks/scheduleQueryKeys";
 import { useScheduleList } from "../../hooks/useScheduleList";
 import { toScheduleListQuery } from "../../lib/scheduleListParams";
 import type { ScheduleListTab } from "../../types";
 import { ScheduleListCard } from "./ScheduleListCard";
+import { getApiErrorCode } from "@/shared/lib/api/client";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { Button } from "@/shared/ui/button";
 
@@ -99,9 +102,11 @@ export function ScheduleListPanel({
   highlightedScheduleId?: string;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const needsLogin = tab !== "recruiting";
   const {
     data: schedules,
+    error,
     isError,
     refetch,
     hasNextPage,
@@ -154,15 +159,25 @@ export function ScheduleListPanel({
     return <EmptyState {...EMPTY_COPY[tab]} action={emptyAction} />;
   }
 
+  // 커서가 잘못됐으면(400 INVALID_CURSOR) 받은 목록을 버리고 cursor 없이 처음부터 다시 받는다 (api-guide 일정 목록 오류)
+  const loadMore = () =>
+    isFetchNextPageError && getApiErrorCode(error) === INVALID_CURSOR
+      ? queryClient.resetQueries({
+          queryKey: scheduleQueryKeys.list(tab, filter),
+          // 필터 없는 키가 다른 필터의 목록까지 지우지 않게 이 목록만
+          exact: true,
+        })
+      : fetchNextPage();
+
   return (
     <div className="flex flex-col gap-3">
       <ul className="flex flex-col gap-3">
         {schedules.map((schedule) => (
-          <li key={schedule.scheduleId}>
+          <li key={schedule.id}>
             <ScheduleListCard
               schedule={schedule}
               tab={tab}
-              isHighlighted={schedule.scheduleId === highlightedScheduleId}
+              isHighlighted={schedule.id === highlightedScheduleId}
             />
           </li>
         ))}
@@ -171,7 +186,7 @@ export function ScheduleListPanel({
         <Button
           variant="secondary"
           disabled={isFetchingNextPage}
-          onClick={() => fetchNextPage()}
+          onClick={loadMore}
         >
           {isFetchingNextPage
             ? "불러오는 중..."

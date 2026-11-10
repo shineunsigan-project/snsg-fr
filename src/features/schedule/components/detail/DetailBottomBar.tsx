@@ -138,7 +138,7 @@ function BarButton({
   if (
     status === "CANCELED" ||
     status === "COMPLETED" ||
-    (status === "CLOSED" && !isMember)
+    (status === "RECRUITMENT_CLOSED" && !isMember)
   ) {
     return (
       <Button variant="inactive" size="lg" disabled>

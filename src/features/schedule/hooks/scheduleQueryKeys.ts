@@ -4,8 +4,9 @@ import type { ScheduleListTab } from "../types";
 export const scheduleQueryKeys = {
   /** 일정 목록 전체. 개설·참여 뒤 이 키 아래를 무효화한다 */
   schedules: ["schedules"] as const,
+  /** 참여한·개설한 탭은 필터를 쓰지 않으므로 키에서도 빼서, 필터가 바뀌어도 다시 받지 않는다 */
   list: (tab: ScheduleListTab, filter: ScheduleFilter) =>
-    ["schedules", "list", tab, filter] as const,
+    ["schedules", "list", tab, tab === "recruiting" ? filter : {}] as const,
   activities: ["activities"] as const,
   regions: ["regions"] as const,
   /** 일정 상세. 참여·참여 취소·전체 취소 뒤 무효화한다 */

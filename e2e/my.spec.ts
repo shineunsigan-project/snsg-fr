@@ -63,7 +63,7 @@ async function mockApis(
     );
   });
   await page.route("**/api/v1/schedules?**", (route) =>
-    route.fulfill(ok({ schedules: [], hasNext: false })),
+    route.fulfill(ok({ items: [], nextCursor: null })),
   );
   await page.route("**/api/v1/users/me", (route) => {
     if (route.request().method() === "DELETE") {

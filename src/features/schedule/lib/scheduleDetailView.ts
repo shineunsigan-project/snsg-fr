@@ -13,7 +13,7 @@ export const SUMMARY_AVATAR_MAX = 4;
 /** 상단 상태 태그 (정의서 v0.3 04 일정 상태, 시안 DTL-08) */
 export const SCHEDULE_STATUS_LABEL: Record<ScheduleStatus, string> = {
   RECRUITING: "모집 중",
-  CLOSED: "모집 마감",
+  RECRUITMENT_CLOSED: "모집 마감",
   IN_PROGRESS: "활동 진행 중",
   COMPLETED: "일정 완료",
   CANCELED: "일정 취소됨",

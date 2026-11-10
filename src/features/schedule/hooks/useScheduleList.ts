@@ -1,47 +1,30 @@
-import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
-import {
-  getScheduleList,
-  type ScheduleFilter,
-  type SchedulePage,
-} from "../api/schedules";
+import { getScheduleList, type ScheduleFilter } from "../api/schedules";
 import type { ScheduleListTab } from "../types";
 import { scheduleQueryKeys } from "./scheduleQueryKeys";
 
 /** 탭을 오갈 때 바로 다시 받지 않는 시간. 개설 등으로 무효화하면 이 시간과 상관없이 다시 받는다 */
 const LIST_STALE_TIME = 30_000;
+/** 첫 페이지는 cursor 없이 부른다 */
+const FIRST_PAGE_CURSOR: string | undefined = undefined;
 
 /**
- * 받은 페이지를 한 목록으로. page 번호 방식이라 사이에 목록이 바뀌면 같은 일정이 다음 페이지에 또 올 수 있어
- * 처음 나온 것만 남긴다 (TODO(API): 커서 방식 문의)
+ * 탭별 일정 목록. [더 보기]를 누르면 받은 `nextCursor`로 다음 20개를 붙인다. 필터는 모집 중 탭에만 쓴다.
+ * 서버가 중복·누락 없이 순서대로 주므로 받은 그대로 이어 붙인다 (api-guide 일정 목록)
  */
-function toUniqueSchedules(data: InfiniteData<SchedulePage>) {
-  const seen = new Set<string>();
-  return data.pages
-    .flatMap((page) => page.schedules)
-    .filter((schedule) => {
-      if (seen.has(schedule.scheduleId)) return false;
-      seen.add(schedule.scheduleId);
-      return true;
-    });
-}
-
-/** 탭별 일정 목록. [더 보기]를 누르면 다음 20개를 붙인다. 필터는 모집 중 탭에만 쓴다 */
 export function useScheduleList(
   tab: ScheduleListTab,
   filter: ScheduleFilter,
   enabled = true,
 ) {
-  // 참여한·개설한 탭은 필터를 쓰지 않으므로 키에서도 빼서, 필터가 바뀌어도 다시 받지 않는다
-  const listFilter = tab === "recruiting" ? filter : {};
   return useInfiniteQuery({
-    queryKey: scheduleQueryKeys.list(tab, listFilter),
+    queryKey: scheduleQueryKeys.list(tab, filter),
     queryFn: ({ pageParam, signal }) =>
-      getScheduleList({ tab, page: pageParam, filter: listFilter, signal }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, _pages, lastPageParam) =>
-      lastPage.hasNext ? lastPageParam + 1 : undefined,
-    select: toUniqueSchedules,
+      getScheduleList({ tab, cursor: pageParam, filter, signal }),
+    initialPageParam: FIRST_PAGE_CURSOR,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    select: (data) => data.pages.flatMap((page) => page.items),
     staleTime: LIST_STALE_TIME,
     enabled,
   });

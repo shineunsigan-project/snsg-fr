@@ -5,10 +5,15 @@ export type ScheduleDuration = "SHORT" | "NORMAL" | "LONG";
 
 /**
  * 일정 상태: 모집 중 / 모집 마감 / 활동 진행 중 / 일정 완료 / 일정 취소됨 (기능 요구사항 정의서 v0.3 04).
- * 서버가 판정한다 (USER_FLOW §7.1). TODO(API): 일정 API가 정해지면 값을 맞춘다
+ * 서버가 판정한다 (USER_FLOW §7.1). 값은 api-guide 일정 목록 `displayStatus`와 같다.
+ * TODO(API): `IN_PROGRESS`는 목록 API에 없다. 상세 API(SHI-164)에서 맞춘다
  */
 export type ScheduleStatus =
-  "RECRUITING" | "CLOSED" | "IN_PROGRESS" | "COMPLETED" | "CANCELED";
+  | "RECRUITING"
+  | "RECRUITMENT_CLOSED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELED";
 
 /**
  * 일정 상세를 보는 사람의 역할: 조회자(비로그인) / 미참여자 / 확정 참여자 / 개설자 (화면 기능 명세서 공통 기준, USER_FLOW §2.2).

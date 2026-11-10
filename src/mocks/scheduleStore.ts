@@ -1,4 +1,4 @@
-import { addDays, differenceInHours, format, parseISO } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 
 import type { Activity } from "@/features/schedule/api/activities";
 
@@ -7,8 +7,8 @@ import type {
   ScheduleParticipant,
 } from "@/features/schedule/api/scheduleDetail";
 import type {
-  ScheduleFilter,
   ScheduleListItem,
+  SchedulePage,
 } from "@/features/schedule/api/schedules";
 import { toKstDate, toKstDateTime } from "@/features/schedule/lib/scheduleDate";
 import type {
@@ -22,9 +22,21 @@ import type {
 // 일정 시각은 한국 시간이다. 기기 시간대와 상관없이 한국 날짜·시각으로 만들고 비교한다
 // 상태·역할·시간 겹침은 서버가 판정하는 값이라 여기(mock 서버)에서만 계산한다
 
-export type MockSchedule = ScheduleListItem & {
+/** mock 저장소의 일정. 목록 응답은 toPage, 상세 응답은 toDetail이 서버 모양으로 바꾼다 */
+export type MockSchedule = {
+  scheduleId: string;
   /** 활동 목록 API의 `id` */
   activityId: string;
+  activityName: string;
+  title: string;
+  /** 한국 시간 `YYYY-MM-DDTHH:mm:ss` */
+  startAt: string;
+  regionName: string;
+  /** 확정 인원 (개설자 포함) */
+  participantCount: number;
+  capacity: number;
+  /** 저장한 상태. 시작·완료에 따른 표시 상태는 조회 때 판정한다 */
+  status: ScheduleStatus;
   /** 시·군·구 코드 5자리 */
   regionCode: string;
   placeName: string;
@@ -37,7 +49,7 @@ export type MockSchedule = ScheduleListItem & {
   description: string;
   /** 개설자 포함 확정 참여자. 개설자가 맨 앞이다 */
   participants: ScheduleParticipant[];
-  /** 개설 일시 (ISO). 같은 시작 시간이면 최근 개설 순, NEW 배지 기준 */
+  /** 개설 일시. 한국 시간 `YYYY-MM-DDTHH:mm:ss` (api-guide 목록 `createdAt`) */
   createdAt: string;
   /** 로그인 사용자가 참여한 일정 */
   joined: boolean;
@@ -45,11 +57,13 @@ export type MockSchedule = ScheduleListItem & {
   mine: boolean;
 };
 
-const STORE_KEY = "mswSchedules.v6";
-/** NEW 배지 기준(mock): 개설 후 24시간. 실제 기준은 서버가 정한다 */
-const NEW_HOURS = 24;
+const STORE_KEY = "mswSchedules.v7";
 /** 일정의 점유 시간: 시작 시각부터 12시간 (정의서 v0.3 04 시간 겹침 제한) */
 const OCCUPY_MS = 12 * 60 * 60 * 1000;
+/** 일정 완료 = 시작 시각 + 12시간 (USER_FLOW §7.1) */
+const COMPLETE_AFTER_MS = 12 * 60 * 60 * 1000;
+/** 한국 시간 문자열 → 시각(ms) */
+const occupyStart = (startAt: string) => Date.parse(`${startAt}+09:00`);
 
 /** 한국 날짜 기준 오늘 + offset일의 time 시각 (`YYYY-MM-DDTHH:mm:ss`) */
 const dayAt = (offset: number, time: string) =>
@@ -232,7 +246,7 @@ function createSamples(base: MockSchedule): MockSchedule[] {
       title: "마감된 보드게임 모임",
       startAt: dayAt(2, "19:30"),
       capacity: 6,
-      status: "CLOSED",
+      status: "RECRUITMENT_CLOSED",
       participants: makeParticipants(6, { offset: 1 }),
     }),
     sample(ids.joined, {
@@ -275,7 +289,7 @@ function createSamples(base: MockSchedule): MockSchedule[] {
       // 시작 시각이 지난 모집 마감 일정 → 조회 때 활동 진행 중으로 바뀐다
       startAt: toKstDateTime(new Date(Date.now() - 60 * 60 * 1000)),
       capacity: 4,
-      status: "CLOSED",
+      status: "RECRUITMENT_CLOSED",
       joined: true,
       participants: makeParticipants(4, { withMe: true, offset: 3 }),
     }),
@@ -295,7 +309,7 @@ function createSamples(base: MockSchedule): MockSchedule[] {
 }
 
 function createSeed(): MockSchedule[] {
-  const now = new Date().toISOString();
+  const now = toKstDateTime(new Date());
   // [더 보기]를 확인할 수 있게 모집 중 목록을 20개보다 많이 만든다
   const recruiting = Array.from({ length: 26 }, (_, index): MockSchedule => {
     const activity = ACTIVITIES[index % ACTIVITIES.length];
@@ -318,9 +332,9 @@ function createSeed(): MockSchedule[] {
       description: DESCRIPTION,
       participantCount,
       capacity,
-      status: isFull ? "CLOSED" : "RECRUITING",
+      status: isFull ? "RECRUITMENT_CLOSED" : "RECRUITING",
       participants: makeParticipants(participantCount, { offset: index }),
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: toKstDateTime(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)),
       joined: false,
       mine: false,
     };
@@ -347,7 +361,7 @@ function createSeed(): MockSchedule[] {
     title: "주말 오후 파티 게임",
     participantCount: 5,
     capacity: 5,
-    status: "CLOSED",
+    status: "RECRUITMENT_CLOSED",
     participants: makeParticipants(5, { host: ME }),
     mine: true,
   };
@@ -392,7 +406,9 @@ export function saveMockSchedules(schedules: MockSchedule[]) {
 export const mockHostParticipants = () => makeParticipants(1, { host: ME });
 
 const isUpcoming = (status: ScheduleStatus) =>
-  status === "RECRUITING" || status === "CLOSED" || status === "IN_PROGRESS";
+  status === "RECRUITING" ||
+  status === "RECRUITMENT_CLOSED" ||
+  status === "IN_PROGRESS";
 
 /**
  * 서버가 하는 상태 판정 흉내: 시작 시각이 지난 모집 중·모집 마감 일정은 활동 진행 중이다.
@@ -400,53 +416,69 @@ const isUpcoming = (status: ScheduleStatus) =>
  */
 function withStartedStatus(schedule: MockSchedule, now: string): MockSchedule {
   const isOpen =
-    schedule.status === "RECRUITING" || schedule.status === "CLOSED";
+    schedule.status === "RECRUITING" ||
+    schedule.status === "RECRUITMENT_CLOSED";
   return isOpen && schedule.startAt <= now
     ? { ...schedule, status: "IN_PROGRESS" }
     : schedule;
 }
 
-/** 모집 중 탭: 아직 시작하지 않은 모집 중·모집 마감 일정. 시작 빠른 순, 같으면 최근 개설 순 */
-export function listRecruiting(filter: ScheduleFilter) {
+/** 목록 정렬: 시작 빠른 순, 같으면 일정 id 순 (api-guide 일정 목록) */
+const byStartAt = (a: MockSchedule, b: MockSchedule) =>
+  a.startAt.localeCompare(b.startAt) ||
+  a.scheduleId.localeCompare(b.scheduleId);
+
+/** 모집 중 목록의 거르기 조건. 날짜는 이미 하루·기간으로 맞춘 값이다 */
+export type MockRecruitingQuery = {
+  categoryIds: string[];
+  regionCodes: string[];
+  startDate?: string;
+  endDate?: string;
+};
+
+/** 모집 중 탭: 시작 전이고 취소되지 않은 일정. 정원이 찬 일정은 모집 마감으로 함께 온다 */
+export function listRecruiting(query: MockRecruitingQuery) {
   const now = toKstDateTime(new Date());
   return loadMockSchedules()
-    .map((schedule) => withStartedStatus(schedule, now))
     .filter(
       (schedule) =>
-        schedule.status === "RECRUITING" || schedule.status === "CLOSED",
+        (schedule.status === "RECRUITING" ||
+          schedule.status === "RECRUITMENT_CLOSED") &&
+        schedule.startAt > now,
     )
     .filter((schedule) => {
       const date = schedule.startAt.slice(0, 10);
       return (
-        (!filter.activityId || schedule.activityId === filter.activityId) &&
-        (!filter.regionCode ||
-          schedule.regionCode.startsWith(filter.regionCode)) &&
-        (!filter.startDate || date >= filter.startDate) &&
-        (!filter.endDate || date <= filter.endDate) &&
-        (!filter.startTime ||
-          schedule.startAt.slice(11, 16) >= filter.startTime)
+        (!query.categoryIds.length ||
+          query.categoryIds.includes(schedule.activityId)) &&
+        (!query.regionCodes.length ||
+          query.regionCodes.includes(schedule.regionCode)) &&
+        (!query.startDate || date >= query.startDate) &&
+        (!query.endDate || date <= query.endDate)
       );
     })
-    .sort(
-      (a, b) =>
-        a.startAt.localeCompare(b.startAt) ||
-        b.createdAt.localeCompare(a.createdAt),
-    );
+    .sort(byStartAt);
 }
 
-/** 참여한·개설한 탭: 진행 예정은 시작 빠른 순, 그 아래 지난 일정은 시작 최근 순 */
+/**
+ * 참여한·개설한 탭: 완료(시작 + 12시간) 전 일정. 시작했지만 완료 전이면 모집 마감으로,
+ * 취소된 일정은 완료 시각 전까지 일정 취소됨으로 온다 (api-guide 일정 목록)
+ */
 export function listMine(kind: "joined" | "mine") {
-  const now = toKstDateTime(new Date());
-  const schedules = loadMockSchedules()
-    .filter((schedule) => schedule[kind])
-    .map((schedule) => withStartedStatus(schedule, now));
-  const upcoming = schedules
-    .filter((schedule) => isUpcoming(schedule.status))
-    .sort((a, b) => a.startAt.localeCompare(b.startAt));
-  const past = schedules
-    .filter((schedule) => !isUpcoming(schedule.status))
-    .sort((a, b) => b.startAt.localeCompare(a.startAt));
-  return [...upcoming, ...past];
+  const now = Date.now();
+  return loadMockSchedules()
+    .filter(
+      (schedule) =>
+        schedule[kind] &&
+        schedule.status !== "COMPLETED" &&
+        occupyStart(schedule.startAt) + COMPLETE_AFTER_MS > now,
+    )
+    .map((schedule): MockSchedule =>
+      schedule.status === "CANCELED" || occupyStart(schedule.startAt) > now
+        ? schedule
+        : { ...schedule, status: "RECRUITMENT_CLOSED" },
+    )
+    .sort(byStartAt);
 }
 
 /** 탈퇴를 막는 일정 판정의 기준: 마지막 일정 시작 시각 + 24시간 (USER_FLOW §4.5) */
@@ -466,27 +498,49 @@ export function hasActiveMockSchedule() {
   );
 }
 
-/** 응답 모양으로 자른다. 저장소 전용 필드는 빼고 NEW 여부를 붙인다 */
-export function toPage(schedules: MockSchedule[], page: number, size: number) {
-  const start = page * size;
+/** 커서 = 다음 페이지가 시작하는 위치. 서버처럼 불투명한 문자열로 보이게 base64url로 감싼다 (mock 전용) */
+const CURSOR_PREFIX = "next:";
+
+const encodeCursor = (start: number) =>
+  btoa(`${CURSOR_PREFIX}${start}`)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+/** 해석할 수 없으면 null (400 INVALID_CURSOR) */
+function decodeCursor(cursor: string) {
+  try {
+    const text = atob(cursor.replace(/-/g, "+").replace(/_/g, "/"));
+    const match = /^next:(\d+)$/.exec(text);
+    return match ? Number(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 응답 모양으로 자른다. cursor가 없으면 처음부터. 커서를 해석할 수 없으면 null */
+export function toPage(
+  schedules: MockSchedule[],
+  cursor: string | undefined,
+  size: number,
+): SchedulePage | null {
+  const start = cursor ? decodeCursor(cursor) : 0;
+  if (start === null) return null;
+  const end = start + size;
   return {
-    schedules: schedules
-      .slice(start, start + size)
-      .map((schedule): ScheduleListItem => ({
-        scheduleId: schedule.scheduleId,
-        activityName: schedule.activityName,
-        title: schedule.title,
-        startAt: schedule.startAt,
-        regionName: schedule.regionName,
-        participantCount: schedule.participantCount,
-        capacity: schedule.capacity,
-        status: schedule.status,
-        isNew:
-          schedule.mine &&
-          differenceInHours(new Date(), new Date(schedule.createdAt)) <
-            NEW_HOURS,
-      })),
-    hasNext: start + size < schedules.length,
+    items: schedules.slice(start, end).map((schedule): ScheduleListItem => ({
+      id: schedule.scheduleId,
+      category: { id: schedule.activityId, name: schedule.activityName },
+      title: schedule.title,
+      regionName: schedule.regionName,
+      startAt: schedule.startAt,
+      confirmedCount: schedule.participantCount,
+      capacity: schedule.capacity,
+      remainingSeats: schedule.capacity - schedule.participantCount,
+      displayStatus: schedule.status,
+      createdAt: schedule.createdAt,
+    })),
+    nextCursor: end < schedules.length ? encodeCursor(end) : null,
   };
 }
 
@@ -581,8 +635,6 @@ function updateSchedule(
   );
 }
 
-const occupyStart = (startAt: string) => Date.parse(`${startAt}+09:00`);
-
 /** 내가 확정 참여자·개설자인 진행 예정 일정 중 점유 시간이 겹치는 것이 있는지 (정의서 v0.3 04) */
 function hasTimeConflict(target: MockSchedule) {
   const now = toKstDateTime(new Date());
@@ -610,7 +662,7 @@ export function joinMockSchedule(scheduleId: string): MockRejection | null {
       ...item,
       participants: makeParticipants(item.capacity, { offset: 4 }),
       participantCount: item.capacity,
-      status: "CLOSED",
+      status: "RECRUITMENT_CLOSED",
     }));
     return "RECRUIT_CLOSED";
   }
@@ -627,7 +679,8 @@ export function joinMockSchedule(scheduleId: string): MockRejection | null {
       ...item,
       participants: [...item.participants, ME],
       participantCount,
-      status: participantCount >= item.capacity ? "CLOSED" : item.status,
+      status:
+        participantCount >= item.capacity ? "RECRUITMENT_CLOSED" : item.status,
       joined: true,
     };
   });
@@ -639,7 +692,10 @@ export function leaveMockSchedule(scheduleId: string): MockRejection | null {
   const schedule = findMockSchedule(scheduleId);
   if (!schedule) return "NOT_FOUND";
   if (!schedule.joined) return "NOT_ALLOWED";
-  if (schedule.status !== "RECRUITING" && schedule.status !== "CLOSED") {
+  if (
+    schedule.status !== "RECRUITING" &&
+    schedule.status !== "RECRUITMENT_CLOSED"
+  ) {
     return "NOT_ALLOWED";
   }
   updateSchedule(scheduleId, (item) => ({
@@ -659,7 +715,10 @@ export function cancelMockSchedule(scheduleId: string): MockRejection | null {
   const schedule = findMockSchedule(scheduleId);
   if (!schedule) return "NOT_FOUND";
   if (!schedule.mine) return "FORBIDDEN";
-  if (schedule.status !== "RECRUITING" && schedule.status !== "CLOSED") {
+  if (
+    schedule.status !== "RECRUITING" &&
+    schedule.status !== "RECRUITMENT_CLOSED"
+  ) {
     return "NOT_ALLOWED";
   }
   updateSchedule(scheduleId, (item) => ({
