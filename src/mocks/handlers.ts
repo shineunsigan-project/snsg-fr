@@ -1,3 +1,4 @@
+import { isValid, parseISO } from "date-fns";
 import { delay, http, HttpResponse, type AnyHandler } from "msw";
 
 import {
@@ -11,8 +12,8 @@ import type {
 import { HAS_ACTIVE_SCHEDULE_CODE } from "@/features/profile/api/withdraw";
 import type { Region } from "@/features/schedule/api/regions";
 import {
+  INVALID_CURSOR,
   SCHEDULE_PAGE_SIZE,
-  type ScheduleFilter,
   type SchedulePage,
 } from "@/features/schedule/api/schedules";
 import type { Activity } from "@/features/schedule/api/activities";
@@ -27,6 +28,7 @@ import type {
   ScheduleParticipant,
 } from "@/features/schedule/api/scheduleDetail";
 import { toKstDateTime } from "@/features/schedule/lib/scheduleDate";
+import { UUID_PATTERN } from "@/features/schedule/lib/scheduleListParams";
 import {
   MOCK_ACTIVITIES,
   cancelMockSchedule,
@@ -44,7 +46,9 @@ import {
   saveMockSchedules,
   toDetail,
   toPage,
+  type MockRecruitingQuery,
   type MockRejection,
+  type MockSchedule,
 } from "./scheduleStore";
 import {
   deleteMockProfile,
@@ -143,20 +147,42 @@ const mockPlaces: Array<{ categoryId: string; place: Place }> =
  */
 const MOCK_LOGGED_IN = true;
 
-/** 한 번에 요청할 수 있는 최대 개수 (mock 전용 상한) */
-const MAX_PAGE_SIZE = 100;
+/** 목록 한 페이지 상한. 넘으면 상한으로 맞춘다 (api-guide 일정 목록 `size`) */
+const MAX_PAGE_SIZE = 50;
+/** `categoryIds`·`regionCodes` 각각 중복을 빼고 받을 수 있는 개수 */
+const MAX_FILTER_VALUES = 20;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-/** 목록 요청의 page·size. 0 이상 정수 page, 1~상한 정수 size가 아니면 null (400) */
-function readPage(query: URLSearchParams): [number, number] | null {
-  const page = Number(query.get("page") ?? 0);
-  const size = Number(query.get("size") ?? SCHEDULE_PAGE_SIZE);
-  const isValid =
-    Number.isInteger(page) &&
-    page >= 0 &&
-    Number.isInteger(size) &&
-    size >= 1 &&
-    size <= MAX_PAGE_SIZE;
-  return isValid ? [page, size] : null;
+/** 빈 값(`size=`)은 생략과 같다 */
+const readParam = (query: URLSearchParams, name: string) =>
+  query.get(name) || undefined;
+
+/** 목록 요청의 cursor·size. size가 숫자가 아니면 null (400 INVALID_REQUEST). 범위 밖은 1~50으로 맞춘다 */
+function readPage(
+  query: URLSearchParams,
+): { cursor?: string; size: number } | null {
+  const sizeParam = readParam(query, "size");
+  const size = sizeParam === undefined ? SCHEDULE_PAGE_SIZE : Number(sizeParam);
+  if (!Number.isInteger(size)) return null;
+  return {
+    cursor: readParam(query, "cursor"),
+    size: Math.min(MAX_PAGE_SIZE, Math.max(1, size)),
+  };
+}
+
+/** 형식이 맞고 실제로 있는 날짜 (`2026-13-01` 제외) */
+const isDate = (value: string) =>
+  DATE_PATTERN.test(value) && isValid(parseISO(value));
+
+/** 목록 응답. 커서를 해석할 수 없으면 400 INVALID_CURSOR */
+function listResponse(
+  schedules: MockSchedule[],
+  page: { cursor?: string; size: number },
+) {
+  const data = toPage(schedules, page.cursor, page.size);
+  return data
+    ? HttpResponse.json<ApiSuccess<SchedulePage>>({ isSuccess: true, data })
+    : failure(400, INVALID_CURSOR, "목록을 처음부터 다시 불러주세요.");
 }
 
 const invalidRequest = () =>
@@ -341,7 +367,7 @@ export const handlers: AnyHandler[] = [
         participantCount: 1,
         capacity: body.capacity,
         status: "RECRUITING",
-        createdAt: new Date().toISOString(),
+        createdAt: toKstDateTime(new Date()),
         joined: false,
         mine: true,
       },
@@ -352,39 +378,57 @@ export const handlers: AnyHandler[] = [
     );
   }),
 
-  // getScheduleList(모집 중) — TODO(API): 임시 계약. 필터·20개씩
+  // getScheduleList(모집 중) — 로그인 필요 없음. 활동·지역(반복 가능)·날짜 필터, 커서로 20개씩
   http.get<never, never, ApiSuccess<SchedulePage> | ApiFailure>(
     "*/api/v1/schedules",
     ({ request }) => {
       const query = new URL(request.url).searchParams;
       const page = readPage(query);
-      if (!page) return invalidRequest();
-      const filter: ScheduleFilter = {
-        activityId: query.get("activityId") ?? undefined,
-        regionCode: query.get("regionCode") ?? undefined,
-        startDate: query.get("startDate") ?? undefined,
-        endDate: query.get("endDate") ?? undefined,
-        startTime: query.get("startTime") ?? undefined,
+      const categoryIds = [...new Set(query.getAll("categoryIds"))];
+      const regionCodes = [...new Set(query.getAll("regionCodes"))];
+      const startDate = readParam(query, "startDate");
+      const endDate = readParam(query, "endDate");
+      if (
+        !page ||
+        categoryIds.length > MAX_FILTER_VALUES ||
+        regionCodes.length > MAX_FILTER_VALUES ||
+        categoryIds.some((id) => id !== "" && !UUID_PATTERN.test(id)) ||
+        [startDate, endDate].some((date) => date !== undefined && !isDate(date))
+      ) {
+        return invalidRequest();
+      }
+      if (startDate && endDate && endDate < startDate) {
+        return failure(
+          400,
+          "INVALID_DATE_FILTER",
+          "끝 날짜는 시작 날짜보다 앞설 수 없어요.",
+        );
+      }
+      // 한쪽 날짜만 오면 그날 하루다
+      const filter: MockRecruitingQuery = {
+        categoryIds,
+        regionCodes,
+        startDate: startDate ?? endDate,
+        endDate: endDate ?? startDate,
       };
-      return HttpResponse.json<ApiSuccess<SchedulePage>>({
-        isSuccess: true,
-        data: toPage(listRecruiting(filter), ...page),
-      });
+      return listResponse(listRecruiting(filter), page);
     },
   ),
 
-  // getScheduleList(참여한·개설한) — TODO(API): 임시 계약. 로그인해야 한다
-  ...(["joined", "created"] as const).map((tab) =>
+  // getScheduleList(참여한·개설한) — 로그인해야 한다. 필터는 받지 않는다
+  ...(
+    [
+      ["participating", "joined"],
+      ["hosted", "mine"],
+    ] as const
+  ).map(([path, kind]) =>
     http.get<never, never, ApiSuccess<SchedulePage> | ApiFailure>(
-      `*/api/v1/users/me/schedules/${tab}`,
+      `*/api/v1/schedules/${path}`,
       ({ request }) => {
         if (!request.headers.get("Authorization")) return unauthenticated();
         const page = readPage(new URL(request.url).searchParams);
         if (!page) return invalidRequest();
-        return HttpResponse.json<ApiSuccess<SchedulePage>>({
-          isSuccess: true,
-          data: toPage(listMine(tab === "joined" ? "joined" : "mine"), ...page),
-        });
+        return listResponse(listMine(kind), page);
       },
     ),
   ),

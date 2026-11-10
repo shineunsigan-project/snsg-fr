@@ -4,7 +4,7 @@ import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 import { CheckIcon, X } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { DateRange } from "react-day-picker";
 
 import type { ScheduleFilter } from "../../api/schedules";
@@ -20,15 +20,11 @@ import {
   DrawerTitle,
 } from "@/shared/ui/drawer";
 import { FilterChip } from "@/shared/ui/FilterChip";
-import { Switch } from "@/shared/ui/switch";
-import { TimeWheelPicker } from "@/shared/ui/TimeWheelPicker";
 
 type SheetKind = "activity" | "region" | "date";
 
 const toDateParam = (date: Date) => format(date, "yyyy-MM-dd");
 const toChipDate = (date: string) => format(parseISO(date), "MM.dd");
-/** `시작 시각 설정`을 켤 때 처음 보여주는 시각 (시안 LIST-03: 오후 6:00) */
-const DEFAULT_START_TIME = "18:00";
 /** 지역 `전체` = 지역을 고르지 않음 */
 const ALL_REGIONS = "";
 /** 활동을 고르지 않은 상태. 어느 항목과도 같지 않은 값으로 RadioGroup을 제어 상태로 둔다 */
@@ -61,17 +57,6 @@ export function ScheduleFilterBar({
   const [openSheet, setOpenSheet] = useState<SheetKind | null>(null);
   // 시트 안에서 고르는 중인 값. 시트를 열 때 지금 필터로 채운다
   const [draft, setDraft] = useState<ScheduleFilter>(filter);
-  const startTimeLabelId = useId();
-
-  // `시작 시각 설정`을 켜면 휠이 시트 아래로 가려지지 않게 보이는 곳까지 스크롤한다 (팀 결정 Q8)
-  const wheelRef = useRef<HTMLDivElement>(null);
-  const shouldRevealWheel = useRef(false);
-  const isStartTimeOn = draft.startTime !== undefined;
-  useEffect(() => {
-    if (!isStartTimeOn || !shouldRevealWheel.current) return;
-    shouldRevealWheel.current = false;
-    wheelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [isStartTimeOn]);
 
   const open = (sheet: SheetKind) => {
     setDraft(filter);
@@ -88,15 +73,10 @@ export function ScheduleFilterBar({
   const regionName = regions?.find(
     (region) => region.code === filter.regionCode,
   )?.name;
-  // 날짜·시간 칩: `09.27~09.30`, `18:00 이후`, 둘 다면 함께. 칩 표기는 시안이 없어 짧게 쓴다
-  const dateLabel =
-    [
-      filter.startDate &&
-        formatDateRange(filter.startDate, filter.endDate, "~"),
-      filter.startTime && `${filter.startTime} 이후`,
-    ]
-      .filter(Boolean)
-      .join(" · ") || undefined;
+  // 날짜 칩: `09.27~09.30`. 칩 표기는 시안이 없어 짧게 쓴다
+  const dateLabel = filter.startDate
+    ? formatDateRange(filter.startDate, filter.endDate, "~")
+    : undefined;
 
   const chipState = (sheet: SheetKind, hasValue: boolean) =>
     openSheet === sheet ? "open" : hasValue ? "selected" : "default";
@@ -183,12 +163,7 @@ export function ScheduleFilterBar({
         open={openSheet === "date"}
         onClose={() => setOpenSheet(null)}
         onReset={() =>
-          setDraft({
-            ...draft,
-            startDate: undefined,
-            endDate: undefined,
-            startTime: undefined,
-          })
+          setDraft({ ...draft, startDate: undefined, endDate: undefined })
         }
         onApply={() =>
           apply({
@@ -197,7 +172,6 @@ export function ScheduleFilterBar({
             endDate: draft.startDate
               ? (draft.endDate ?? draft.startDate)
               : undefined,
-            startTime: draft.startTime,
           })
         }
       >
@@ -240,56 +214,7 @@ export function ScheduleFilterBar({
           </div>
         </section>
 
-        <section
-          aria-label="시작 시각"
-          className="flex flex-col gap-3 px-5 pt-5"
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-muted-foreground">
-              시작 시각
-            </h3>
-            <p className="text-xs text-subtle-foreground">
-              이 시각 이후에 시작하는 일정
-            </p>
-          </div>
-          <div className="flex min-h-11 items-center justify-between">
-            <span id={startTimeLabelId} className="text-base font-semibold">
-              시작 시각 설정
-            </span>
-            <Switch
-              size="lg"
-              aria-labelledby={startTimeLabelId}
-              checked={isStartTimeOn}
-              onCheckedChange={(checked) => {
-                shouldRevealWheel.current = checked;
-                setDraft({
-                  ...draft,
-                  startTime: checked ? DEFAULT_START_TIME : undefined,
-                });
-              }}
-            />
-          </div>
-          {draft.startTime !== undefined && (
-            // 휠 오른쪽에 `이후`를 붙인다 (시안)
-            <div ref={wheelRef} className="flex items-center gap-2">
-              <div className="min-w-0 flex-1">
-                <TimeWheelPicker
-                  aria-label="시작 시각"
-                  value={draft.startTime}
-                  onValueChange={(startTime) =>
-                    setDraft({ ...draft, startTime })
-                  }
-                />
-              </div>
-              <span
-                aria-hidden
-                className="shrink-0 pr-4 text-base font-bold text-primary"
-              >
-                이후
-              </span>
-            </div>
-          )}
-        </section>
+        {/* TODO(F-24): 시안의 `시작 시각 설정`은 정의서·일정 목록 API에 없어 뺐다. 기획·API가 정해지면 다시 넣는다 */}
       </FilterSheet>
     </>
   );

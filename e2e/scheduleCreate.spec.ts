@@ -99,25 +99,36 @@ async function mockApis(page: Page) {
       status: 201,
     });
   });
-  // 개설한 일정 목록 (임시 계약). 만든 뒤에는 그 일정을 돌려준다
-  await page.route("**/api/v1/users/me/schedules/created?**", (route) =>
+  // 개설한 일정 목록 (api-guide 일정 목록). 만든 뒤에는 그 일정을 돌려준다
+  await page.route("**/api/v1/schedules/hosted?**", (route) =>
     route.fulfill(
       ok({
-        hasNext: false,
-        schedules:
+        nextCursor: null,
+        items:
           createRequests.length === 0
             ? []
             : [
                 {
-                  scheduleId: CREATED_SCHEDULE_ID,
-                  activityName: "보드게임",
+                  id: CREATED_SCHEDULE_ID,
+                  category: {
+                    id: "01a19cc6-3d80-7000-8000-000000000001",
+                    name: "보드게임",
+                  },
                   title: "초보 환영 보드게임",
-                  startAt: "2026-12-24T19:30:00",
                   regionName: "마포구",
-                  participantCount: 1,
+                  startAt: "2026-12-24T19:30:00",
+                  confirmedCount: 1,
                   capacity: 4,
-                  status: "RECRUITING",
-                  isNew: true,
+                  remainingSeats: 3,
+                  displayStatus: "RECRUITING",
+                  // 방금 열었다(한국 시간) → NEW
+                  createdAt: new Intl.DateTimeFormat("sv-SE", {
+                    timeZone: "Asia/Seoul",
+                    dateStyle: "short",
+                    timeStyle: "medium",
+                  })
+                    .format(new Date())
+                    .replace(" ", "T"),
                 },
               ],
       }),

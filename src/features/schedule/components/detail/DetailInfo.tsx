@@ -8,7 +8,7 @@ import { Tag } from "@/shared/ui/Tag";
 const STATUS_TAG_TONE: Record<ScheduleStatus, "brand" | "muted"> = {
   RECRUITING: "brand",
   IN_PROGRESS: "brand",
-  CLOSED: "muted",
+  RECRUITMENT_CLOSED: "muted",
   COMPLETED: "muted",
   CANCELED: "muted",
 };

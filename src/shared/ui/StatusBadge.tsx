@@ -26,7 +26,8 @@ export function StatusBadge(props: StatusBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-xs font-semibold",
+        // 글자는 활동 이름 칩·Tag와 같은 13px (사용자 결정 2026-11-11)
+        "inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-tag font-semibold",
         variantClassName[props.variant],
       )}
     >

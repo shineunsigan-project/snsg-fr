@@ -89,3 +89,8 @@ export const LongText: Story = {
     title: "처음 만나는 사람들과 함께하는 아주 긴 이름의 협력 보드게임 모임",
   },
 };
+
+/** 지역 정보를 찾을 수 없으면(서버가 빈 문자열) 지역과 구분점을 그리지 않는다 */
+export const NoRegion: Story = {
+  args: { region: "" },
+};

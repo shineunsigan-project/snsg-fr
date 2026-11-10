@@ -1,17 +1,24 @@
 import type { ScheduleListItem } from "../../api/schedules";
-import { formatScheduleDateTime, getDdayLabel } from "../../lib/scheduleDate";
+import {
+  formatScheduleDateTime,
+  getDdayLabel,
+  isNewSchedule,
+} from "../../lib/scheduleDate";
 import type { ScheduleListTab, ScheduleStatus } from "../../types";
 import { NewBadge } from "@/shared/ui/NewBadge";
 import { ScheduleCard } from "@/shared/ui/ScheduleCard";
 import { Tag } from "@/shared/ui/Tag";
 
-/** 앞으로 할 일정 (모집 중·모집완료). 진행 중·완료·취소 일정에는 상태 태그를 붙이지 않는다 (팀 결정 Q4) */
-const isUpcoming = (status: ScheduleStatus) =>
-  status === "RECRUITING" || status === "CLOSED";
+/** 모집 중·모집 마감. 시작했지만 완료 전인 일정도 서버가 모집 마감으로 준다 (api-guide 일정 목록) */
+const isOpen = (status: ScheduleStatus) =>
+  status === "RECRUITING" || status === "RECRUITMENT_CLOSED";
+
+/** 취소된 일정 표시 (api-guide `displayStatus` 화면 문구, 사용자 결정 2026-11-10) */
+const canceledTag = <Tag tone="muted">일정 취소됨</Tag>;
 
 /**
  * 탭에 따라 카드 표시를 고른다 (시안 LIST-01·04·05, CRT-07). 기획·시안에 있는 표시만 붙인다 (팀 결정 Q4)
- * TODO(F-21): 진행 중·완료·취소 일정의 카드 표시는 기획에 없다
+ * 상태는 서버 `displayStatus` 그대로 쓴다. 목록에는 모집 중·모집 마감·일정 취소됨만 온다
  * TODO(D-9): `N자리 남음` 배지는 보류 (2026-11-02)
  */
 export function ScheduleListCard({
@@ -25,17 +32,17 @@ export function ScheduleListCard({
   isHighlighted?: boolean;
 }) {
   const common = {
-    href: `/schedules/${schedule.scheduleId}`,
-    category: schedule.activityName,
+    href: `/schedules/${schedule.id}`,
+    category: schedule.category.name,
     title: schedule.title,
     region: schedule.regionName,
     dateLabel: formatScheduleDateTime(schedule.startAt),
-    participantCount: schedule.participantCount,
+    participantCount: schedule.confirmedCount,
     capacity: schedule.capacity,
   };
 
   if (tab === "recruiting") {
-    const isRecruiting = schedule.status === "RECRUITING";
+    const isRecruiting = schedule.displayStatus === "RECRUITING";
     return (
       <ScheduleCard
         {...common}
@@ -47,7 +54,7 @@ export function ScheduleListCard({
   }
 
   if (tab === "joined") {
-    const dday = isUpcoming(schedule.status)
+    const dday = isOpen(schedule.displayStatus)
       ? getDdayLabel(schedule.startAt)
       : undefined;
     return (
@@ -56,7 +63,10 @@ export function ScheduleListCard({
         // 태그가 없어도 넘겨서 같은 탭 카드의 활동 이름 크기를 맞춘다
         tags={
           <>
-            {isUpcoming(schedule.status) && <Tag tone="brand">참여 확정</Tag>}
+            {isOpen(schedule.displayStatus) && (
+              <Tag tone="brand">참여 확정</Tag>
+            )}
+            {schedule.displayStatus === "CANCELED" && canceledTag}
             {dday && (
               <Tag tone={dday === "D-DAY" ? "dark" : "muted"}>{dday}</Tag>
             )}
@@ -67,10 +77,12 @@ export function ScheduleListCard({
   }
 
   const statusTag =
-    schedule.status === "RECRUITING" ? (
+    schedule.displayStatus === "RECRUITING" ? (
       <Tag tone="brand">모집 중</Tag>
-    ) : schedule.status === "CLOSED" ? (
+    ) : schedule.displayStatus === "RECRUITMENT_CLOSED" ? (
       <Tag tone="muted">모집완료</Tag>
+    ) : schedule.displayStatus === "CANCELED" ? (
+      canceledTag
     ) : null;
 
   return (
@@ -80,7 +92,7 @@ export function ScheduleListCard({
       tags={
         <>
           {statusTag}
-          {schedule.isNew && <NewBadge />}
+          {isNewSchedule(schedule.createdAt) && <NewBadge />}
         </>
       }
     />

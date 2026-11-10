@@ -57,10 +57,10 @@ export function ScheduleCard({
           <span
             className={cn(
               "shrink-0 bg-secondary text-muted-foreground",
-              // 태그가 함께 붙는 카드(LIST-04·05)는 활동 이름도 태그 크기로 맞춘다 (시안)
+              // 글자는 모든 카드에서 뱃지·태그와 같은 13px (사용자 결정 2026-11-11). 태그가 붙는 카드(LIST-04·05)는 칩 크기도 태그에 맞춘다 (시안)
               tags
                 ? "rounded-md px-2 py-1 text-tag"
-                : "rounded-sm px-1.5 py-0.5 text-xs",
+                : "rounded-sm px-1.5 py-0.5 text-tag",
             )}
           >
             {category}
@@ -71,10 +71,15 @@ export function ScheduleCard({
       </div>
       <h3 className="truncate text-base font-bold">{title}</h3>
       <p className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
-        <span className="shrink-0">{region}</span>
-        <span aria-hidden className="text-subtle-foreground">
-          ·
-        </span>
+        {/* 지역 정보가 없으면 서버가 빈 문자열을 준다. 지역과 구분점을 그리지 않는다 (api-guide 일정 목록) */}
+        {region && (
+          <>
+            <span className="shrink-0">{region}</span>
+            <span aria-hidden className="text-subtle-foreground">
+              ·
+            </span>
+          </>
+        )}
         <span
           className={cn(
             "truncate font-semibold",

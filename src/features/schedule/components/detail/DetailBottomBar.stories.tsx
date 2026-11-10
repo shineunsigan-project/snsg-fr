@@ -48,7 +48,11 @@ export const HostRecruiting: Story = { args: { viewerRole: "HOST" } };
 
 /** DTL-08 조회자·미참여자 · 모집 마감: 안내 띠 없음 */
 export const GuestClosed: Story = {
-  args: { viewerRole: "GUEST", status: "CLOSED", participantCount: 6 },
+  args: {
+    viewerRole: "GUEST",
+    status: "RECRUITMENT_CLOSED",
+    participantCount: 6,
+  },
 };
 
 /** DTL-08 확정 참여자 · 일정 취소됨 */
