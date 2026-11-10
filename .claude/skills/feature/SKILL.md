@@ -7,7 +7,7 @@ description: 새 화면·기능 흐름을 Linear 이슈 단위로 진행한다. 
 
 ## 0. 준비
 1. `docs/HANDOFF.md`(인계)를 읽고 이어 갈 작업을 확인한다.
-2. Linear 이슈가 없으면 만들고 In Progress로 바꾼다(snsg-be `docs/linear-convention.md`). `docs/PLAN.md`에 행을 추가한다.
+2. Linear 이슈가 없으면 `FE 작업` 템플릿 형식(개요·범위·범위 밖)으로 만들고 In Progress로 바꾼다(`.claude/rules/git-workflow.md`, snsg-be `docs/linear-convention.md`). 작업 중 정한 결정은 이슈가 아니라 작업 지시서와 PR 본문에 적는다. `docs/PLAN.md`에 행을 추가한다.
 3. 브랜치 `feature/SHI-<번호>-<작업-이름>`.
 
 ## 1. 작업 지시서 — `.claude/tasks/SHI-<번호>.md`

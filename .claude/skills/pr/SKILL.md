@@ -12,7 +12,8 @@ description: 사용자가 커밋·push·PR을 요청했을 때 커밋을 나누�
 3. **커밋 메시지:** `CONTRIBUTING.md` 형식(`feat: …`, `fix: …`, `docs: …`). 본문에 무엇을 왜 바꿨는지, 끝에 `Ref SHI-<번호>` 또는 `Fixes SHI-<번호>`.
 4. **PR:** base는 `develop`.
    - 제목: `[SHI-<번호>] <커밋 제목 형식>`
-   - 본문: 작업 내용 / 임시 계약(`TODO(API)`) 목록 / 확인(실행한 검사·화면 크기·못 본 것) / 남은 결정 / 대조한 snsg-be api-guide 커밋 / 끝에 `Fixes SHI-<번호>`
+   - 본문: 작업 내용 / 결정(무엇을 왜 정했는지, 날짜) / 임시 계약(`TODO(API)`) 목록 / 확인(실행한 검사·화면 크기·못 본 것) / 남은 결정 / 대조한 snsg-be api-guide 커밋 / 끝에 `Fixes SHI-<번호>`
+   - Linear 이슈 본문은 개요·범위·범위 밖만 둔다(`.claude/rules/git-workflow.md`). 결정·임시 계약·확인은 이슈에 옮기지 않고 이 PR 본문에만 쓴다.
    - `gh pr create --base develop --title … --body-file …`
 5. **확인:** `linear issue view SHI-<번호>`에 PR이 첨부됐는지 본다.
 6. **마무리:** `docs/HANDOFF.md`, `docs/PLAN.md`를 갱신한다.
