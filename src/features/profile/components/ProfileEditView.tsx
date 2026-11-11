@@ -5,13 +5,16 @@ import { useId, type FormEventHandler, type ReactNode } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import type { MyProfile } from "../api/myProfile";
-import { formatBirthDate, getAgeGroup, parseBirthDate } from "../lib/birthDate";
+import type { NicknameCheckMessage } from "../hooks/useNicknameCheck";
+import { formatBirthDate } from "../lib/birthDate";
 import {
   genderOptions,
   NICKNAME_MAX_LENGTH,
   type ProfileFormInput,
 } from "../schemas/profileSchema";
 
+import { formatAgeGroup } from "@/features/schedule/lib/scheduleDetailView";
+import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { AvatarEditor } from "@/shared/ui/AvatarEditor";
 import { BottomCta } from "@/shared/ui/BottomCta";
 import { Button } from "@/shared/ui/button";
@@ -22,7 +25,7 @@ export type ProfileEditFormInput = Pick<ProfileFormInput, "nickname" | "email">;
 
 type ProfileEditViewProps = {
   profile: MyProfile;
-  /** 새로 고른 사진의 미리보기 URL. 없으면 profile.profileImageUrl, 그것도 없으면 기본 아바타 */
+  /** 새로 고른 사진의 미리보기 URL. 없으면 profile.profileImageUrl(서버 경로) */
   imagePreviewUrl?: string;
   onImageSelect: (file: File) => void;
   onBack: () => void;
@@ -33,6 +36,12 @@ type ProfileEditViewProps = {
   nicknameLockedUntil?: string;
   /** 저장 중 닉네임 제한(409)을 받아 잠갔으면 잠금 안내를 빨간 오류로 보여준다 */
   isNicknameLockError?: boolean;
+  /** 닉네임 칸을 벗어날 때 확인한 사용 가능 여부 결과. 입력 검사 오류가 있으면 그쪽을 보여준다 */
+  nicknameCheckMessage?: NicknameCheckMessage;
+  /** 닉네임 칸을 벗어날 때. 컨테이너가 사용 가능 여부를 물을지 정한다 */
+  onNicknameBlur?: (value: string) => void;
+  /** 닉네임 값을 고칠 때. 사용 가능 여부 결과를 지운다 */
+  onNicknameChange?: () => void;
 };
 
 /**
@@ -48,6 +57,9 @@ export function ProfileEditView({
   isSubmitting,
   nicknameLockedUntil,
   isNicknameLockError = false,
+  nicknameCheckMessage,
+  onNicknameBlur,
+  onNicknameChange,
 }: ProfileEditViewProps) {
   const {
     control,
@@ -61,7 +73,7 @@ export function ProfileEditView({
     (option) => option.value === profile.gender,
   )?.label;
   const birthDigits = profile.birthDate.replaceAll("-", "");
-  const birthDate = parseBirthDate(birthDigits);
+  const isNicknameAvailable = nicknameCheckMessage?.tone === "success";
 
   return (
     <form
@@ -74,7 +86,11 @@ export function ProfileEditView({
       <div className="flex-1 px-5">
         <div className="mt-5 flex flex-col items-center">
           <AvatarEditor
-            imageUrl={imagePreviewUrl ?? profile.profileImageUrl ?? undefined}
+            imageUrl={
+              imagePreviewUrl ??
+              toApiImageUrl(profile.profileImageUrl) ??
+              undefined
+            }
             onFileSelect={onImageSelect}
           />
         </div>
@@ -100,15 +116,30 @@ export function ProfileEditView({
               label="닉네임"
               autoComplete="nickname"
               placeholder="닉네임을 입력해주세요"
-              helperText="닉네임을 바꾸면 14일 동안 다시 바꿀 수 없어요."
-              errorMessage={errors.nickname?.message}
+              // 처음·입력 중에는 14일 제한 안내, 칸을 벗어나 사용 가능하면 그 자리에 녹색 결과 문구(시안 MY-02·화면 명세 "AUTH-03 규칙", 사용자 결정 2026-11-12)
+              helperText={
+                isNicknameAvailable
+                  ? nicknameCheckMessage.message
+                  : "닉네임을 바꾸면 14일 동안 다시 바꿀 수 없어요."
+              }
+              helperTone={isNicknameAvailable ? "success" : "default"}
+              errorMessage={
+                errors.nickname?.message ??
+                (nicknameCheckMessage?.tone === "error"
+                  ? nicknameCheckMessage.message
+                  : undefined)
+              }
               trailing={
                 <span className="shrink-0 text-sm text-subtle-foreground">
                   {nickname.length}/{NICKNAME_MAX_LENGTH}
                 </span>
               }
               {...register("nickname", {
-                onChange: () => clearErrors("nickname"),
+                onChange: () => {
+                  clearErrors("nickname");
+                  onNicknameChange?.();
+                },
+                onBlur: (event) => onNicknameBlur?.(event.target.value),
               })}
             />
           )}
@@ -123,12 +154,11 @@ export function ProfileEditView({
             labelNote="· 수정 불가"
             value={formatBirthDate(birthDigits)}
             helperText="생년월일은 가입 후 수정할 수 없어요."
+            // 연령대는 서버가 한국 시간 기준으로 계산한 값을 쓴다 (SHI-165 결정 6)
             trailing={
-              birthDate && (
-                <span className="shrink-0 text-sm font-bold text-primary">
-                  {getAgeGroup(birthDate)}
-                </span>
-              )
+              <span className="shrink-0 text-sm font-bold text-primary">
+                {formatAgeGroup(profile.ageGroup)}
+              </span>
             }
           />
           <TextField

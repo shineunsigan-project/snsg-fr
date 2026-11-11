@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import {
@@ -16,6 +17,7 @@ import {
   toHomeScreenGuidePath,
 } from "@/features/onboarding/lib/homeScreenGuide";
 import { useLogout } from "@/features/auth/hooks/useLogout";
+import { clearSession } from "@/features/auth/lib/clearSession";
 import { getApiErrorCode } from "@/shared/lib/api/client";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { BottomNav, type BottomNavItem } from "@/shared/ui/BottomNav";
@@ -24,10 +26,11 @@ import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { PageStatus } from "@/shared/ui/PageStatus";
 import { showToast } from "@/shared/ui/sonner";
 
-import type { MyProfile } from "../api/myProfile";
-import { HAS_ACTIVE_SCHEDULE_CODE } from "../api/withdraw";
+import { USER_NOT_FOUND_CODE, type MyProfile } from "../api/myProfile";
+import { WITHDRAWAL_BLOCKED_CODE } from "../api/withdraw";
 import { useMyProfile } from "../hooks/useMyProfile";
 import { useWithdraw } from "../hooks/useWithdraw";
+import { useWithdrawalEligibility } from "../hooks/useWithdrawalEligibility";
 import { MyProfileHeader, MyProfileView } from "./MyProfileView";
 
 const MY_PATH = "/my";
@@ -38,8 +41,9 @@ const subscribeNothing = () => () => {};
  * 내 정보 MY-01 (USER_FLOW §8). GNB `내 정보`로 들어온다
  * - 비로그인이거나 조회가 401이면 로그인 화면으로 보내고, 로그인 후 이 화면으로 돌아오게 한다 (USER_FLOW §4.3)
  *   access token 만료(UNAUTHENTICATED)는 공통 클라이언트가 재발급을 시도하고, 실패하면 거기서 로그인 화면으로 보낸다
+ *   조회가 404 USER_NOT_FOUND(사용자가 없거나 탈퇴)면 로그인 상태를 비우고 401과 같이 보낸다 (api-guide 내 프로필 조회)
  * - 로그아웃(MY-03): 확인 팝업 → 응답과 상관없이 홈(LIST-02 모집 중)으로. 돌아올 화면은 남기지 않는다 (USER_FLOW §4.4)
- * - 회원 탈퇴(MY-04): 확인 팝업 → 탈퇴 → 완료 팝업 → 로그인 화면. 진행 중 일정이 있으면(409) 불가 팝업 (USER_FLOW §4.5)
+ * - 회원 탈퇴(MY-04): 탈퇴 가능 여부 → 불가 팝업 또는 재확인 팝업 → 탈퇴 → 완료 팝업 → 로그인 화면 (SHI-165 결정 1~3)
  */
 export function MyProfileScreen() {
   // 기기 종류는 브라우저에서만 안다. 서버 렌더링과 첫 그림에서는 메뉴를 숨긴다
@@ -49,21 +53,30 @@ export function MyProfileScreen() {
     () => false,
   );
   const router = useRouter();
+  const queryClient = useQueryClient();
   const isLoggedIn = useIsLoggedIn();
   const { data: profile, error, refetch } = useMyProfile(isLoggedIn === true);
-  // 탈퇴하면 로그아웃이 받아 둔 프로필을 지운다. 완료 팝업 뒤에 내 정보 화면을 그대로 두려고 누르기 직전 값을 남긴다
+  // 탈퇴하면 로그인 상태를 비우며 받아 둔 프로필도 지운다. 완료 팝업 뒤에 내 정보 화면을 그대로 두려고 누르기 직전 값을 남긴다
   const [withdrawnProfile, setWithdrawnProfile] = useState<MyProfile>();
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [isWithdrawBlocked, setIsWithdrawBlocked] = useState(false);
   const { mutate: logout, isPending: isLoggingOut, isIdle } = useLogout();
+  const withdrawalEligibility = useWithdrawalEligibility();
   const withdraw = useWithdraw();
+  const isUserNotFound = getApiErrorCode(error) === USER_NOT_FOUND_CODE;
   const isUnauthorized =
     isLoggedIn === false ||
+    isUserNotFound ||
     (isAxiosError(error) && error.response?.status === 401);
   // 로그아웃·탈퇴로 세션이 비로그인이 되어도 아래의 로그인 화면 이동을 하지 않는다.
-  // 로그아웃은 홈으로, 탈퇴는 완료 팝업을 먼저 보여주고 로그인 화면으로 간다
+  // 로그아웃(이 화면의 useLogout)은 홈으로, 탈퇴는 완료 팝업을 먼저 보여주고 로그인 화면으로 간다
   const isLeaving = !isIdle || withdraw.isPending || withdraw.isSuccess;
+
+  // 사용자가 없거나 탈퇴했으면(404) 로그인 상태를 비운다. 비로그인이 되어도 아래 이동은 isUnauthorized가 그대로라 한 번만 한다
+  useEffect(() => {
+    if (isUserNotFound) clearSession(queryClient);
+  }, [isUserNotFound, queryClient]);
 
   useEffect(() => {
     if (!isUnauthorized || isLeaving) return;
@@ -80,19 +93,33 @@ export function MyProfileScreen() {
   const handleLogout = () =>
     logout(undefined, { onSettled: () => router.replace("/") });
 
+  // 로그인 만료는 공통 클라이언트가 로그인 화면으로 보낸다. 📝 임시 문구 TODO(F-19)
+  const showWithdrawError = (withdrawError: unknown) => {
+    if (getApiErrorCode(withdrawError) === "UNAUTHENTICATED") return;
+    showToast("탈퇴하지 못했어요. 다시 시도해주세요.", { variant: "error" });
+  };
+
+  // [회원 탈퇴]: 먼저 탈퇴 가능 여부를 묻는다. 막는 일정이 있으면 불가 팝업, 없으면 재확인 팝업 (SHI-165 결정 1)
+  // 탈퇴 가능 시각(availableAt)은 보여주지 않는다 (결정 2)
+  const handleWithdrawStart = () =>
+    withdrawalEligibility.mutate(undefined, {
+      onSuccess: ({ withdrawable }) => {
+        if (withdrawable) setIsWithdrawOpen(true);
+        else setIsWithdrawBlocked(true);
+      },
+      onError: showWithdrawError,
+    });
+
   const handleWithdraw = () => {
     setWithdrawnProfile(profile);
     withdraw.mutate(undefined, {
       onSettled: () => setIsWithdrawOpen(false),
       onError: (withdrawError) => {
-        const code = getApiErrorCode(withdrawError);
-        // TODO(API): 409 code는 임시 이름이다
-        if (code === HAS_ACTIVE_SCHEDULE_CODE) setIsWithdrawBlocked(true);
-        // 로그인 만료는 공통 클라이언트가 로그인 화면으로 보낸다. 📝 임시 문구 TODO(F-19)
-        else if (code !== "UNAUTHENTICATED") {
-          showToast("탈퇴하지 못했어요. 다시 시도해주세요.", {
-            variant: "error",
-          });
+        // 확인한 뒤 그 사이 일정에 참여한 경우. 서버 message 대신 같은 불가 팝업을 띄운다 (결정 3)
+        if (getApiErrorCode(withdrawError) === WITHDRAWAL_BLOCKED_CODE) {
+          setIsWithdrawBlocked(true);
+        } else {
+          showWithdrawError(withdrawError);
         }
       },
     });
@@ -101,7 +128,9 @@ export function MyProfileScreen() {
   // 탈퇴하면 돌아올 화면이 없으므로 loginRedirect를 남기지 않는다
   const goToLogin = () => router.replace("/login");
 
-  const shownProfile = withdraw.isSuccess
+  // 탈퇴 응답을 받는 순간 받아 둔 프로필이 지워지므로, 요청 중부터 누르기 직전 값을 보여준다
+  const isWithdrawing = withdraw.isPending || withdraw.isSuccess;
+  const shownProfile = isWithdrawing
     ? withdrawnProfile
     : isUnauthorized
       ? undefined
@@ -112,7 +141,7 @@ export function MyProfileScreen() {
       <BottomNav
         activeItem="my"
         // 탈퇴 완료 팝업 뒤에는 누르기 직전 화면(로그인 상태의 GNB)을 그대로 둔다 (시안 비교 6번)
-        isLoggedIn={withdraw.isSuccess ? true : isLoggedIn}
+        isLoggedIn={isWithdrawing ? true : isLoggedIn}
         onItemSelect={handleNavSelect}
       />
     </div>
@@ -135,7 +164,8 @@ export function MyProfileScreen() {
             : undefined
         }
         onLogout={() => setIsLogoutOpen(true)}
-        onWithdraw={() => setIsWithdrawOpen(true)}
+        onWithdraw={handleWithdrawStart}
+        isAccountActionPending={withdrawalEligibility.isPending}
       />,
     );
   } else if (isUnauthorized || !error) {

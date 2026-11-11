@@ -62,12 +62,14 @@ async function mockApis(page: Page) {
   await page.route("**/api/v1/users/me", (route) =>
     route.fulfill(
       ok({
+        id: "01a19cc6-3d80-7000-8000-000000000001",
         name: "김민준",
         nickname: "딸기스무디",
         gender: "MALE",
         birthDate: "1998-03-14",
-        email: null,
-        profileImageUrl: null,
+        email: "",
+        profileImageUrl: "/images/default-profile.png",
+        ageGroup: { decade: 20, phase: "LATE" },
         nicknameChangeableAt: null,
       }),
     ),

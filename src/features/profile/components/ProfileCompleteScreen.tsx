@@ -11,6 +11,7 @@ import {
 } from "react-hook-form";
 
 import { DEFAULT_PROFILE_IMAGE_URL, type SignUpSession } from "../api/signup";
+import { useNicknameCheck } from "../hooks/useNicknameCheck";
 import { useSignup } from "../hooks/useSignup";
 import { useSignUpSession } from "../hooks/useSignUpSession";
 import { useUploadProfileImage } from "../hooks/useUploadProfileImage";
@@ -25,6 +26,7 @@ import {
   loadProfileImage,
 } from "../lib/profileImage";
 import {
+  DUPLICATED_NICKNAME_MESSAGE,
   genderOptions,
   profileSchema,
   type ProfileFormInput,
@@ -38,6 +40,7 @@ import {
   toHomeScreenGuidePath,
 } from "@/features/onboarding/lib/homeScreenGuide";
 import { getApiErrorCode, getApiFieldErrors } from "@/shared/lib/api/client";
+import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { getLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { AvatarEditor } from "@/shared/ui/AvatarEditor";
 import { Button } from "@/shared/ui/button";
@@ -137,6 +140,20 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
   // 카카오 닉네임을 한 번이라도 바꾸면 불러왔다는 안내를 지운다. 되돌려도 다시 보이지 않는다 (팀 결정 2026-10-11)
   const [isNicknameEdited, setIsNicknameEdited] = useState(false);
   const showKakaoNicknameHint = !!session?.nickname && !isNicknameEdited;
+  // 칸을 벗어날 때 사용 가능 여부를 묻는다. 카카오 닉네임 그대로여도 묻는다. 가입 중이라 토큰 없이 간다 (SHI-165 결정 4)
+  const nicknameCheck = useNicknameCheck(
+    useWatch({ control, name: "nickname" }),
+  );
+  const nicknameCheckError =
+    nicknameCheck.message?.tone === "error"
+      ? nicknameCheck.message.message
+      : undefined;
+  const nicknameHelperText =
+    nicknameCheck.message?.tone === "success"
+      ? nicknameCheck.message.message
+      : showKakaoNicknameHint
+        ? "카카오 닉네임을 불러왔어요. 바꿀 수 있어요."
+        : undefined;
   const ageGroup =
     birthDate && birthDate <= new Date() ? getAgeGroup(birthDate) : undefined;
 
@@ -203,9 +220,7 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
       if (getApiErrorCode(error) === "DUPLICATED_NICKNAME") {
         setError(
           "nickname",
-          {
-            message: "이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해주세요.",
-          },
+          { message: DUPLICATED_NICKNAME_MESSAGE },
           { shouldFocus: true },
         );
         return;
@@ -273,8 +288,9 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
           <AvatarEditor
             imageUrl={
               avatarPreviewUrl ??
-              session?.profileImageUrl ??
-              DEFAULT_PROFILE_IMAGE_URL
+              toApiImageUrl(session?.profileImageUrl) ??
+              DEFAULT_PROFILE_IMAGE_URL ??
+              undefined
             }
             onFileSelect={handleAvatarSelect}
           />
@@ -295,18 +311,16 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
             autoComplete="nickname"
             placeholder="닉네임을 입력해주세요"
             helperTone="success"
-            helperText={
-              showKakaoNicknameHint
-                ? "카카오 닉네임을 불러왔어요. 바꿀 수 있어요."
-                : undefined
-            }
-            errorMessage={errors.nickname?.message}
+            helperText={nicknameHelperText}
+            errorMessage={errors.nickname?.message ?? nicknameCheckError}
             {...register("nickname", {
               onChange: (event) => {
                 clearErrors("nickname");
+                nicknameCheck.reset();
                 if (event.target.value !== session?.nickname)
                   setIsNicknameEdited(true);
               },
+              onBlur: (event) => nicknameCheck.check(event.target.value),
             })}
           />
           <Controller

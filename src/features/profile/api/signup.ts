@@ -4,6 +4,7 @@ import {
   type ApiSuccess,
   type TokenResponse,
 } from "@/shared/lib/api/client";
+import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 
 // 가입 API는 모두 가입 토큰 쿠키(signUpToken)로 가입 세션을 찾는다. 세션이 만료되면 401 INVALID_SIGNUP_TOKEN
 
@@ -15,7 +16,9 @@ export type SignUpSession = {
 };
 
 /** 사진 없이 가입할 때 서버가 쓰는 기본 이미지. 도메인 없는 경로라 서버 주소를 붙인다 (api-guide 가입) */
-export const DEFAULT_PROFILE_IMAGE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/images/default-profile.png`;
+export const DEFAULT_PROFILE_IMAGE_URL = toApiImageUrl(
+  "/images/default-profile.png",
+);
 
 /** 가입 세션 조회 — 프로필 완성 화면의 기본값(카카오 닉네임·사진) */
 export async function getSignUpSession() {

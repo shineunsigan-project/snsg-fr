@@ -10,6 +10,7 @@ const meta = {
   parameters: { layout: "fullscreen" },
   args: {
     profile: {
+      id: "01a19cc6-3d80-7000-8000-000000000001",
       name: "김민지",
       nickname: "민트초코",
       gender: "FEMALE",
@@ -17,6 +18,7 @@ const meta = {
       email: "mintchoco@kakao.com",
       // 네트워크 없이 보이도록 MSW와 같은 SVG 사진을 쓴다
       profileImageUrl: mockAvatar("민", "#578627"),
+      ageGroup: { decade: 20, phase: "LATE" },
       nicknameChangeableAt: null,
     },
     onEdit: () => {},
@@ -39,14 +41,9 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-/** 이메일은 선택 입력. 없으면 줄을 뺀다 */
+/** 이메일은 선택 입력. 없으면(빈 문자열) 줄을 뺀다 */
 export const WithoutEmail: Story = {
-  args: { profile: { ...meta.args.profile, email: null } },
-};
-
-/** 사진이 없으면 연두 원 (시안 MY-01) */
-export const WithoutPhoto: Story = {
-  args: { profile: { ...meta.args.profile, profileImageUrl: null } },
+  args: { profile: { ...meta.args.profile, email: "" } },
 };
 
 /** 닉네임 최대 10자, 긴 이메일은 말줄임 */

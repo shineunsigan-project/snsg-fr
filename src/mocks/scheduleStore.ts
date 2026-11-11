@@ -526,17 +526,23 @@ export function listMine(kind: "joined" | "mine") {
 const WITHDRAW_BLOCK_MS = 24 * 60 * 60 * 1000;
 
 /**
- * 서버가 하는 탈퇴 가능 판정 흉내: 내가 참여·개설한 일정 중 취소되지 않았고
- * 시작 시각 + 24시간이 아직 지나지 않은 일정이 있으면 true (mock 전용)
+ * 서버가 하는 탈퇴 가능 판정 흉내 (api-guide 탈퇴, mock 전용): 내가 참여·개설한 일정 중 취소되지 않았고
+ * 시작 시각 + 24시간이 아직 지나지 않은 일정이 있으면, 그중 가장 늦은 시작 + 24시간(한국 시간)을 돌려준다. 없으면 null
  */
-export function hasActiveMockSchedule() {
+export function getMockWithdrawalAvailableAt() {
   const now = Date.now();
-  return loadMockSchedules().some(
-    (schedule) =>
-      (schedule.joined || schedule.mine) &&
-      schedule.status !== "CANCELED" &&
-      Date.parse(`${schedule.startAt}+09:00`) + WITHDRAW_BLOCK_MS > now,
-  );
+  const blockedUntil = loadMockSchedules()
+    .filter(
+      (schedule) =>
+        (schedule.joined || schedule.mine) && schedule.status !== "CANCELED",
+    )
+    .map(
+      (schedule) => Date.parse(`${schedule.startAt}+09:00`) + WITHDRAW_BLOCK_MS,
+    )
+    .filter((until) => until > now);
+  return blockedUntil.length > 0
+    ? toKstDateTime(new Date(Math.max(...blockedUntil)))
+    : null;
 }
 
 /** 커서 = 다음 페이지가 시작하는 위치. 서버처럼 불투명한 문자열로 보이게 base64url로 감싼다 (mock 전용) */

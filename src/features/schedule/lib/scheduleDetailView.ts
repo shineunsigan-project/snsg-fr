@@ -50,8 +50,8 @@ const AGE_PHASE_LABEL: Record<AgeGroupPhase, string> = {
   LATE: "후반",
 };
 
-/** `20대 후반` */
-const formatAgeGroup = ({ decade, phase }: AgeGroup) =>
+/** `20대 후반`. 내 정보 프로필 수정(MY-02)의 연령대도 같이 쓴다 */
+export const formatAgeGroup = ({ decade, phase }: AgeGroup) =>
   `${decade}대 ${AGE_PHASE_LABEL[phase]}`;
 
 /** 펼친 명단 제목 줄의 성별 수 `남 2 · 여 2` (팀 결정 2026-11-04, 시안 DTL-06) */
