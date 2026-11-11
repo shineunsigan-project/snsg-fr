@@ -1,18 +1,25 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { USER_NOT_FOUND_CODE } from "../api/myProfile";
 import { deleteMyAccount } from "../api/withdraw";
-import { useLogout } from "@/features/auth/hooks/useLogout";
+import { clearSession } from "@/features/auth/lib/clearSession";
+import { getApiErrorCode } from "@/shared/lib/api/client";
 
 /**
- * 회원 탈퇴 (MY-04). 서버가 쿠키를 비우지 않으므로 탈퇴가 되면 이어서 로그아웃을 부른다 (api-guide 탈퇴)
- * 토큰·캐시 정리는 로그아웃과 같아서 useLogout을 그대로 쓴다. 로그아웃 요청이 실패해도 탈퇴는 끝났으므로 성공으로 둔다
+ * 회원 탈퇴 (MY-04). 성공하면 이 기기의 로그인 상태를 비운다.
+ * 쿠키는 탈퇴 응답이 만료시키므로 로그아웃을 부르지 않는다 (api-guide 탈퇴)
+ * 404 USER_NOT_FOUND는 이미 탈퇴한 것(두 번 눌렸거나 남은 access token)이라 성공과 같이 처리한다
  */
 export function useWithdraw() {
-  const { mutateAsync: logout } = useLogout();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      await deleteMyAccount();
-      await logout().catch(() => undefined);
+      try {
+        await deleteMyAccount();
+      } catch (error) {
+        if (getApiErrorCode(error) !== USER_NOT_FOUND_CODE) throw error;
+      }
     },
+    onSuccess: () => clearSession(queryClient),
   });
 }

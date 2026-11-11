@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { format, parseISO } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -7,6 +8,7 @@ import { useEffect, useState } from "react";
 import {
   FormProvider,
   useForm,
+  useWatch,
   type FieldErrors,
   type Resolver,
 } from "react-hook-form";
@@ -14,25 +16,36 @@ import type { z } from "zod";
 
 import {
   NICKNAME_CHANGE_RESTRICTED_CODE,
+  USER_NOT_FOUND_CODE,
   type MyProfile,
   type UpdateMyProfileRequest,
 } from "../api/myProfile";
 import { useMyProfile } from "../hooks/useMyProfile";
+import { useNicknameCheck } from "../hooks/useNicknameCheck";
 import { useUpdateMyProfile } from "../hooks/useUpdateMyProfile";
 import { useUploadMyProfileImage } from "../hooks/useUploadMyProfileImage";
 import {
   getProfileImageUploadErrorMessage,
   loadProfileImage,
+  PROFILE_IMAGE_UPLOAD_FAILED_MESSAGE,
 } from "../lib/profileImage";
-import { profileSchema } from "../schemas/profileSchema";
+import {
+  DUPLICATED_NICKNAME_MESSAGE,
+  profileSchema,
+} from "../schemas/profileSchema";
 import {
   ProfileEditHeader,
   ProfileEditView,
   type ProfileEditFormInput,
 } from "./ProfileEditView";
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
+import { clearSession } from "@/features/auth/lib/clearSession";
 import { toKstDateTime } from "@/features/schedule/lib/scheduleDate";
-import { getApiErrorCode, getApiFieldErrors } from "@/shared/lib/api/client";
+import {
+  getApiErrorCode,
+  getApiErrorMessage,
+  getApiFieldErrors,
+} from "@/shared/lib/api/client";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { Button } from "@/shared/ui/button";
 import { PageStatus } from "@/shared/ui/PageStatus";
@@ -90,17 +103,26 @@ function getNicknameLockedUntil(nicknameChangeableAt: string | null) {
 
 /**
  * 프로필 수정 MY-02 (USER_FLOW §8.1). MY-01 `수정하기`로 들어온다
- * - 비로그인이거나 조회가 401이면 로그인 화면으로 보내고, 로그인 후 이 화면으로 돌아오게 한다 (MY-01과 같다)
+ * - 비로그인이거나 조회가 401·404(USER_NOT_FOUND)면 로그인 화면으로 보내고, 로그인 후 이 화면으로 돌아오게 한다 (MY-01과 같다)
  * - 뒤로가기는 확인 팝업 없이 내 정보로 (SHI-158 결정 2026-11-07)
  */
 export function ProfileEditScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const isLoggedIn = useIsLoggedIn();
   const { data: profile, error, refetch } = useMyProfile(isLoggedIn === true);
+  const isUserNotFound = getApiErrorCode(error) === USER_NOT_FOUND_CODE;
   const isUnauthorized =
     isLoggedIn === false ||
+    isUserNotFound ||
     (isAxiosError(error) && error.response?.status === 401);
 
+  // 사용자가 없거나 탈퇴했으면(404) 로그인 상태를 비운다. 비로그인이 되어도 아래 이동은 isUnauthorized가 그대로라 한 번만 한다
+  useEffect(() => {
+    if (isUserNotFound) clearSession(queryClient);
+  }, [isUserNotFound, queryClient]);
+
+  // 수정 요청의 404도 로그인 상태를 비워(비로그인) 여기서 로그인 화면으로 보낸다
   useEffect(() => {
     if (!isUnauthorized) return;
     saveLoginRedirect(EDIT_PATH);
@@ -141,6 +163,7 @@ type ProfileEditFormProps = {
 
 function ProfileEditForm({ profile, onBack, refetch }: ProfileEditFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { mutateAsync: updateMyProfile } = useUpdateMyProfile();
   const { mutateAsync: uploadMyProfileImage } = useUploadMyProfileImage();
   const nicknameLockedUntil = getNicknameLockedUntil(
@@ -156,9 +179,16 @@ function ProfileEditForm({ profile, onBack, refetch }: ProfileEditFormProps) {
     // 칸을 벗어날 때 그 칸만, 수정 완료를 누르면 전체를 검사한다. 값을 고치면 그 칸의 오류를 지운다 (USER_FLOW §4.1)
     mode: "onBlur",
     reValidateMode: "onBlur",
-    defaultValues: { nickname: profile.nickname, email: profile.email ?? "" },
+    defaultValues: { nickname: profile.nickname, email: profile.email },
   });
   const { setError, setValue } = form;
+  const nickname = useWatch({ control: form.control, name: "nickname" });
+  const nicknameCheck = useNicknameCheck(nickname);
+  // 지금 닉네임 그대로면 묻지 않는다. 잠겨 있으면 읽기 전용 칸이라 이 핸들러가 불리지 않는다 (SHI-165 결정 4)
+  const handleNicknameBlur = (value: string) => {
+    if (value.trim() === profile.nickname) return;
+    nicknameCheck.check(value);
+  };
   // 저장 중 닉네임 제한(409)으로 잠갔는지. 잠금 안내를 빨간 오류로 보여준다 (사용자 결정 2026-11-07 D)
   const [isNicknameLockError, setIsNicknameLockError] = useState(false);
 
@@ -201,8 +231,8 @@ function ProfileEditForm({ profile, onBack, refetch }: ProfileEditFormProps) {
     if (!nicknameLockedUntil && values.nickname !== profile.nickname) {
       body.nickname = values.nickname;
     }
-    // 이메일을 비우면 `""`로 삭제한다 (TODO(API): 임시 계약)
-    if (values.email !== (profile.email ?? "")) body.email = values.email;
+    // 이메일을 비우면 `""`로 지운다 (api-guide 프로필 수정)
+    if (values.email !== profile.email) body.email = values.email;
 
     // 바뀐 것이 없으면 요청 없이 돌아간다 (SHI-158 결정 2026-11-07)
     if (!avatar && Object.keys(body).length === 0) {
@@ -237,19 +267,40 @@ function ProfileEditForm({ profile, onBack, refetch }: ProfileEditFormProps) {
       await updateMyProfile(body);
     } catch (error) {
       const code = getApiErrorCode(error);
+      if (code === USER_NOT_FOUND_CODE) {
+        // 사용자가 없거나 탈퇴했다. 로그인 상태를 비우면 화면이 로그인 화면으로 보낸다 (조회 404와 같다)
+        clearSession(queryClient);
+        return;
+      }
       if (code === "DUPLICATED_NICKNAME") {
         // 가입 화면과 같은 문구 (USER_FLOW §4.1)
         setError(
           "nickname",
-          {
-            message: "이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해주세요.",
-          },
+          { message: DUPLICATED_NICKNAME_MESSAGE },
           { shouldFocus: true },
         );
         return;
       }
+      if (code === "INVALID_PROFILE_IMAGE_URL") {
+        // 올린 경로를 쓸 수 없다. 버리고 다음 [수정 완료] 때 다시 올린다 (api-guide 프로필 수정)
+        setAvatar(
+          (current) =>
+            current && { file: current.file, previewUrl: current.previewUrl },
+        );
+        showToast(PROFILE_IMAGE_UPLOAD_FAILED_MESSAGE, { variant: "error" });
+        return;
+      }
+      if (code === "INVALID_NICKNAME" || code === "INVALID_EMAIL") {
+        // 서버의 안전망 검사. 해당 칸 아래에 서버 문구를 보여준다
+        const field = code === "INVALID_NICKNAME" ? "nickname" : "email";
+        const message = getApiErrorMessage(error);
+        if (message) {
+          setError(field, { message }, { shouldFocus: true });
+          return;
+        }
+      }
       if (code === NICKNAME_CHANGE_RESTRICTED_CODE) {
-        // TODO(API): 임시 code. 프로필을 다시 받아 닉네임을 되돌리고 칸을 잠근 뒤 잠금 안내를 오류로 보여준다
+        // 프로필을 다시 받아 닉네임을 되돌리고 칸을 잠근 뒤 잠금 안내를 오류로 보여준다
         // 이메일·사진 등 다른 변경은 그대로 두어 다시 누르면 나머지만 저장된다
         const { data: refreshed } = await refetch();
         if (getNicknameLockedUntil(refreshed?.nicknameChangeableAt ?? null)) {
@@ -291,6 +342,9 @@ function ProfileEditForm({ profile, onBack, refetch }: ProfileEditFormProps) {
         isSubmitting={form.formState.isSubmitting}
         nicknameLockedUntil={nicknameLockedUntil}
         isNicknameLockError={isNicknameLockError}
+        nicknameCheckMessage={nicknameCheck.message}
+        onNicknameBlur={handleNicknameBlur}
+        onNicknameChange={nicknameCheck.reset}
       />
     </FormProvider>
   );

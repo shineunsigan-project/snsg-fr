@@ -4,6 +4,7 @@ import type { MyProfile } from "../api/myProfile";
 import { formatBirthDate } from "../lib/birthDate";
 import { genderOptions } from "../schemas/profileSchema";
 
+import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Button } from "@/shared/ui/button";
 
@@ -14,6 +15,8 @@ type MyProfileViewProps = {
   onHomeScreenGuide?: () => void;
   onLogout: () => void;
   onWithdraw: () => void;
+  /** 탈퇴 가능 여부를 확인하는 중이면 [회원 탈퇴]를 막는다(api-guide 탈퇴). 팝업이 겹치지 않게 [로그아웃]도 막는다 */
+  isAccountActionPending?: boolean;
 };
 
 /** 내 정보 제목줄. 불러오기 실패 화면에서도 같이 쓴다 */
@@ -35,6 +38,7 @@ export function MyProfileView({
   onHomeScreenGuide,
   onLogout,
   onWithdraw,
+  isAccountActionPending = false,
 }: MyProfileViewProps) {
   const genderLabel = genderOptions.find(
     (option) => option.value === profile.gender,
@@ -48,7 +52,8 @@ export function MyProfileView({
         <section className="rounded-3xl bg-card p-5">
           <div className="flex items-center gap-4">
             <Avatar
-              src={profile.profileImageUrl}
+              // 서버 기본 이미지 경로도 그대로 보여준다 (SHI-164 결정 7)
+              src={toApiImageUrl(profile.profileImageUrl)}
               alt="프로필 사진"
               className="size-16"
             />
@@ -93,6 +98,7 @@ export function MyProfileView({
           <button
             type="button"
             onClick={onLogout}
+            disabled={isAccountActionPending}
             className="flex min-h-14 w-full items-center px-5 text-left text-base"
           >
             로그아웃
@@ -100,6 +106,7 @@ export function MyProfileView({
           <button
             type="button"
             onClick={onWithdraw}
+            disabled={isAccountActionPending}
             className="flex min-h-14 w-full items-center border-t border-border px-5 text-left text-base text-subtle-foreground"
           >
             회원 탈퇴

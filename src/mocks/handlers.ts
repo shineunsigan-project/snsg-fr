@@ -3,13 +3,21 @@ import { delay, http, HttpResponse, type AnyHandler } from "msw";
 
 import {
   NICKNAME_CHANGE_RESTRICTED_CODE,
+  USER_NOT_FOUND_CODE,
   type MyProfile,
 } from "@/features/profile/api/myProfile";
+import type {
+  NicknameAvailability,
+  NicknameUnavailableReason,
+} from "@/features/profile/api/nicknameAvailability";
 import type {
   SignUpSession,
   SignupRequest,
 } from "@/features/profile/api/signup";
-import { HAS_ACTIVE_SCHEDULE_CODE } from "@/features/profile/api/withdraw";
+import {
+  WITHDRAWAL_BLOCKED_CODE,
+  type WithdrawalEligibility,
+} from "@/features/profile/api/withdraw";
 import type { Region } from "@/features/schedule/api/regions";
 import {
   INVALID_CURSOR,
@@ -34,8 +42,8 @@ import {
   MOCK_ACTIVITIES,
   cancelMockSchedule,
   findMockSchedule,
+  getMockWithdrawalAvailableAt,
   getViewerRole,
-  hasActiveMockSchedule,
   joinMockSchedule,
   leaveMockSchedule,
   listMine,
@@ -55,10 +63,13 @@ import {
 import {
   deleteMockProfile,
   isMockLoggedIn,
+  isMockWithdrawn,
   loadMockProfile,
   saveMockProfile,
   setMockLoggedIn,
   shouldSkipActiveScheduleCheck,
+  toMockMyProfile,
+  type StoredMockProfile,
 } from "./userStore";
 import type {
   ApiFailure,
@@ -80,13 +91,13 @@ const isTakenNickname = (nickname: string) =>
     (taken) => taken.toLowerCase() === nickname.toLowerCase(),
   );
 
-// 프로필 입력 규칙 (api-guide "가입 요청의 입력 규칙"). 프로필 수정도 같은 규칙으로 가정한다 (TODO(API))
+// 프로필 입력 규칙 (api-guide "가입 요청의 입력 규칙"). 프로필 수정·닉네임 사용 가능 여부도 같은 규칙이다
 const NICKNAME_PATTERN = /^[가-힣a-zA-Z0-9._]{2,10}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_MAX_LENGTH = 100;
 const NICKNAME_ERROR = "닉네임은 2~10자의 한글·영문·숫자·.·_만 쓸 수 있어요.";
 const EMAIL_ERROR = "이메일 형식이 올바르지 않아요.";
-/** 사진 업로드 기준 (api-guide 가입): 5MB 이하의 JPG·PNG. 서버는 파일 내용으로, mock은 형식 정보로 판별한다 */
+/** 사진 업로드 기준 (api-guide 가입): 5MB 이하의 JPG·PNG. 서버는 파일 내용으로, mock은 형식 정보로 판별한다. 5MB를 넘으면 413 */
 const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const PROFILE_IMAGE_TYPES = ["image/jpeg", "image/png"];
 /** 업로드 API가 돌려주는 경로. 수정 요청의 profileImageUrl은 이 경로만 받는다 */
@@ -221,6 +232,37 @@ const unauthenticated = () =>
 const isSignedIn = (request: Request) =>
   Boolean(request.headers.get("Authorization")) &&
   isMockLoggedIn(MOCK_LOGGED_IN);
+
+/**
+ * 내 정보 API의 인증 검사. 토큰이 없거나 mock 세션이 로그아웃됐으면 401,
+ * 탈퇴한 사용자의 남은 토큰이면 404 USER_NOT_FOUND (api-guide 공통 규칙). 통과하면 null
+ */
+function rejectMe(request: Request) {
+  if (request.headers.get("Authorization") && isMockWithdrawn()) {
+    return failure(404, USER_NOT_FOUND_CODE, "사용자를 찾을 수 없습니다.");
+  }
+  return isSignedIn(request) ? null : unauthenticated();
+}
+
+/** 사진 업로드 (가입·프로필 수정 공통). 5MB 초과는 크기 한도에서 먼저 걸려 413 INVALID_REQUEST, 그다음 형식 400 */
+async function uploadProfileImage(request: Request) {
+  const image = (await request.formData()).get("image");
+  if (!(image instanceof File)) return invalidRequest();
+  if (image.size > PROFILE_IMAGE_MAX_BYTES) {
+    return failure(413, "INVALID_REQUEST", "요청 형식이 올바르지 않습니다.");
+  }
+  if (!PROFILE_IMAGE_TYPES.includes(image.type)) {
+    return failure(
+      400,
+      "INVALID_PROFILE_IMAGE",
+      "JPG, PNG 형식의 사진만 올릴 수 있어요.",
+    );
+  }
+  return HttpResponse.json({
+    isSuccess: true,
+    data: { profileImageUrl: `${PROFILE_IMAGE_PATH}mock-${image.name}` },
+  });
+}
 
 /** mock 서버의 거부 사유 → 응답. 상태 코드·message는 api-guide 예시 그대로 */
 const REJECTIONS: Record<MockRejection, () => HttpResponse<ApiFailure>> = {
@@ -554,30 +596,34 @@ export const handlers: AnyHandler[] = [
     return HttpResponse.json({ isSuccess: true });
   }),
 
-  // getMyProfile — TODO(API): 임시 계약. 로그인해야 한다
+  // getMyProfile — 로그인해야 한다. 탈퇴한 사용자의 남은 토큰이면 404 USER_NOT_FOUND
   http.get<never, never, ApiSuccess<MyProfile> | ApiFailure>(
     "*/api/v1/users/me",
     ({ request }) => {
-      if (!isSignedIn(request)) return unauthenticated();
-      return HttpResponse.json({ isSuccess: true, data: loadMockProfile() });
+      const rejected = rejectMe(request);
+      if (rejected) return rejected;
+      return HttpResponse.json({
+        isSuccess: true,
+        data: toMockMyProfile(loadMockProfile()),
+      });
     },
   ),
 
-  // patchMyProfile — TODO(API): 임시 계약. 바뀐 항목만 받는다. 이름·성별·생년월일은 거부한다
+  // patchMyProfile — 바뀐 항목만 받는다. 이름·성별·생년월일은 넣어도 무시한다 (api-guide 프로필 수정)
+  // 검사 순서: 형식 → 사진 경로 → 닉네임 변경 제한 → 닉네임 중복. 하나라도 실패하면 아무것도 저장하지 않는다
   http.patch<never, Record<string, unknown>>(
     "*/api/v1/users/me",
     async ({ request }) => {
       await delay(800);
-      if (!isSignedIn(request)) return unauthenticated();
+      const rejected = rejectMe(request);
+      if (rejected) return rejected;
       const body = await request.json();
       const { nickname, email, profileImageUrl } = body;
-      const hasReadOnlyField = ["name", "gender", "birthDate"].some(
-        (field) => field in body,
-      );
       const isTyped = [nickname, email, profileImageUrl].every(
-        (value) => value === undefined || typeof value === "string",
+        (value) =>
+          value === undefined || value === null || typeof value === "string",
       );
-      if (hasReadOnlyField || !isTyped) return invalidRequest();
+      if (!isTyped) return invalidRequest();
 
       const errors: { field: string; message: string }[] = [];
       if (typeof nickname === "string" && !NICKNAME_PATTERN.test(nickname)) {
@@ -595,6 +641,7 @@ export const handlers: AnyHandler[] = [
       }
       if (errors.length > 0) return invalidFields(errors);
 
+      // 업로드 API가 준 경로만 받는다. 빈 문자열(사진 지우기)도 거부한다
       if (
         typeof profileImageUrl === "string" &&
         !profileImageUrl.startsWith(PROFILE_IMAGE_PATH)
@@ -607,7 +654,8 @@ export const handlers: AnyHandler[] = [
       }
 
       const profile = loadMockProfile();
-      const next: MyProfile = { ...profile };
+      const next: StoredMockProfile = { ...profile };
+      // 현재 값과 정확히 같으면 바꾸지 않은 것으로 본다. 대소문자만 달라도 변경이다
       if (typeof nickname === "string" && nickname !== profile.nickname) {
         const { nicknameChangeableAt } = profile;
         if (
@@ -617,7 +665,7 @@ export const handlers: AnyHandler[] = [
           return failure(
             409,
             NICKNAME_CHANGE_RESTRICTED_CODE,
-            "닉네임은 변경 후 14일 동안 다시 바꿀 수 없어요.",
+            "닉네임은 14일에 한 번만 바꿀 수 있어요.",
           );
         }
         if (isTakenNickname(nickname)) {
@@ -632,56 +680,89 @@ export const handlers: AnyHandler[] = [
           new Date(Date.now() + NICKNAME_LOCK_MS),
         );
       }
-      if (typeof email === "string") next.email = email || null;
+      if (typeof email === "string") next.email = email;
       if (typeof profileImageUrl === "string") {
         next.profileImageUrl = profileImageUrl;
       }
       saveMockProfile(next);
       return HttpResponse.json<ApiSuccess<MyProfile>>({
         isSuccess: true,
-        data: next,
+        data: toMockMyProfile(next),
       });
     },
   ),
 
-  // postMyProfileImage — TODO(API): 임시 계약. 5MB 이하 JPG·PNG
+  // postMyProfileImage — 5MB 이하 JPG·PNG. 5MB를 넘으면 413 INVALID_REQUEST (api-guide 프로필 사진 업로드)
   http.post("*/api/v1/users/me/profile-image", async ({ request }) => {
-    if (!isSignedIn(request)) return unauthenticated();
-    const image = (await request.formData()).get("image");
-    if (!(image instanceof File)) return invalidRequest();
-    if (
-      image.size > PROFILE_IMAGE_MAX_BYTES ||
-      !PROFILE_IMAGE_TYPES.includes(image.type)
-    ) {
-      return failure(
-        400,
-        "INVALID_PROFILE_IMAGE",
-        "JPG, PNG 형식의 사진만 올릴 수 있어요.",
-      );
-    }
-    return HttpResponse.json({
-      isSuccess: true,
-      data: { profileImageUrl: `${PROFILE_IMAGE_PATH}mock-${image.name}` },
-    });
+    const rejected = rejectMe(request);
+    if (rejected) return rejected;
+    return uploadProfileImage(request);
   }),
 
-  // deleteMyAccount — 실제 API(api-guide 탈퇴). 진행 중 일정 409는 TODO(API): 임시 code로 mock에서만 재현한다
-  // 확인용: sessionStorage.mswSkipActiveScheduleCheck = "true"면 진행 중 일정이 있어도 탈퇴된다
+  // checkWithdrawal — 탈퇴를 막는 일정이 있으면 withdrawable false와 탈퇴 가능 시각 (api-guide 탈퇴 가능 여부)
+  // 확인용: sessionStorage.mswSkipActiveScheduleCheck = "true"면 막는 일정이 있어도 탈퇴할 수 있다
+  http.get<never, never, ApiSuccess<WithdrawalEligibility> | ApiFailure>(
+    "*/api/v1/users/me/withdrawal-eligibility",
+    async ({ request }) => {
+      await delay(400);
+      const rejected = rejectMe(request);
+      if (rejected) return rejected;
+      const availableAt = shouldSkipActiveScheduleCheck()
+        ? null
+        : getMockWithdrawalAvailableAt();
+      return HttpResponse.json({
+        isSuccess: true,
+        data: { withdrawable: availableAt === null, availableAt },
+      });
+    },
+  ),
+
+  // withdraw — 같은 기준으로 다시 확인해 막는 일정이 있으면 409 WITHDRAWAL_BLOCKED. 두 번째 요청은 404 USER_NOT_FOUND (api-guide 탈퇴)
+  // 남은 일정 확인이 사용자 확인보다 먼저다: 이미 탈퇴했어도 막는 일정이 남아 있으면 404가 아니라 409
   http.delete("*/api/v1/users/me", async ({ request }) => {
     await delay(800);
-    if (!isSignedIn(request)) return unauthenticated();
-    if (hasActiveMockSchedule() && !shouldSkipActiveScheduleCheck()) {
+    const rejected = rejectMe(request);
+    // 토큰 문제(401)는 먼저, 이미 탈퇴(404)는 막는 일정 확인 뒤에 돌려준다
+    if (rejected && !isMockWithdrawn()) return rejected;
+    if (getMockWithdrawalAvailableAt() && !shouldSkipActiveScheduleCheck()) {
       return failure(
         409,
-        HAS_ACTIVE_SCHEDULE_CODE,
-        "진행중인 일정이 있어 탈퇴할 수 없습니다.",
+        WITHDRAWAL_BLOCKED_CODE,
+        "모든 일정 취소 혹은 진행 중 이후 24시간이 지나야 탈퇴할 수 있어요.",
       );
     }
+    if (rejected) return rejected;
     // 탈퇴하면 refresh token이 무효가 된다. 다시 쓰려면 가입부터 한다
     deleteMockProfile();
     setMockLoggedIn(false);
     return HttpResponse.json({ isSuccess: true });
   }),
+
+  // checkNicknameAvailability — 형식 → 본인의 현재 닉네임(토큰이 있을 때) → 사용 중 순서로 판정한다. 형식 오류·중복도 200
+  // mock에서는 다른 사용자 닉네임만 사용 중으로 본다(가입 mock과 같다). 토큰이 틀려도 401을 주지 않는다
+  http.get<never, never, ApiSuccess<NicknameAvailability> | ApiFailure>(
+    "*/api/v1/users/nickname-availability",
+    async ({ request }) => {
+      await delay(400);
+      const nickname = new URL(request.url).searchParams.get("nickname");
+      if (nickname === null) return invalidRequest();
+      const isMine =
+        isSignedIn(request) &&
+        !isMockWithdrawn() &&
+        loadMockProfile().nickname.toLowerCase() === nickname.toLowerCase();
+      const reason: NicknameUnavailableReason | null = !NICKNAME_PATTERN.test(
+        nickname,
+      )
+        ? "INVALID_FORMAT"
+        : !isMine && isTakenNickname(nickname)
+          ? "DUPLICATED"
+          : null;
+      return HttpResponse.json({
+        isSuccess: true,
+        data: { available: reason === null, reason },
+      });
+    },
+  ),
 
   // refreshAccessToken — mock에는 refresh token 쿠키가 없다. 로그아웃·탈퇴·가입 결과를 mock 세션에 둔다
   http.post<never, never, ApiSuccess<TokenResponse> | ApiFailure>(
@@ -703,27 +784,10 @@ export const handlers: AnyHandler[] = [
     }),
   ),
 
-  // postProfileImage — 5MB 이하 JPG·PNG (api-guide 가입)
-  http.post("*/api/v1/auth/signup/profile-image", async ({ request }) => {
-    const image = (await request.formData()).get("image");
-    if (!(image instanceof File)) {
-      return failure(400, "INVALID_REQUEST", "요청 형식이 올바르지 않습니다.");
-    }
-    if (
-      image.size > PROFILE_IMAGE_MAX_BYTES ||
-      !PROFILE_IMAGE_TYPES.includes(image.type)
-    ) {
-      return failure(
-        400,
-        "INVALID_PROFILE_IMAGE",
-        "JPG, PNG 형식의 사진만 올릴 수 있어요.",
-      );
-    }
-    return HttpResponse.json({
-      isSuccess: true,
-      data: { profileImageUrl: `/images/profiles/mock-${image.name}` },
-    });
-  }),
+  // postProfileImage — 5MB 이하 JPG·PNG, 5MB를 넘으면 413 (api-guide 가입)
+  http.post("*/api/v1/auth/signup/profile-image", ({ request }) =>
+    uploadProfileImage(request),
+  ),
 
   // postSignup — 이름·성별·생년월일은 필수, 닉네임·이메일은 선택
   http.post<never, SignupRequest, ApiSuccess<TokenResponse> | ApiFailure>(
@@ -746,13 +810,17 @@ export const handlers: AnyHandler[] = [
       }
       // 가입하면 그 프로필로 로그인한다. 최초 닉네임은 14일 제한에 넣지 않는다 (USER_FLOW §8.1)
       saveMockProfile({
+        id: crypto.randomUUID(),
         name: body.name,
         nickname: body.nickname ?? mockSignUpSession.nickname ?? "",
         gender: body.gender,
         birthDate: body.birthDate,
-        email: body.email || null,
+        email: body.email ?? "",
+        // 사진이 없으면 서버 기본 이미지 경로 (api-guide 가입)
         profileImageUrl:
-          body.profileImageUrl ?? mockSignUpSession.profileImageUrl ?? null,
+          body.profileImageUrl ??
+          mockSignUpSession.profileImageUrl ??
+          DEFAULT_PROFILE_IMAGE_PATH,
         nicknameChangeableAt: null,
       });
       setMockLoggedIn(true);

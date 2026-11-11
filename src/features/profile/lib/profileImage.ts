@@ -1,3 +1,5 @@
+import { isAxiosError } from "axios";
+
 import {
   PROFILE_IMAGE_MAX_MB,
   PROFILE_IMAGE_TYPES,
@@ -6,6 +8,10 @@ import { getApiErrorCode } from "@/shared/lib/api/client";
 
 // 프로필 완성(가입)과 프로필 수정(MY-02)이 같이 쓴다. 문구는 USER_FLOW §4.1 "유효성 검사 문구"
 const INVALID_TYPE_MESSAGE = "JPG, PNG 형식의 사진만 올릴 수 있어요.";
+const TOO_LARGE_MESSAGE = `${PROFILE_IMAGE_MAX_MB}MB 이하의 이미지만 등록할 수 있어요.`;
+/** 사진을 올리지 못했을 때(그 밖의 오류, 프로필 수정의 400 INVALID_PROFILE_IMAGE_URL) */
+export const PROFILE_IMAGE_UPLOAD_FAILED_MESSAGE =
+  "사진을 올리지 못했어요. 다시 시도해주세요.";
 
 /**
  * 고른 사진을 검사하고 미리보기 URL을 만든다. 실패하면 토스트로 보여줄 문구를 돌려준다
@@ -19,9 +25,7 @@ export async function loadProfileImage(
     return { errorMessage: INVALID_TYPE_MESSAGE };
   }
   if (file.size > PROFILE_IMAGE_MAX_MB * 1024 * 1024) {
-    return {
-      errorMessage: `${PROFILE_IMAGE_MAX_MB}MB 이하의 이미지만 등록할 수 있어요.`,
-    };
+    return { errorMessage: TOO_LARGE_MESSAGE };
   }
   // 형식은 맞아도 깨진 파일은 미리보기를 그릴 수 없으므로 먼저 열어 본다
   const previewUrl = URL.createObjectURL(file);
@@ -36,9 +40,16 @@ export async function loadProfileImage(
   return { previewUrl };
 }
 
-/** 사진 업로드 실패를 토스트 문구로. 400 INVALID_PROFILE_IMAGE는 형식 안내, 그 밖은 다시 시도 안내 */
+/**
+ * 사진 업로드 실패를 토스트 문구로 (가입·프로필 수정). 400 INVALID_PROFILE_IMAGE는 형식 안내,
+ * 413(5MB 초과, code는 INVALID_REQUEST)은 용량 안내, 그 밖은 다시 시도 안내 (api-guide 가입 사진 업로드)
+ */
 export function getProfileImageUploadErrorMessage(error: unknown) {
-  return getApiErrorCode(error) === "INVALID_PROFILE_IMAGE"
-    ? INVALID_TYPE_MESSAGE
-    : "사진을 올리지 못했어요. 다시 시도해주세요.";
+  if (getApiErrorCode(error) === "INVALID_PROFILE_IMAGE") {
+    return INVALID_TYPE_MESSAGE;
+  }
+  if (isAxiosError(error) && error.response?.status === 413) {
+    return TOO_LARGE_MESSAGE;
+  }
+  return PROFILE_IMAGE_UPLOAD_FAILED_MESSAGE;
 }

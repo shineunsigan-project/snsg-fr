@@ -20,6 +20,13 @@ const NICKNAME_PATTERN = new RegExp(
   `^(?=.*[가-힣a-zA-Z0-9])[가-힣a-zA-Z0-9._]{${NICKNAME_MIN_LENGTH},${NICKNAME_MAX_LENGTH}}$`,
 );
 
+/** 닉네임 형식 오류 문구. 서버 사용 가능 여부가 INVALID_FORMAT일 때도 쓴다. TODO(F-14): 마침표·밑줄을 넣은 오류 문구가 확정되면 바꾼다 */
+export const NICKNAME_FORMAT_MESSAGE =
+  "닉네임은 2~10자의 한글·영문·숫자·마침표(.)·밑줄(_)만 쓸 수 있어요.";
+/** 닉네임 중복 문구. 사용 가능 여부의 DUPLICATED와 가입·수정의 409 DUPLICATED_NICKNAME에 같이 쓴다 (USER_FLOW §4.1) */
+export const DUPLICATED_NICKNAME_MESSAGE =
+  "이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해주세요.";
+
 // 만 18세 이상만 가입할 수 있다 (기능 요구사항 정의서 v0.3, F-14 해결)
 const MIN_SIGNUP_AGE = 18;
 const EMAIL_MAX_LENGTH = 100;
@@ -32,7 +39,7 @@ export const PROFILE_IMAGE_TYPES: readonly string[] = [
 ];
 
 // 프로필 완성·수정에 같이 쓴다. 문구는 USER_FLOW §4.1 "유효성 검사 문구"를 그대로 옮긴다
-// 앞뒤 공백은 자동으로 지운다. 닉네임 중복은 가입 요청의 409(DUPLICATED_NICKNAME)로 확인한다
+// 앞뒤 공백은 자동으로 지운다. 닉네임 중복은 칸을 벗어날 때 사용 가능 여부 API로 안내하고, 저장 요청의 409(DUPLICATED_NICKNAME)로 확인한다
 export const profileSchema = z.object({
   name: z
     .string()
@@ -44,11 +51,7 @@ export const profileSchema = z.object({
     .string()
     .trim()
     .min(1, "닉네임을 입력해주세요.")
-    // TODO(F-14): 마침표·밑줄을 넣은 오류 문구가 확정되면 바꾼다
-    .regex(
-      NICKNAME_PATTERN,
-      "닉네임은 2~10자의 한글·영문·숫자·마침표(.)·밑줄(_)만 쓸 수 있어요.",
-    ),
+    .regex(NICKNAME_PATTERN, NICKNAME_FORMAT_MESSAGE),
   gender: z.enum(["MALE", "FEMALE"], {
     error: "성별을 선택해주세요.",
   }),
