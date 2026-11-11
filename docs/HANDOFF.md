@@ -6,14 +6,14 @@
 
 ## 지금 상태
 - 브랜치 `feature/SHI-163-schedule-list-api`(메인 폴더, develop 561bf25 = SHI-160까지 머지). **SHI-163 일정 목록 실제 API 연결** — 지시서 `.claude/tasks/SHI-163.md`. 사용자 확인 끝, PR #16(2026-11-11)
-- 백엔드 develop e746440에 목록·상세·참여·취소·내 프로필·탈퇴 API가 모두 생겼다. 일정 개설(SHI-162)·목록(SHI-163)은 실제 API, 상세(SHI-164)·내 프로필(SHI-165)은 아직 임시 계약 + MSW
+- 백엔드 develop e746440에 목록·상세·참여·취소·내 프로필·탈퇴 API가 모두 생겼다. 일정 개설(SHI-162)·목록(SHI-163)은 실제 API, 상세·참여(SHI-164)는 실제 API로 바꾸는 중(브랜치 `feature/SHI-164-schedule-detail-api`, 커밋 전), 내 프로필(SHI-165)은 아직 임시 계약 + MSW
 - 로컬 실서버 확인: Redis 필요(`brew install redis` 설치됨, `redis-server /opt/homebrew/etc/redis.conf --daemonize yes`로 켬). `../snsg-be/snsg`에서 `sh ./gradlew bootRun`(8080), 프론트는 `.env.local`의 API 주소가 ngrok이라 `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 pnpm dev`(3000)
 - Linear 이슈 본문은 `FE 작업` 템플릿(개요·범위·범위 밖), 결정·임시 계약은 PR 본문에 (2026-11-10, `.claude/rules/git-workflow.md`)
 - 흐름 아티팩트: 일정 목록 https://claude.ai/artifact/5bK2wjP6XaKdZWki6AdtzN · 일정 상세 https://claude.ai/artifact/58pkc7eCb9JBiWSQexvRMF · 내 정보 https://claude.ai/artifact/XG7dmDKoeu4ENYX62vuZPS (옵시디언 `01_Projects/쉬는시간/`에도 노트)
 - 개발 서버: `localhost:3001` MSW 켜고 실행(`NEXT_PUBLIC_API_MOCKING=enabled pnpm exec next dev -p 3001`). mock은 로그인 상태로 시작(`MOCK_LOGGED_IN = true`).
 
 ## 다음에 할 일
-1. [ ] SHI-163 PR #16 머지 → 다음은 SHI-164(일정 상세 실제 API). 실제 서버에서 목록 카드를 누르면 상세가 아직 임시 계약이라 깨질 수 있다
+1. [ ] SHI-164 일정 상세 실제 API: 구현·리뷰 완료, e2e 99개 통과. 남은 일: 실제 서버 확인 → 사용자 확인 → PR. 결정은 `.claude/tasks/SHI-164.md`
 2. [ ] 작업 폴더 `../snsg-fr-151`·백업 브랜치(`backup/SHI-*`) 정리
 3. [ ] 실제 API 연결: 상세(SHI-164)·내 프로필(SHI-165)
 4. [ ] `MOCK_LOGGED_IN` 원복 시점 정하기

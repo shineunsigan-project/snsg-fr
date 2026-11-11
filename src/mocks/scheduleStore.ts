@@ -1,8 +1,10 @@
 import { addDays, format, parseISO } from "date-fns";
 
+import type { Gender } from "@/features/auth/types";
 import type { Activity } from "@/features/schedule/api/activities";
 
 import type {
+  AgeGroup,
   ScheduleDetail,
   ScheduleParticipant,
 } from "@/features/schedule/api/scheduleDetail";
@@ -12,15 +14,28 @@ import type {
 } from "@/features/schedule/api/schedules";
 import { toKstDate, toKstDateTime } from "@/features/schedule/lib/scheduleDate";
 import type {
+  AgeGroupPhase,
+  ScheduleAction,
   ScheduleDuration,
   ScheduleStatus,
   ScheduleViewerRole,
 } from "@/features/schedule/types";
 
-// MSW 전용 일정 저장소. TODO(API): 일정 API가 생기면 지운다
+// MSW 전용 일정 저장소. 응답 모양·판정은 snsg-be api-guide(develop e746440) 일정 절을 따른다
 // 새로고침해도 남게 탭 단위 저장소에 두고, 날짜는 오늘 기준으로 만든 예시 일정으로 시작한다
 // 일정 시각은 한국 시간이다. 기기 시간대와 상관없이 한국 날짜·시각으로 만들고 비교한다
-// 상태·역할·시간 겹침은 서버가 판정하는 값이라 여기(mock 서버)에서만 계산한다
+// 상태·역할·누를 수 있는 동작·시간 겹침은 서버가 판정하는 값이라 여기(mock 서버)에서만 계산한다
+
+/** mock 저장소의 참여자. 서버처럼 사용자 ID로 본인을 가린다 */
+type MockParticipant = {
+  userId: number;
+  isHost: boolean;
+  nickname: string;
+  profileImageUrl: string;
+  gender: Gender | null;
+  ageGroup: AgeGroup | null;
+  withdrawn: boolean;
+};
 
 /** mock 저장소의 일정. 목록 응답은 toPage, 상세 응답은 toDetail이 서버 모양으로 바꾼다 */
 export type MockSchedule = {
@@ -35,7 +50,7 @@ export type MockSchedule = {
   /** 확정 인원 (개설자 포함) */
   participantCount: number;
   capacity: number;
-  /** 저장한 상태. 시작·완료에 따른 표시 상태는 조회 때 판정한다 */
+  /** 저장한 상태. 시작·완료에 따른 표시 상태는 조회 때 판정한다(toDisplayStatus) */
   status: ScheduleStatus;
   /** 시·군·구 코드 5자리 */
   regionCode: string;
@@ -47,17 +62,19 @@ export type MockSchedule = {
   longitude: number;
   duration: ScheduleDuration;
   description: string;
-  /** 개설자 포함 확정 참여자. 개설자가 맨 앞이다 */
-  participants: ScheduleParticipant[];
+  /** 개설자 포함 확정 참여자. 개설자가 맨 앞이고 그 뒤는 참여한 순서다 */
+  participants: MockParticipant[];
   /** 개설 일시. 한국 시간 `YYYY-MM-DDTHH:mm:ss` (api-guide 목록 `createdAt`) */
   createdAt: string;
+  /** 개설자가 취소한 일정의 사유·일시. 취소되지 않았으면 null */
+  cancellation: { reason: string; canceledAt: string } | null;
   /** 로그인 사용자가 참여한 일정 */
   joined: boolean;
   /** 로그인 사용자가 개설한 일정 */
   mine: boolean;
 };
 
-const STORE_KEY = "mswSchedules.v7";
+const STORE_KEY = "mswSchedules.v8";
 /** 일정의 점유 시간: 시작 시각부터 12시간 (정의서 v0.3 04 시간 겹침 제한) */
 const OCCUPY_MS = 12 * 60 * 60 * 1000;
 /** 일정 완료 = 시작 시각 + 12시간 (USER_FLOW §7.1) */
@@ -76,51 +93,59 @@ export const mockAvatar = (letter: string, color: string) =>
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" fill="${color}"/><text x="40" y="52" font-size="32" text-anchor="middle" fill="#fff" font-family="sans-serif">${letter}</text></svg>`,
   );
 
-type ActiveParticipant = Extract<ScheduleParticipant, { isWithdrawn: false }>;
+/** 서버 기본 프로필 사진 경로(도메인 없음). 사진이 없거나 탈퇴한 사용자에게 준다. 이미지는 handlers가 응답한다 */
+export const DEFAULT_PROFILE_IMAGE_PATH = "/images/default-profile.png";
+
+const ageGroup = (decade: number, phase: AgeGroupPhase): AgeGroup => ({
+  decade,
+  phase,
+});
 
 /** 로그인 사용자(mock). 닉네임은 가입 mock의 카카오 닉네임과 같다 */
-const ME: ActiveParticipant = {
+const ME: MockParticipant = {
   userId: 1,
   isHost: false,
-  isWithdrawn: false,
   nickname: "딸기스무디",
   profileImageUrl: mockAvatar("딸", "#578627"),
   gender: "MALE",
-  ageGroup: "20대 후반",
+  ageGroup: ageGroup(20, "LATE"),
+  withdrawn: false,
 };
 
 /** 다른 사용자. 앞 사람이 개설자가 된다 */
-const OTHERS: ActiveParticipant[] = [
-  ["민트초코", "FEMALE", "20대 후반", mockAvatar("민", "#2f9e8f")],
-  ["하늘", "FEMALE", "30대 초반", mockAvatar("하", "#4c7bd9")],
-  ["밤양갱", "MALE", "20대 후반", null],
-  ["구름", "MALE", "30대 초반", mockAvatar("구", "#8a8f98")],
-  ["라떼", "FEMALE", "20대 중반", mockAvatar("라", "#a0703c")],
-  ["솜사탕", "FEMALE", "30대 중반", null],
-  ["도토리", "MALE", "20대 초반", mockAvatar("도", "#c2410c")],
-  ["바닐라", "MALE", "30대 후반", null],
-].map(
-  (
-    [nickname, gender, ageGroup, profileImageUrl],
-    index,
-  ): ActiveParticipant => ({
-    userId: 100 + index,
-    isHost: false,
-    isWithdrawn: false,
-    nickname: nickname ?? "",
-    profileImageUrl,
-    gender: gender === "MALE" ? "MALE" : "FEMALE",
-    ageGroup: ageGroup ?? "",
-  }),
-);
+const OTHERS: MockParticipant[] = (
+  [
+    ["민트초코", "FEMALE", ageGroup(20, "LATE"), mockAvatar("민", "#2f9e8f")],
+    ["하늘", "FEMALE", ageGroup(30, "EARLY"), mockAvatar("하", "#4c7bd9")],
+    ["밤양갱", "MALE", ageGroup(20, "LATE"), null],
+    ["구름", "MALE", ageGroup(30, "EARLY"), mockAvatar("구", "#8a8f98")],
+    ["라떼", "FEMALE", ageGroup(20, "MID"), mockAvatar("라", "#a0703c")],
+    ["솜사탕", "FEMALE", ageGroup(30, "MID"), null],
+    ["도토리", "MALE", ageGroup(20, "EARLY"), mockAvatar("도", "#c2410c")],
+    ["바닐라", "MALE", ageGroup(30, "LATE"), null],
+  ] satisfies [string, Gender, AgeGroup, string | null][]
+).map(([nickname, gender, age, image], index) => ({
+  userId: 100 + index,
+  isHost: false,
+  nickname,
+  profileImageUrl: image ?? DEFAULT_PROFILE_IMAGE_PATH,
+  gender,
+  ageGroup: age,
+  withdrawn: false,
+}));
 
 /** 다른 사용자가 쓰는 닉네임 (닉네임 중복 판정용) */
 export const mockOtherNicknames = () => OTHERS.map(({ nickname }) => nickname);
 
-const WITHDRAWN: ScheduleParticipant = {
+/** 탈퇴한 참여자: 닉네임·사진은 서버 기본값, 연령대 null, 성별은 그대로 (api-guide 참여자 명단) */
+const WITHDRAWN: MockParticipant = {
   userId: 199,
   isHost: false,
-  isWithdrawn: true,
+  nickname: "탈퇴한 사용자",
+  profileImageUrl: DEFAULT_PROFILE_IMAGE_PATH,
+  gender: "MALE",
+  ageGroup: null,
+  withdrawn: true,
 };
 
 /** 개설자를 맨 앞에 두고 count명이 되도록 다른 사용자를 채운다 */
@@ -132,12 +157,12 @@ function makeParticipants(
     extra = [],
     offset = 0,
   }: {
-    host?: ActiveParticipant;
+    host?: MockParticipant;
     withMe?: boolean;
-    extra?: ScheduleParticipant[];
+    extra?: MockParticipant[];
     offset?: number;
   } = {},
-): ScheduleParticipant[] {
+): MockParticipant[] {
   const fixed = [...(withMe && host !== ME ? [ME] : []), ...extra];
   const pool = OTHERS.filter((user) => user !== host);
   const others = Array.from(
@@ -212,22 +237,24 @@ export const SAMPLE_SCHEDULE_IDS = {
   joined: mockScheduleId(103),
   /** 내가 개설, 모집 중 */
   mine: mockScheduleId(104),
-  /** 일정 취소됨 (내가 개설) */
+  /** 일정 취소됨 (내가 개설). 참여자 기록·인원은 그대로 남는다 */
   canceled: mockScheduleId(105),
   /** 일정 완료, 내가 참여, 명단에 탈퇴한 사용자 */
   completed: mockScheduleId(106),
-  /** 활동 진행 중, 내가 참여 */
-  inProgress: mockScheduleId(107),
+  /** 시작 후 완료 전(모집 마감), 내가 참여: 참여 취소는 아직 된다 */
+  started: mockScheduleId(107),
   /** 화면엔 모집 중 5/6이지만 참여하면 다른 사람이 먼저 채워 409 RECRUIT_CLOSED */
   lastSeatTaken: mockScheduleId(108),
   /** 모집 중, 내가 참여한 103과 시간이 겹쳐 참여하면 409 SCHEDULE_TIME_CONFLICT */
   timeConflict: mockScheduleId(109),
+  /** 시작 후 완료 전(모집 마감), 내가 개설: 일정 전체 취소가 비활성 */
+  hostStarted: mockScheduleId(110),
 } as const;
 
 function createSamples(base: MockSchedule): MockSchedule[] {
   const sample = (
     scheduleId: string,
-    overrides: Partial<MockSchedule> & { participants: ScheduleParticipant[] },
+    overrides: Partial<MockSchedule> & { participants: MockParticipant[] },
   ): MockSchedule => ({
     ...base,
     scheduleId,
@@ -269,8 +296,12 @@ function createSamples(base: MockSchedule): MockSchedule[] {
       capacity: 6,
       status: "CANCELED",
       mine: true,
-      // 전체 취소하면 확정 참여자는 모두 미참여자가 되고 개설자만 남는다
-      participants: makeParticipants(1, { host: ME }),
+      // 전체 취소해도 참여 기록·확정 인원은 그대로 남는다 (api-guide 일정 전체 취소)
+      participants: makeParticipants(4, { host: ME }),
+      cancellation: {
+        reason: "개인 사정으로 일정을 취소하게 됐어요. 죄송해요.",
+        canceledAt: toKstDateTime(new Date(Date.now() - 60 * 60 * 1000)),
+      },
     }),
     sample(ids.completed, {
       title: "지난 보드게임 모임",
@@ -284,9 +315,9 @@ function createSamples(base: MockSchedule): MockSchedule[] {
         offset: 2,
       }),
     }),
-    sample(ids.inProgress, {
+    sample(ids.started, {
       title: "지금 진행 중인 보드게임",
-      // 시작 시각이 지난 모집 마감 일정 → 조회 때 활동 진행 중으로 바뀐다
+      // 시작 시각이 지났고 완료 전 → 조회 때 모집 마감으로 온다
       startAt: toKstDateTime(new Date(Date.now() - 60 * 60 * 1000)),
       capacity: 4,
       status: "RECRUITMENT_CLOSED",
@@ -304,6 +335,13 @@ function createSamples(base: MockSchedule): MockSchedule[] {
       startAt: dayAt(4, "21:00"),
       capacity: 6,
       participants: makeParticipants(2, { offset: 5 }),
+    }),
+    sample(ids.hostStarted, {
+      title: "내가 연 진행 중인 모임",
+      startAt: toKstDateTime(new Date(Date.now() - 2 * 60 * 60 * 1000)),
+      capacity: 4,
+      mine: true,
+      participants: makeParticipants(3, { host: ME, offset: 2 }),
     }),
   ];
 }
@@ -335,6 +373,7 @@ function createSeed(): MockSchedule[] {
       status: isFull ? "RECRUITMENT_CLOSED" : "RECRUITING",
       participants: makeParticipants(participantCount, { offset: index }),
       createdAt: toKstDateTime(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)),
+      cancellation: null,
       joined: false,
       mine: false,
     };
@@ -405,23 +444,25 @@ export function saveMockSchedules(schedules: MockSchedule[]) {
 /** 개설 요청으로 저장할 때 개설자 = 로그인 사용자 1명 (USER_FLOW §7.7) */
 export const mockHostParticipants = () => makeParticipants(1, { host: ME });
 
-const isUpcoming = (status: ScheduleStatus) =>
-  status === "RECRUITING" ||
-  status === "RECRUITMENT_CLOSED" ||
-  status === "IN_PROGRESS";
-
 /**
- * 서버가 하는 상태 판정 흉내: 시작 시각이 지난 모집 중·모집 마감 일정은 활동 진행 중이다.
- * 완료 처리는 하지 않는다 (mock 전용)
+ * 서버가 하는 표시 상태 판정 흉내 (api-guide 일정 상세 `displayStatus`):
+ * 취소됨 > 완료(시작 + 12시간) > 시작 후 모집 마감 > 저장한 상태
  */
-function withStartedStatus(schedule: MockSchedule, now: string): MockSchedule {
-  const isOpen =
-    schedule.status === "RECRUITING" ||
-    schedule.status === "RECRUITMENT_CLOSED";
-  return isOpen && schedule.startAt <= now
-    ? { ...schedule, status: "IN_PROGRESS" }
-    : schedule;
+function toDisplayStatus(
+  schedule: MockSchedule,
+  now = Date.now(),
+): ScheduleStatus {
+  if (schedule.status === "CANCELED") return "CANCELED";
+  const start = occupyStart(schedule.startAt);
+  if (schedule.status === "COMPLETED" || start + COMPLETE_AFTER_MS <= now) {
+    return "COMPLETED";
+  }
+  if (start <= now) return "RECRUITMENT_CLOSED";
+  return schedule.status;
 }
+
+const hasStarted = (schedule: MockSchedule) =>
+  occupyStart(schedule.startAt) <= Date.now();
 
 /** 목록 정렬: 시작 빠른 순, 같으면 일정 id 순 (api-guide 일정 목록) */
 const byStartAt = (a: MockSchedule, b: MockSchedule) =>
@@ -544,14 +585,11 @@ export function toPage(
   };
 }
 
-// ---- 일정 상세·참여 (mock 서버 판정) ----
+// ---- 일정 상세·참여 (mock 서버 판정, api-guide 일정 상세~일정 전체 취소) ----
 
-/** 상태를 판정한 일정. 없으면 undefined (404) */
+/** 저장된 일정. 없으면 undefined (404) */
 export function findMockSchedule(scheduleId: string) {
-  const schedule = loadMockSchedules().find(
-    (item) => item.scheduleId === scheduleId,
-  );
-  return schedule && withStartedStatus(schedule, toKstDateTime(new Date()));
+  return loadMockSchedules().find((item) => item.scheduleId === scheduleId);
 }
 
 /** 보는 사람의 역할. 토큰이 없으면 조회자 */
@@ -564,46 +602,67 @@ export function getViewerRole(
   return schedule.joined ? "PARTICIPANT" : "NON_PARTICIPANT";
 }
 
-/** `20대 후반` → 정렬용 숫자 */
-const ageRank = (ageGroup: string) =>
-  parseInt(ageGroup, 10) * 10 +
-  ["초반", "중반", "후반"].findIndex((part) => ageGroup.endsWith(part));
+/** 역할·상태별로 누를 수 있는 동작 (api-guide 일정 상세 역할·상태별 표) */
+function getAvailableActions(
+  schedule: MockSchedule,
+  role: ScheduleViewerRole,
+): ScheduleAction[] {
+  const status = toDisplayStatus(schedule);
+  const isOpen = status === "RECRUITING" || status === "RECRUITMENT_CLOSED";
+  switch (role) {
+    case "GUEST":
+      return status === "RECRUITING" ? ["LOGIN_TO_JOIN"] : [];
+    case "NON_PARTICIPANT":
+      return status === "RECRUITING" ? ["JOIN"] : [];
+    case "PARTICIPANT":
+      return isOpen ? ["CANCEL_PARTICIPATION"] : [];
+    case "HOST":
+      return isOpen && !hasStarted(schedule) ? ["CANCEL_SCHEDULE"] : [];
+  }
+}
 
+/** 연령대 비교: 십의 자리, 같으면 초반 < 중반 < 후반 */
+const PHASE_ORDER: AgeGroupPhase[] = ["EARLY", "MID", "LATE"];
+const ageRank = ({ decade, phase }: AgeGroup) =>
+  decade * 10 + PHASE_ORDER.indexOf(phase);
+
+/** 상세 응답. 화면 타입에 없는 `cancellation`도 서버처럼 담는다 */
 export function toDetail(
   schedule: MockSchedule,
   viewerRole: ScheduleViewerRole,
-): ScheduleDetail {
-  const host = schedule.participants.find((item) => item.isHost);
-  const active = schedule.participants.filter(
-    (item): item is ActiveParticipant => !item.isWithdrawn,
-  );
-  const ages = active
-    .map((item) => item.ageGroup)
+): ScheduleDetail & { cancellation: MockSchedule["cancellation"] } {
+  const host = schedule.participants.find((item) => item.isHost) ?? WITHDRAWN;
+  const ages = schedule.participants
+    .flatMap((item) =>
+      item.withdrawn || !item.ageGroup ? [] : [item.ageGroup],
+    )
     .sort((a, b) => ageRank(a) - ageRank(b));
   return {
-    scheduleId: schedule.scheduleId,
-    status: schedule.status,
-    viewerRole,
-    activityName: schedule.activityName,
+    id: schedule.scheduleId,
     title: schedule.title,
-    host: {
-      nickname: host && !host.isWithdrawn ? host.nickname : "탈퇴한 사용자",
-      profileImageUrl: host && !host.isWithdrawn ? host.profileImageUrl : null,
-    },
-    startAt: schedule.startAt,
-    duration: schedule.duration,
-    participantCount: schedule.participantCount,
-    capacity: schedule.capacity,
     description: schedule.description,
+    startAt: schedule.startAt,
+    createdAt: schedule.createdAt,
+    durationType: schedule.duration,
+    category: { id: schedule.activityId, name: schedule.activityName },
+    host: {
+      nickname: host.nickname,
+      profileImageUrl: host.profileImageUrl,
+      withdrawn: host.withdrawn,
+    },
+    confirmedCount: schedule.participantCount,
+    capacity: schedule.capacity,
+    remainingSeats: schedule.capacity - schedule.participantCount,
     participantSummary: {
-      maleCount: active.filter((item) => item.gender === "MALE").length,
-      femaleCount: active.filter((item) => item.gender === "FEMALE").length,
-      ageGroupRange: ages.length
-        ? { youngest: ages[0], oldest: ages[ages.length - 1] }
-        : null,
-      profileImageUrls: schedule.participants.map((item) =>
-        item.isWithdrawn ? null : item.profileImageUrl,
-      ),
+      count: schedule.participantCount,
+      // 탈퇴한 참여자도 성별대로 센다
+      maleCount: schedule.participants.filter((item) => item.gender === "MALE")
+        .length,
+      femaleCount: schedule.participants.filter(
+        (item) => item.gender === "FEMALE",
+      ).length,
+      minAgeGroup: ages[0] ?? null,
+      maxAgeGroup: ages[ages.length - 1] ?? null,
     },
     place: {
       name: schedule.placeName,
@@ -611,18 +670,34 @@ export function toDetail(
       addressDetail: schedule.addressDetail,
       latitude: schedule.latitude,
       longitude: schedule.longitude,
+      regionName: schedule.regionName,
     },
+    displayStatus: toDisplayStatus(schedule),
+    viewerRole,
+    availableActions: getAvailableActions(schedule, viewerRole),
+    cancellation: schedule.cancellation,
   };
 }
 
-/** mock 서버의 거부 사유. 핸들러가 상태 코드·code로 바꾼다 */
+/** 참여자 명단 응답. 개설자 맨 앞, 그 뒤 참여한 순서 */
+export const toParticipants = (schedule: MockSchedule): ScheduleParticipant[] =>
+  schedule.participants.map(({ userId, ...participant }) => ({
+    ...participant,
+    isMe: userId === ME.userId,
+  }));
+
+/** mock 서버의 거부 사유. 핸들러가 상태 코드·message로 바꾼다. 값은 서버 code 그대로 */
 export type MockRejection =
-  | "NOT_FOUND"
+  | "SCHEDULE_NOT_FOUND"
+  | "HOST_CANNOT_JOIN"
+  | "ALREADY_JOINED"
   | "RECRUIT_CLOSED"
   | "SCHEDULE_TIME_CONFLICT"
-  /** TODO(API): 아래는 백엔드 code가 없다 */
-  | "FORBIDDEN"
-  | "NOT_ALLOWED";
+  | "HOST_CANNOT_LEAVE"
+  | "NOT_PARTICIPANT"
+  | "PARTICIPATION_NOT_CANCELABLE"
+  | "NOT_HOST"
+  | "SCHEDULE_NOT_CANCELABLE";
 
 function updateSchedule(
   scheduleId: string,
@@ -635,27 +710,25 @@ function updateSchedule(
   );
 }
 
-/** 내가 확정 참여자·개설자인 진행 예정 일정 중 점유 시간이 겹치는 것이 있는지 (정의서 v0.3 04) */
+/** 내가 개설했거나 참여 확정한 예정 일정 중 시작 시각이 12시간 미만으로 떨어진 것이 있는지. 취소된 일정은 빠진다 */
 function hasTimeConflict(target: MockSchedule) {
-  const now = toKstDateTime(new Date());
-  return loadMockSchedules()
-    .map((item) => withStartedStatus(item, now))
-    .some(
-      (item) =>
-        item.scheduleId !== target.scheduleId &&
-        (item.joined || item.mine) &&
-        isUpcoming(item.status) &&
-        Math.abs(occupyStart(item.startAt) - occupyStart(target.startAt)) <
-          OCCUPY_MS,
-    );
+  return loadMockSchedules().some(
+    (item) =>
+      item.scheduleId !== target.scheduleId &&
+      (item.joined || item.mine) &&
+      item.status !== "CANCELED" &&
+      toDisplayStatus(item) !== "COMPLETED" &&
+      Math.abs(occupyStart(item.startAt) - occupyStart(target.startAt)) <
+        OCCUPY_MS,
+  );
 }
 
-/** 참여: 즉시 확정. 정원이 차면 모집 마감 */
+/** 참여: 즉시 확정. 정원이 차면 모집 마감. 거부 순서는 api-guide 참여 */
 export function joinMockSchedule(scheduleId: string): MockRejection | null {
   const schedule = findMockSchedule(scheduleId);
-  if (!schedule) return "NOT_FOUND";
-  // 개설자 본인·이미 참여 중은 거부한다 (정의서 v0.3 04 참여)
-  if (schedule.mine || schedule.joined) return "NOT_ALLOWED";
+  if (!schedule) return "SCHEDULE_NOT_FOUND";
+  if (schedule.mine) return "HOST_CANNOT_JOIN";
+  if (schedule.joined) return "ALREADY_JOINED";
   if (scheduleId === SAMPLE_SCHEDULE_IDS.lastSeatTaken) {
     // 다른 사람이 마지막 자리를 먼저 차지한 상황을 흉내 낸다 → 최신 상태(모집 마감)로 다시 그려지는지 확인
     updateSchedule(scheduleId, (item) => ({
@@ -667,7 +740,7 @@ export function joinMockSchedule(scheduleId: string): MockRejection | null {
     return "RECRUIT_CLOSED";
   }
   if (
-    schedule.status !== "RECRUITING" ||
+    toDisplayStatus(schedule) !== "RECRUITING" ||
     schedule.participantCount >= schedule.capacity
   ) {
     return "RECRUIT_CLOSED";
@@ -687,16 +760,18 @@ export function joinMockSchedule(scheduleId: string): MockRejection | null {
   return null;
 }
 
-/** 참여 취소: 모집 중·모집 마감일 때만. 마감이었으면 모집 중으로 되돌린다(시작 전만 여기까지 온다) */
+/**
+ * 참여 취소: 완료 전까지 된다. 시작 전에 취소하면 모집이 다시 열리고, 시작 후 취소는 다시 열지 않는다.
+ * 거부 순서는 api-guide 참여 취소
+ */
 export function leaveMockSchedule(scheduleId: string): MockRejection | null {
   const schedule = findMockSchedule(scheduleId);
-  if (!schedule) return "NOT_FOUND";
-  if (!schedule.joined) return "NOT_ALLOWED";
-  if (
-    schedule.status !== "RECRUITING" &&
-    schedule.status !== "RECRUITMENT_CLOSED"
-  ) {
-    return "NOT_ALLOWED";
+  if (!schedule) return "SCHEDULE_NOT_FOUND";
+  if (schedule.mine) return "HOST_CANNOT_LEAVE";
+  if (!schedule.joined) return "NOT_PARTICIPANT";
+  const status = toDisplayStatus(schedule);
+  if (status === "CANCELED" || status === "COMPLETED") {
+    return "PARTICIPATION_NOT_CANCELABLE";
   }
   updateSchedule(scheduleId, (item) => ({
     ...item,
@@ -704,28 +779,34 @@ export function leaveMockSchedule(scheduleId: string): MockRejection | null {
       (participant) => participant.userId !== ME.userId,
     ),
     participantCount: item.participantCount - 1,
-    status: "RECRUITING",
+    status: hasStarted(item) ? item.status : "RECRUITING",
     joined: false,
   }));
   return null;
 }
 
-/** 일정 전체 취소(개설자): 모집 중·모집 마감일 때만. 확정 참여자는 모두 미참여자가 된다 */
-export function cancelMockSchedule(scheduleId: string): MockRejection | null {
+/**
+ * 일정 전체 취소(개설자): 취소·완료되지 않았고 시작 전일 때만. 참여 기록·확정 인원은 그대로 둔다.
+ * 거부 순서는 api-guide 일정 전체 취소
+ */
+export function cancelMockSchedule(
+  scheduleId: string,
+  reason: string,
+): MockRejection | null {
   const schedule = findMockSchedule(scheduleId);
-  if (!schedule) return "NOT_FOUND";
-  if (!schedule.mine) return "FORBIDDEN";
+  if (!schedule) return "SCHEDULE_NOT_FOUND";
+  if (!schedule.mine) return "NOT_HOST";
+  const status = toDisplayStatus(schedule);
   if (
-    schedule.status !== "RECRUITING" &&
-    schedule.status !== "RECRUITMENT_CLOSED"
+    (status !== "RECRUITING" && status !== "RECRUITMENT_CLOSED") ||
+    hasStarted(schedule)
   ) {
-    return "NOT_ALLOWED";
+    return "SCHEDULE_NOT_CANCELABLE";
   }
   updateSchedule(scheduleId, (item) => ({
     ...item,
-    participants: item.participants.filter((participant) => participant.isHost),
-    participantCount: 1,
     status: "CANCELED",
+    cancellation: { reason, canceledAt: toKstDateTime(new Date()) },
   }));
   return null;
 }

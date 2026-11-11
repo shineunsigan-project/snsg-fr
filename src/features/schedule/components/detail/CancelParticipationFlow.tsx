@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 
 /**
  * 참여 취소 (DTL-07): 확인 팝업 → 요청 → 완료 팝업 → 미참여자 상세 (USER_FLOW §7.4).
- * 성공하면 훅이 상세를 다시 받아 하단이 미참여자로 바뀐다
+ * 성공이든 실패든 훅이 상세를 다시 받는다. 성공하면 하단이 미참여자로 바뀐다
  */
 export function CancelParticipationFlow({
   scheduleId,
@@ -32,11 +32,7 @@ export function CancelParticipationFlow({
       },
       onError: (error) => {
         onClose();
-        // 📝 TODO(F-19): 활동 진행 중 이후 등 취소할 수 없는 상태 (정의서 v0.3 04 취소)
-        showActionErrorToast(
-          error,
-          "이미 시작된 일정은 참여를 취소할 수 없어요.",
-        );
+        showActionErrorToast(error);
       },
     });
 

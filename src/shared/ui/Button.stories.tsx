@@ -72,21 +72,6 @@ export const Inactive: Story = {
   },
 };
 
-/** DTL-08 `활동 진행 중` */
-export const InProgress: Story = {
-  args: {
-    variant: "in-progress",
-    disabled: true,
-    className: "w-full",
-    children: (
-      <>
-        <span aria-hidden className="size-2.5 rounded-full bg-primary" />
-        활동 진행 중
-      </>
-    ),
-  },
-};
-
 /** 배경 없는 회색 글자 버튼 (ONB-01 `나중에 할게요`). 높이는 쓰는 곳에서 정한다 */
 export const Text: Story = {
   args: {

@@ -4,10 +4,9 @@ import { Avatar } from "@/shared/ui/Avatar";
 import { cn } from "@/shared/lib/utils";
 import { Tag } from "@/shared/ui/Tag";
 
-/** 상태 태그 색: 모집 중·활동 진행 중은 연두, 마감·완료·취소는 목록 `모집완료`와 같은 회색 (팀 결정 2026-11-04) */
+/** 상태 태그 색: 모집 중은 연두, 마감·완료·취소는 목록 `모집완료`와 같은 회색 (팀 결정 2026-11-04) */
 const STATUS_TAG_TONE: Record<ScheduleStatus, "brand" | "muted"> = {
   RECRUITING: "brand",
-  IN_PROGRESS: "brand",
   RECRUITMENT_CLOSED: "muted",
   COMPLETED: "muted",
   CANCELED: "muted",
@@ -16,16 +15,19 @@ const STATUS_TAG_TONE: Record<ScheduleStatus, "brand" | "muted"> = {
 type DetailInfoProps = {
   /** 서버가 준 일정 상태. 태그 글자와 색을 정한다 */
   status: ScheduleStatus;
+  /** 활동 이름. 서버가 활동 정보를 찾지 못하면 빈 문자열이라 태그를 그리지 않는다 */
   activityName: string;
   /** 개설자 본인이 보면 `나 (닉네임)` */
   hostName: string;
+  /** 화면에서 쓸 주소로 바꾼 개설자 사진. null이면 기본 아바타 */
   hostProfileImageUrl: string | null;
   title: string;
   /** `MM월DD일(요일) HH:MM` */
   dateLabel: string;
   /** `2시간 내외` */
   durationLabel: string;
-  participantCount: number;
+  /** 확정 인원 (개설자 포함) */
+  confirmedCount: number;
   capacity: number;
   description: string;
 };
@@ -41,14 +43,14 @@ export function DetailInfo({
   title,
   dateLabel,
   durationLabel,
-  participantCount,
+  confirmedCount,
   capacity,
   description,
 }: DetailInfoProps) {
   const facts = [
     { label: "시작", value: dateLabel },
     { label: "예상 소요", value: durationLabel },
-    { label: "모집 인원", value: `${participantCount} / ${capacity}명` },
+    { label: "모집 인원", value: `${confirmedCount} / ${capacity}명` },
   ];
 
   return (
@@ -57,7 +59,7 @@ export function DetailInfo({
         <Tag tone={STATUS_TAG_TONE[status]}>
           {SCHEDULE_STATUS_LABEL[status]}
         </Tag>
-        <Tag tone="muted">{activityName}</Tag>
+        {activityName && <Tag tone="muted">{activityName}</Tag>}
       </p>
       <div className="mt-3 flex flex-col items-center text-center">
         <Avatar

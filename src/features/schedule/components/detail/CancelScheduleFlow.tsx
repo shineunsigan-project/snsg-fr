@@ -3,15 +3,31 @@
 import { useRef, useState } from "react";
 
 import {
-  isScheduleConflict,
+  INVALID_CANCEL_REASON,
+  isScheduleActionRejected,
   isScheduleNotFound,
 } from "../../api/scheduleDetail";
 import { useCancelSchedule } from "../../hooks/useCancelSchedule";
 import { isValidCancelReason } from "../../schemas/cancelScheduleSchema";
-import { showActionErrorToast } from "./actionErrorToast";
+import {
+  DETAIL_TOAST_DURATION,
+  showActionErrorToast,
+} from "./actionErrorToast";
 import { CancelScheduleSheet } from "./CancelScheduleSheet";
 
+import {
+  getApiErrorCode,
+  getApiErrorMessage,
+  getApiFieldErrors,
+} from "@/shared/lib/api/client";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { showToast } from "@/shared/ui/sonner";
+
+/** 사유가 서버 검증에 걸렸다(400). 화면이 같은 규칙으로 막으므로 정상 흐름에서는 나지 않는다 */
+const isInvalidReason = (error: unknown) => {
+  const code = getApiErrorCode(error);
+  return code === "INVALID_REQUEST" || code === INVALID_CANCEL_REASON;
+};
 
 type Step = "confirm" | "reason";
 
@@ -55,8 +71,21 @@ export function CancelScheduleFlow({
         setIsDoneOpen(true);
       },
       onError: (error) => {
-        // 409(이미 시작·취소됨)·404는 최신 상태를 다시 그리므로 흐름을 닫는다. 그 밖에는 입력한 사유를 두고 다시 누를 수 있다
-        if (isScheduleConflict(error) || isScheduleNotFound(error)) close();
+        if (isInvalidReason(error)) {
+          // 시트와 사유를 두고 다시 적게 한다. 문구는 errors[0].message, 없으면 message (api-guide 일정 전체 취소)
+          // 시트에 오류 문구 자리가 없어(사용자 결정 2026-11-11 #11) 토스트로 보여준다
+          showToast(
+            getApiFieldErrors(error)[0]?.message ??
+              getApiErrorMessage(error) ??
+              "요청을 처리하지 못했어요. 다시 시도해주세요.",
+            { variant: "error", duration: DETAIL_TOAST_DURATION },
+          );
+          return;
+        }
+        // 403·409(이미 취소·시작됨 등)·404는 다시 받은 상세로 그리므로 흐름을 닫는다.
+        // 5xx·네트워크 오류는 입력한 사유를 두고 다시 누를 수 있다 (사용자 결정 2026-11-11 #10)
+        if (isScheduleActionRejected(error) || isScheduleNotFound(error))
+          close();
         showActionErrorToast(error);
       },
       onSettled: () => {

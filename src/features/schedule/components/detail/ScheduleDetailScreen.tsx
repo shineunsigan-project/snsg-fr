@@ -5,6 +5,7 @@ import { formatPlaceAddress } from "../../api/scheduleCreate";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { USER_NOT_ACTIVE } from "../../api/scheduleCreate";
 import { isScheduleNotFound } from "../../api/scheduleDetail";
 import { useJoinSchedule } from "../../hooks/useJoinSchedule";
 import { useScheduleDetail } from "../../hooks/useScheduleDetail";
@@ -32,6 +33,9 @@ import { DetailInfo } from "./DetailInfo";
 import { ParticipantSection } from "./ParticipantSection";
 import { PlaceSection } from "./PlaceSection";
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
+import { setAccessToken } from "@/shared/lib/api/accessToken";
+import { getApiErrorCode } from "@/shared/lib/api/client";
+import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { Button } from "@/shared/ui/button";
 import { PageStatus } from "@/shared/ui/PageStatus";
@@ -90,13 +94,17 @@ export function ScheduleDetailScreen({
     setPrevCanExpand(canExpand);
     if (!canExpand) setIsParticipantsOpen(false);
   }
-  const participants = useScheduleParticipants(
-    scheduleId ?? "",
-    canExpand && isParticipantsOpen,
-  );
+  // 개설자·확정 참여자는 접힌 요약에도 사진을 보여주려고 펼치기 전에 명단을 받는다 (사용자 결정 2026-11-11)
+  const participants = useScheduleParticipants(scheduleId ?? "", canExpand);
+  const participantRows = participants.data
+    ? toParticipantRows(participants.data)
+    : undefined;
 
-  // 일정 없음·삭제·잘못된 주소 → 홈(모집 중) + 토스트 (USER_FLOW §7.2)
-  const isNotFound = scheduleId === null || isScheduleNotFound(error);
+  // 일정 없음·삭제(상세·명단의 404 SCHEDULE_NOT_FOUND)·잘못된 주소 → 홈(모집 중) + 토스트 (USER_FLOW §7.2)
+  const isNotFound =
+    scheduleId === null ||
+    isScheduleNotFound(error) ||
+    isScheduleNotFound(participants.error);
   const hasNotifiedNotFound = useRef(false);
   useEffect(() => {
     // 잘못된 ID는 첫 화면에서 바로 여기로 온다. 앱 첫 로딩(로그인 복구)이 끝난 뒤에 보내, 서버 404와 같은 때에 토스트를 띄운다.
@@ -121,14 +129,27 @@ export function ScheduleDetailScreen({
     router.push("/login");
   };
 
-  // 확인 팝업 없이 바로 확정한다(선착순). 성공 안내는 없고 다시 받은 상세가 DTL-05로 그려진다 (USER_FLOW §7.3)
+  // 확인 팝업 없이 바로 확정한다(선착순). 다시 받은 상세가 DTL-05로 그려진다 (USER_FLOW §7.3)
   // 버튼이 막히기 전(다시 그리기 전)에 연달아 눌러도 한 번만 보낸다
   const isJoiningRef = useRef(false);
   const handleJoin = () => {
     if (isJoiningRef.current) return;
     isJoiningRef.current = true;
     join.mutate(undefined, {
-      onError: (error) => showActionErrorToast(error),
+      onSuccess: () => {
+        // 기획에는 성공 안내가 없다. 버튼만 바뀌면 알아채기 어려워 토스트를 띄운다(사용자 결정 2026-11-11)
+        // 📝 임시 문구 TODO(F-19)
+        showToast("참여가 확정되었어요", { duration: DETAIL_TOAST_DURATION });
+      },
+      onError: (error) => {
+        if (getApiErrorCode(error) === USER_NOT_ACTIVE) {
+          // 탈퇴한 사용자가 남은 토큰으로 불렀다. 토큰을 버리고 로그인 화면으로 (api-guide 참여, 개설 화면과 같다)
+          setAccessToken(null);
+          handleLogin();
+          return;
+        }
+        showActionErrorToast(error);
+      },
       onSettled: () => {
         isJoiningRef.current = false;
       },
@@ -179,28 +200,29 @@ export function ScheduleDetailScreen({
       <DetailHeader onBack={handleBack} onShare={handleShare} />
       <main className="flex-1">
         <DetailInfo
-          status={detail.status}
-          activityName={detail.activityName}
+          status={detail.displayStatus}
+          activityName={detail.category.name}
           hostName={getHostName(detail)}
-          hostProfileImageUrl={detail.host.profileImageUrl}
+          hostProfileImageUrl={toApiImageUrl(detail.host.profileImageUrl)}
           title={detail.title}
           dateLabel={formatScheduleDateTime(detail.startAt)}
-          durationLabel={getDurationLabel(detail.duration)}
-          participantCount={detail.participantCount}
+          durationLabel={getDurationLabel(detail.durationType)}
+          confirmedCount={detail.confirmedCount}
           capacity={detail.capacity}
           description={detail.description}
         />
         <ParticipantSection
-          participantCount={detail.participantCount}
+          participantCount={detail.participantSummary.count}
           summaryLabel={getParticipantSummaryLabel(detail.participantSummary)}
           genderLabel={getParticipantGenderLabel(detail.participantSummary)}
-          avatars={getSummaryAvatars(detail.participantSummary)}
+          avatars={getSummaryAvatars(
+            detail.participantSummary,
+            participantRows,
+          )}
           canExpand={canExpand}
           isExpanded={isParticipantsOpen}
           onToggle={() => setIsParticipantsOpen((open) => !open)}
-          rows={
-            participants.data ? toParticipantRows(participants.data) : undefined
-          }
+          rows={participantRows}
           isRowsError={participants.isError}
           onRetryRows={() => participants.refetch()}
         />
@@ -220,10 +242,12 @@ export function ScheduleDetailScreen({
       </main>
       {/* 컨테이너의 마지막 자식이라 화면 아래에 붙고 홈 인디케이터 영역을 비운다 */}
       <DetailBottomBar
-        status={detail.status}
+        status={detail.displayStatus}
         viewerRole={detail.viewerRole}
-        participantCount={detail.participantCount}
+        availableActions={detail.availableActions}
+        confirmedCount={detail.confirmedCount}
         capacity={detail.capacity}
+        remainingSeats={detail.remainingSeats}
         onLogin={handleLogin}
         onJoin={handleJoin}
         isJoinPending={join.isPending}
@@ -231,17 +255,16 @@ export function ScheduleDetailScreen({
         onCancelSchedule={() => setOpenFlow("cancelSchedule")}
       />
       <CancelParticipationFlow
-        scheduleId={detail.scheduleId}
+        scheduleId={detail.id}
         open={openFlow === "cancelParticipation"}
         onClose={() => setOpenFlow(null)}
       />
       <CancelScheduleFlow
-        scheduleId={detail.scheduleId}
+        scheduleId={detail.id}
         open={openFlow === "cancelSchedule"}
         onClose={() => setOpenFlow(null)}
-        // 확정 인원은 개설자를 포함한다 (정의서 v0.3 04). 표시만 한다
-        // TODO(API): 개설자를 뺀 확정 참여자 수를 서버가 줄지 미정
-        participantCount={detail.participantCount - 1}
+        // 확정 인원은 개설자를 포함한다 (api-guide 일정 상세 `confirmedCount`). 표시만 한다
+        participantCount={detail.confirmedCount - 1}
       />
     </div>
   );
