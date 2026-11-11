@@ -6,13 +6,13 @@ import { cn } from "@/shared/lib/utils";
 import { Tag } from "@/shared/ui/Tag";
 
 type ParticipantSectionProps = {
-  /** 개설자 포함 확정 인원 */
+  /** 확정 인원 (개설자 포함) */
   participantCount: number;
   /** `남 2 · 여 2 · 20대 후반–30대 초반` */
   summaryLabel: string;
   /** 펼친 명단 제목 줄의 성별 수 `남 2 · 여 2` (시안 DTL-06) */
   genderLabel: string;
-  /** 겹쳐 보일 아바타(최대 4개, Q6). null이면 기본 아바타 */
+  /** 겹쳐 보일 사진(최대 4개, Q6). null이면 아이콘 없는 연두색 원 (사용자 결정 2026-11-11) */
   avatars: (string | null)[];
   /** 확정 참여자·개설자만 펼친다. false면 펼치기 버튼이 없다 (F-6) */
   canExpand: boolean;
@@ -100,11 +100,18 @@ export function ParticipantSection({
           />
         ) : (
           <div className="flex items-center gap-3">
-            <span className="flex shrink-0 -space-x-2">
-              {avatars.map((src, index) => (
-                // 같은 사진(기본 아바타 null 등)이 여러 개일 수 있어 순서로 구분한다. 목록은 다시 정렬하지 않는다
-                <Avatar key={index} src={src} className="ring-2 ring-card" />
-              ))}
+            <span aria-hidden className="flex shrink-0 -space-x-2">
+              {avatars.map((src, index) =>
+                // 사진은 명단에서 온다. 명단을 볼 수 없으면 아이콘 없는 원만 그린다(시안처럼). 크기는 Avatar 기본값과 같다
+                src ? (
+                  <Avatar key={index} src={src} className="ring-2 ring-card" />
+                ) : (
+                  <span
+                    key={index}
+                    className="size-8 rounded-full bg-avatar ring-2 ring-card"
+                  />
+                ),
+              )}
             </span>
             <p className="min-w-0 text-sm break-keep text-muted-foreground">
               {summaryLabel}
@@ -149,8 +156,9 @@ function ParticipantList({
       aria-label="참여자 명단"
       className="mx-5 flex flex-col divide-y divide-border border-t border-border"
     >
-      {rows.map((row) => (
-        <li key={row.key} className="flex items-center gap-3 py-2.5">
+      {rows.map((row, index) => (
+        // 서버가 사용자 ID를 주지 않고, 받은 순서를 바꾸지 않으므로 순서로 구분한다
+        <li key={index} className="flex items-center gap-3 py-2.5">
           <Avatar src={row.profileImageUrl} className="size-10" />
           <div className="flex min-w-0 flex-col">
             <p className="flex min-w-0 items-center gap-1.5">

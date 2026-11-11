@@ -22,12 +22,9 @@ const buttonVariants = cva(
           "border border-danger-border bg-danger-soft text-danger-text",
         /**
          * 일정 상태 때문에 누를 수 없는 상세 하단 버튼 `⊘ 모집 마감`·`⊘ 일정 취소됨`·`⊘ 일정 완료` (시안 DTL-08).
-         * inactive·in-progress는 disabled와 함께 쓰고, 시안 색 그대로 보이도록 disabled 투명도를 끈다
+         * disabled와 함께 쓰고, 시안 색 그대로 보이도록 disabled 투명도를 끈다
          */
         inactive: "bg-inactive text-subtle-foreground disabled:opacity-100",
-        /** `● 활동 진행 중` (시안 DTL-08 활동 진행 중) */
-        "in-progress":
-          "border border-brand-border bg-brand-soft text-brand disabled:opacity-100",
         /** 배경 없는 회색 글자 버튼 — 홈 화면 추가 안내 `나중에 할게요` (시안 ONB-01) */
         text: "font-normal text-muted-foreground",
       },

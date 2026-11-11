@@ -58,8 +58,8 @@ export function CancelScheduleSheet({
               aria-describedby={counterId}
               rows={4}
               value={reason}
-              // 글자 수는 앞뒤 공백을 뺀 길이로 센다(USER_FLOW §7.5). maxLength는 공백까지 세어 기준이 둘이 되므로 쓰지 않고,
-              // 같은 기준으로 200자를 넘기는 입력만 받지 않는다(개설 간략 설명의 "넘으면 입력 안 됨"과 같은 방식)
+              // 글자 수는 서버와 같이 앞뒤 공백을 뺀 글자 수로 센다(이모지 한 글자). maxLength는 공백·이모지를 다르게 세어 쓰지 않고,
+              // 같은 기준으로 100자를 넘기는 입력만 받지 않는다(개설 간략 설명의 "넘으면 입력 안 됨"과 같은 방식)
               onChange={(event) => {
                 const next = event.target.value;
                 if (getCancelReasonLength(next) <= CANCEL_REASON_MAX_LENGTH)
