@@ -27,6 +27,9 @@ const UA = {
 const RECORD_KEY = "homeScreenGuide.v1";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RETURN_PATH = "/?tab=joined";
+// 저장소에 기록을 넣을 때 여는 같은 출처의 주소. 화면 동작이 없는 파일이라 기록을 넣는 도중에 이동하지 않는다
+// (로그인 화면은 로그인한 사람을 바로 내보내므로 쓰지 않는다, SHI-185)
+const BLANK_PATH = "/manifest.webmanifest";
 
 const ok = (data: unknown) => ({
   status: 200,
@@ -100,7 +103,7 @@ async function signUp(page: Page) {
 
 /** 다른 화면에서 기록을 넣은 뒤 홈으로 들어간다 */
 async function openHomeWithRecord(page: Page, record: unknown) {
-  await page.goto("/login");
+  await page.goto(BLANK_PATH);
   await page.evaluate(([key, value]) => localStorage.setItem(key, value), [
     RECORD_KEY,
     JSON.stringify(record),
@@ -171,7 +174,7 @@ test.describe("아이폰 Safari", () => {
     page,
   }) => {
     await mockApis(page);
-    await page.goto("/login");
+    await page.goto(BLANK_PATH);
     await page.evaluate(
       ([key, value]) => {
         localStorage.setItem(key, value);
@@ -233,7 +236,7 @@ test.describe("아이폰 Safari — 예외 경우", () => {
     page,
   }) => {
     await mockApis(page);
-    await page.goto("/login");
+    await page.goto(BLANK_PATH);
     await page.evaluate(([key, value]) => localStorage.setItem(key, value), [
       RECORD_KEY,
       JSON.stringify({ status: "confirmed" }),
@@ -264,7 +267,7 @@ test.describe("아이폰 Safari — 예외 경우", () => {
     page,
   }) => {
     await mockApis(page);
-    await page.goto("/login");
+    await page.goto(BLANK_PATH);
     await page.evaluate(
       (key) => localStorage.setItem(key, "{not json"),
       RECORD_KEY,

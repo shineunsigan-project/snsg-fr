@@ -872,6 +872,10 @@ test("탈퇴한 사용자가 참여하면(USER_NOT_ACTIVE) 이 상세로 돌아�
 
   await page.getByRole("button", { name: "참여하기" }).click();
   await expect(page).toHaveURL(/\/login$/);
+  // 로그아웃 상태라 로그인 화면에 머문다(로그인한 사람만 내보낸다, SHI-185)
+  await expect(
+    page.getByRole("button", { name: "카카오 로그인" }),
+  ).toBeVisible();
   expect(
     await page.evaluate(() => sessionStorage.getItem("loginRedirect")),
   ).toBe(`/schedules/${SCHEDULE_ID}`);

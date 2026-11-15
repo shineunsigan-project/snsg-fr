@@ -277,6 +277,10 @@ test("탈퇴할 수 있으면 가능 여부 → 재확인 → 탈퇴만 보내�
 
   await withdrawDone(page).getByRole("button", { name: "확인" }).click();
   await expect(page).toHaveURL(/\/login$/);
+  // 로그아웃 상태라 로그인 화면에 머문다(로그인한 사람만 내보낸다, SHI-185)
+  await expect(
+    page.getByRole("button", { name: "카카오 로그인" }),
+  ).toBeVisible();
   // 돌아올 화면이 없다
   expect(
     await page.evaluate(() => sessionStorage.getItem("loginRedirect")),
@@ -339,6 +343,10 @@ test("탈퇴가 404 USER_NOT_FOUND면 이미 탈퇴한 것으로 보고 완료 �
   await expect(withdrawDone(page)).toBeVisible();
   await withdrawDone(page).getByRole("button", { name: "확인" }).click();
   await expect(page).toHaveURL(/\/login$/);
+  // 로그아웃 상태라 로그인 화면에 머문다(로그인한 사람만 내보낸다, SHI-185)
+  await expect(
+    page.getByRole("button", { name: "카카오 로그인" }),
+  ).toBeVisible();
 });
 
 test("탈퇴 가능 여부를 받지 못하면(500) 토스트로 알리고 팝업을 띄우지 않는다", async ({
@@ -386,6 +394,10 @@ test("내 프로필 조회가 404 USER_NOT_FOUND면 로그인 화면으로 가�
   await page.goto("/my");
 
   await expect(page).toHaveURL(/\/login$/);
+  // 로그아웃 상태라 로그인 화면에 머문다(로그인한 사람만 내보낸다, SHI-185)
+  await expect(
+    page.getByRole("button", { name: "카카오 로그인" }),
+  ).toBeVisible();
   expect(
     await page.evaluate(() => sessionStorage.getItem("loginRedirect")),
   ).toBe("/my");
@@ -946,6 +958,10 @@ test("프로필 수정에서 조회가 404 USER_NOT_FOUND면 로그인 화면으
   await page.goto("/my/edit");
 
   await expect(page).toHaveURL(/\/login$/);
+  // 로그아웃 상태라 로그인 화면에 머문다(로그인한 사람만 내보낸다, SHI-185)
+  await expect(
+    page.getByRole("button", { name: "카카오 로그인" }),
+  ).toBeVisible();
   expect(
     await page.evaluate(() => sessionStorage.getItem("loginRedirect")),
   ).toBe("/my/edit");
