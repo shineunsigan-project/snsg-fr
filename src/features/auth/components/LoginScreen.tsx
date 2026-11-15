@@ -18,8 +18,6 @@ const TERMS_URL = "https://info.shineunsigan.com/terms.html";
 export function LoginScreen() {
   // 로그인 후 돌아갈 화면은 이 화면으로 보낸 쪽이 저장해 둔다 (USER_FLOW §4.3)
   const handleKakaoStart = () => startKakaoLogin();
-  // TODO: 네이버 인증을 연결한다 (TECH_STACK T-5)
-  const handleNaverStart = () => {};
 
   return (
     // 넓은 화면에서 최대 폭 밖으로 늘어나는 양옆은 앱 기본 배경(bg.app)이고, 로그인 영역만 브랜드 녹색이다
@@ -54,7 +52,7 @@ export function LoginScreen() {
 
         <div className="mt-6 flex flex-col gap-4">
           <SocialLoginButton asset="kakao-large" onClick={handleKakaoStart} />
-          <SocialLoginButton asset="naver-large" onClick={handleNaverStart} />
+          {/* TODO(T-5): 네이버 인증을 연결하면 카카오 버튼 아래에 `naver-large` 버튼을 다시 둔다. 연결 전이라 숨긴다(사용자 결정 2026-11-15) */}
           <Button
             variant="outline-inverse"
             className="rounded-lg text-md"
