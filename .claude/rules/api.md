@@ -15,6 +15,7 @@ paths:
 | 서버 데이터 (로그인 사용자 정보 포함) | TanStack Query |
 | 필터 값, 선택된 탭 | URL 쿼리 파라미터 |
 | 로그인 후 돌아갈 화면 | sessionStorage `loginRedirect` |
+| 로그인 여부 표시 (앱 서버가 `/login`에서 판단) | 쿠키 `snsg_logged_in` (`shared/lib/loginHint.ts`. `setAccessToken`이 토큰과 함께 바꾼다. 인증에는 쓰지 않는다) |
 | 홈 화면 추가 안내를 봤는지 (USER_FLOW §9.1) | localStorage `homeScreenGuide.v1` (기기 브라우저에만, 저장소를 못 쓰면 기록 없이 동작) |
 | 모달 열림, 입력 중인 값 | 컴포넌트 state |
 

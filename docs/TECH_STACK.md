@@ -225,6 +225,7 @@ src/
 - **토큰:**
   - access token(30분)은 응답 본문으로 받아 **메모리에만** 둔다(`shared/lib/api/accessToken.ts`). localStorage·sessionStorage에 넣지 않는다. 요청마다 `Authorization: Bearer`로 붙인다.
   - refresh token(14일)과 가입 토큰은 서버가 **HttpOnly 쿠키**(`Path=/api/v1/auth`)로 관리한다. 그래서 `apiClient`는 `withCredentials: true`로 쿠키를 함께 보낸다.
+  - 로그인 **표시용 쿠키** `snsg_logged_in`(앱 주소, 14일, `shared/lib/loginHint.ts`): `setAccessToken`이 토큰을 저장하면 두고 지우면 지운다. 앱 서버(`src/proxy.ts`)가 `/login` 요청에서 이것만 보고 홈으로 보낸다. 인증에는 쓰지 않는다 (SHI-186).
 - **로그인 복구:** 앱 시작 때 `POST /api/v1/auth/tokens`. 200이면 로그인, 401이면 비로그인. 로그인 여부는 `useIsLoggedIn`(TanStack Query `["auth","session"]` + 메모리 토큰)으로 읽는다.
 - **401 처리:** `UNAUTHENTICATED`를 받으면 `POST /api/v1/auth/tokens`로 재발급을 한 번 시도하고 원래 요청을 한 번 다시 보낸다. 재발급하면 이전 refresh token이 바로 무효가 되므로 **재발급 요청은 한 번에 하나만** 보내고, 다른 요청은 그 결과를 기다린다. 재발급이 401이면 토큰을 지우고 로그인 화면으로 보낸다.
 - **날짜·시간:** `2026-09-14T00:00:00`처럼 오프셋 없는 ISO-8601이고, 모두 한국 시간(Asia/Seoul)이다. 브라우저 시간대와 상관없이 한국 시간으로 해석한다.

@@ -39,6 +39,7 @@ import {
   shouldShowAfterSignup,
   toHomeScreenGuidePath,
 } from "@/features/onboarding/lib/homeScreenGuide";
+import { setAccessToken } from "@/shared/lib/api/accessToken";
 import { getApiErrorCode, getApiFieldErrors } from "@/shared/lib/api/client";
 import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { getLoginRedirect } from "@/shared/lib/kakaoLogin";
@@ -87,6 +88,8 @@ const isSignUpSessionExpired = (error: unknown) => {
 function restartLogin(router: ReturnType<typeof useRouter>) {
   // TODO(F-3): 실패 화면이 정해지면 alert를 바꾼다
   alert("로그인에 실패했습니다.");
+  // 예전 표시용 쿠키가 남아 있으면 앱 서버가 로그인 화면 대신 홈으로 돌려보내므로 지운다 (SHI-186)
+  setAccessToken(null);
   router.replace("/login");
 }
 

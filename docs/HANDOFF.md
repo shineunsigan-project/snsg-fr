@@ -5,18 +5,19 @@
 마지막 갱신: 2026-11-15
 
 ## 지금 상태
-- 2026-11-15 **SHI-185 로그인 후 뒤로가기하면 로그인 화면이 다시 보임** — 브랜치 `feature/SHI-185-login-guard`, PR #19, 지시서 `.claude/tasks/SHI-185.md`. 로그인한 사람은 로그인 화면에서 내보내고, 뒤로가기 캐시(bfcache)로 복원되면 새로 불러온다. 네이버 버튼 숨김
+- 2026-11-15 **SHI-186 로그인 후 뒤로·앞으로 가기에서 로그인 화면이 끼어듦** — 브랜치 `feature/SHI-186-login-history`, 지시서 `.claude/tasks/SHI-186.md`, PR #20. 표시용 쿠키 + `src/proxy.ts`로 로그인 상태면 `/login`을 서버에서 홈으로, 로그인 화면 기록 바꿔치기, bfcache 복원 시 앱 전체 다시 받기.
+- SHI-185(PR #19, 머지 2026-11-15): 로그인한 사람은 로그인 화면에서 내보내기, 네이버 버튼 숨김
 - 배포: 프론트 `https://app.shineunsigan.com`(Vercel), API `https://api.shineunsigan.com`(ECS). 배포 서버의 카카오 콜백·CORS 설정 확인됨(2026-11-15)
 - 브랜치 `feature/SHI-163-schedule-list-api`(메인 폴더, develop 561bf25 = SHI-160까지 머지). **SHI-163 일정 목록 실제 API 연결** — 지시서 `.claude/tasks/SHI-163.md`. 사용자 확인 끝, PR #16(2026-11-11)
 - 백엔드 develop e746440에 목록·상세·참여·취소·내 프로필·탈퇴 API가 모두 생겼다. 일정 개설(SHI-162)·목록(SHI-163)은 실제 API, 상세·참여(SHI-164)는 실제 API(PR #17 머지), 내 정보·프로필 수정·탈퇴·닉네임 확인(SHI-165)은 실제 API로 바꿔 PR #18
-- 로컬 실서버 확인: Redis 필요(`brew install redis` 설치됨, `redis-server /opt/homebrew/etc/redis.conf --daemonize yes`로 켬). `../snsg-be/snsg`에서 `sh ./gradlew bootRun`(8080), 프론트는 `.env.local`의 API 주소가 ngrok이라 `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 pnpm dev`(3000)
+- 로컬 개발 API (사용자 결정 2026-11-15): 평소 `pnpm dev`는 `.env.local`의 배포 API(`https://api.shineunsigan.com`)를 쓴다. 배포 API는 카카오 로그인 후 배포 화면으로 돌려보내므로 로컬에서는 비로그인 화면만 본다(로그인이 안 되므로 실제 데이터도 바뀌지 않는다). 로그인 흐름이 필요할 때만 로컬 백엔드를 켜고 `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 pnpm dev`(3000)로 켠다. 로컬 백엔드: Redis(`redis-server /opt/homebrew/etc/redis.conf --daemonize yes`) → `../snsg-be/snsg`에서 `sh ./gradlew bootRun`(8080). 주소를 바꾸면 개발 서버를 다시 켠다(`NEXT_PUBLIC_` 값은 켤 때 고정)
 - Linear 이슈 본문은 `FE 작업` 템플릿(개요·범위·범위 밖), 결정·임시 계약은 PR 본문에 (2026-11-10, `.claude/rules/git-workflow.md`)
 - 흐름 아티팩트: 일정 목록 https://claude.ai/artifact/5bK2wjP6XaKdZWki6AdtzN · 일정 상세 https://claude.ai/artifact/58pkc7eCb9JBiWSQexvRMF · 내 정보 https://claude.ai/artifact/XG7dmDKoeu4ENYX62vuZPS (옵시디언 `01_Projects/쉬는시간/`에도 노트)
-- 개발 서버: `localhost:3001` MSW 켜고 실행(`NEXT_PUBLIC_API_MOCKING=enabled pnpm exec next dev -p 3001`). mock은 로그인 상태로 시작(`MOCK_LOGGED_IN = true`).
+- MSW(가짜 API)는 배포 API가 생겨 개발 서버에서는 쓰지 않는다. Storybook(내 정보·프로필 수정)에서 쓰므로 코드는 유지한다(사용자 결정 2026-11-15). 켜려면 `NEXT_PUBLIC_API_MOCKING=enabled`
 
 ## 다음에 할 일
-0. [ ] SHI-185 PR #19 머지 후 배포 화면에서 홈 → 상세 → `로그인하고 참여하기` → 카카오 → 뒤로가기 확인(실제 iPhone Safari 포함)
-0. [ ] 정해야 할 것: 조회 재시도 3→1 이슈를 별도로 만들지 SHI-152 하위로 만들지, 방금 연 일정 녹색 테두리를 개설한 일정 탭에만 두고 탭을 옮기면 지울지, 취소 후 상세에 머무는 지금 동작 유지 여부
+0. [ ] SHI-186 PR #20 머지 → 배포 화면에서 홈 → 상세 → `로그인하고 참여하기` → 카카오 → 뒤로가기·앞으로 가기 확인(PC Chrome에서 앞으로 가기 때 검은 오버레이가 보였음, 실제 iPhone Safari 포함)
+0. [ ] 보류(사용자 결정 2026-11-15, 추후 진행·논의): 조회 재시도 3→1, 방금 연 일정 녹색 테두리를 개설한 일정 탭에만, 취소 후 상세에 머무는 동작
 1. [ ] SHI-165 PR #18 머지 → 이로써 MVP 화면의 실제 API 연결이 모두 끝난다. 결정은 `.claude/tasks/SHI-165.md`. 로컬 서버(Redis·백엔드·프론트)는 켜 둔 채 이어 간다
 2. [ ] 작업 폴더 `../snsg-fr-151`·백업 브랜치(`backup/SHI-*`) 정리
 3. [x] 실제 API 연결: 상세(SHI-164)·내 프로필(SHI-165, 진행 중)
