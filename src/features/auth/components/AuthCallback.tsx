@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
 import { useIsLoggedIn } from "../hooks/useIsLoggedIn";
+import { setAccessToken } from "@/shared/lib/api/accessToken";
 import { getLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { PageStatus } from "@/shared/ui/PageStatus";
 
@@ -40,6 +41,8 @@ function LoginCallback() {
     }
     // TODO(F-3): 실패 화면이 정해지면 alert를 바꾼다
     alert("로그인에 실패했습니다.");
+    // 재발급이 네트워크 오류로 실패하면 표시용 쿠키가 예전 값으로 남을 수 있다. 지워야 로그인 화면이 홈으로 돌려보내지 않는다(SHI-186)
+    setAccessToken(null);
     router.replace("/login");
   }, [isLoggedIn, router]);
 
