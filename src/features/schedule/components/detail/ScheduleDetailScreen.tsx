@@ -12,7 +12,6 @@ import { useScheduleDetail } from "../../hooks/useScheduleDetail";
 import { useScheduleParticipants } from "../../hooks/useScheduleParticipants";
 import { formatScheduleDateTime } from "../../lib/scheduleDate";
 import {
-  canGoBackInApp,
   canViewParticipants,
   getDurationLabel,
   getHostName,
@@ -37,6 +36,7 @@ import { setAccessToken } from "@/shared/lib/api/accessToken";
 import { getApiErrorCode } from "@/shared/lib/api/client";
 import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
+import { canGoBackInApp } from "@/shared/lib/navigation";
 import { Button } from "@/shared/ui/button";
 import { PageStatus } from "@/shared/ui/PageStatus";
 import { showToast } from "@/shared/ui/sonner";

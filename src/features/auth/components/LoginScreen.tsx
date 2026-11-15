@@ -2,8 +2,12 @@
 
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
+import { useIsLoggedIn } from "../hooks/useIsLoggedIn";
 import { startKakaoLogin } from "@/shared/lib/kakaoLogin";
+import { canGoBackInApp } from "@/shared/lib/navigation";
 import { Button } from "@/shared/ui/button";
 import { SocialLoginButton } from "@/shared/ui/SocialLoginButton";
 
@@ -16,10 +20,42 @@ const TERMS_URL = "https://info.shineunsigan.com/terms.html";
  * 앱 시작 화면이 아니다. 로그인 실패·재발급 실패, 헤더·GNB 로그인, 탈퇴 이후에 들어온다 (USER_FLOW §3)
  */
 export function LoginScreen() {
+  const router = useRouter();
+  const isLoggedIn = useIsLoggedIn();
+
+  // 카카오 로그인을 다녀온 뒤 뒤로가기를 하면 브라우저가 뒤로가기 캐시(bfcache)로 로그인 전 이 화면을 그대로 복원한다.
+  // 복원된 화면은 로그인 전 상태라, 새로 불러와 로그인 여부를 다시 확인한다(SHI-185). 앞 화면들도 새로 불러오게 된다
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
+  // 로그인한 사람은 이 화면을 쓰지 않는다. 앱 안에서 왔으면 앞 화면으로, 아니면 홈으로 (USER_FLOW §4.2, SHI-185)
+  // 저장한 복귀 경로로 보내지 않는다. 같은 화면이 기록에 또 쌓여 뒤로가기를 해도 같은 화면이 반복된다
+  const hasLeftRef = useRef(false);
+  useEffect(() => {
+    if (!isLoggedIn || hasLeftRef.current) return;
+    hasLeftRef.current = true;
+    if (canGoBackInApp()) router.back();
+    else router.replace("/");
+  }, [isLoggedIn, router]);
+
+  // 확인 중이거나 나가는 중에는 버튼을 그리지 않는다. 버튼이 보였다가 사라지지 않게 배경만 둔다
+  if (isLoggedIn !== false) {
+    return (
+      <main
+        aria-busy
+        className="mx-auto h-dvh max-w-md bg-brand"
+        aria-label="로그인 상태 확인 중"
+      />
+    );
+  }
+
   // 로그인 후 돌아갈 화면은 이 화면으로 보낸 쪽이 저장해 둔다 (USER_FLOW §4.3)
   const handleKakaoStart = () => startKakaoLogin();
-  // TODO: 네이버 인증을 연결한다 (TECH_STACK T-5)
-  const handleNaverStart = () => {};
 
   return (
     // 넓은 화면에서 최대 폭 밖으로 늘어나는 양옆은 앱 기본 배경(bg.app)이고, 로그인 영역만 브랜드 녹색이다
@@ -54,7 +90,7 @@ export function LoginScreen() {
 
         <div className="mt-6 flex flex-col gap-4">
           <SocialLoginButton asset="kakao-large" onClick={handleKakaoStart} />
-          <SocialLoginButton asset="naver-large" onClick={handleNaverStart} />
+          {/* TODO(T-5): 네이버 인증을 연결하면 카카오 버튼 아래에 `naver-large` 버튼을 다시 둔다. 연결 전이라 숨긴다(사용자 결정 2026-11-15) */}
           <Button
             variant="outline-inverse"
             className="rounded-lg text-md"
