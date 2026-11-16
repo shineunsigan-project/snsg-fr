@@ -15,7 +15,6 @@ import {
 } from "@/features/onboarding/lib/homeScreenGuide";
 
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
-import { cn } from "@/shared/lib/utils";
 import { AppHeader } from "@/shared/ui/AppHeader";
 import { BottomNav, type BottomNavItem } from "@/shared/ui/BottomNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
@@ -44,7 +43,7 @@ const TAB_LABELS: Array<{ value: ScheduleListTab; label: string }> = [
  * - 필터(활동·지역·날짜)는 모집 중 탭에만 있다
  * - GNB 일정 개설 → 로그인 여부와 상관없이 개설 1단계. 로그인은 `일정 열기`에서 한다 (USER_FLOW §7.7)
  * - GNB 로그인 → 로그인 화면, 로그인 후 지금 보던 탭으로 돌아온다 (USER_FLOW §4.2)
- * - 일정을 열고 오면(개설한 일정 탭) 완료 팝업을 한 번 띄운다 (CRT-07). 방금 연 일정 카드는 이번 방문에만 녹색 테두리로 강조한다(사용자 결정 2026-11-08). 일정 ID·장소명은 개설 화면이 탭 단위 저장소에 남긴다
+ * - 일정을 열고 오면(개설한 일정 탭) 완료 팝업을 한 번 띄운다 (CRT-07). 장소명은 개설 화면이 탭 단위 저장소에 남긴다
  */
 export function ScheduleHome() {
   const router = useRouter();
@@ -60,7 +59,7 @@ export function ScheduleHome() {
   const [isCreatedDialogOpen, setIsCreatedDialogOpen] = useState(
     createdNotice !== null,
   );
-  // 읽은 값은 바로 지워 새로고침이나 다시 방문했을 때 팝업·강조가 또 보이지 않게 한다
+  // 읽은 값은 바로 지워 새로고침이나 다시 방문했을 때 팝업이 또 보이지 않게 한다
   useEffect(() => {
     if (createdNotice !== null) clearCreatedNotice();
   }, [createdNotice]);
@@ -111,13 +110,8 @@ export function ScheduleHome() {
         }
         className="min-h-0 flex-1 gap-0"
       >
-        {/* 모집 중 탭만 흰 헤더 + 그림자, 참여한·개설한 일정 탭은 앱 배경 (시안 LIST-01·04·05) */}
-        <header
-          className={cn(
-            "relative z-10 pt-safe",
-            tab === "recruiting" ? "bg-card shadow-header" : "bg-background",
-          )}
-        >
+        {/* 모든 탭에서 흰 헤더와 필터 줄 높이를 유지한다 (SHI-189) */}
+        <header className="relative z-10 bg-card pt-safe shadow-header">
           <div className="flex items-center justify-between px-5 pt-4">
             <AppHeader />
             <AuthHeaderButton />
@@ -142,6 +136,8 @@ export function ScheduleHome() {
               onApply={(next) => showList("recruiting", next)}
             />
           )}
+          {/* 필터 없는 탭도 상단 높이를 맞춘다. 필터 줄(py-2 + 칩 min-h-11) 높이와 같다. 칩 높이를 바꾸면 같이 바꾼다 */}
+          {tab !== "recruiting" && <div aria-hidden="true" className="h-15" />}
         </header>
 
         {TAB_LABELS.map(({ value }) => (
@@ -154,7 +150,6 @@ export function ScheduleHome() {
               tab={value}
               filter={filter}
               isLoggedIn={isLoggedIn}
-              highlightedScheduleId={createdNotice?.scheduleId}
             />
           </TabsContent>
         ))}

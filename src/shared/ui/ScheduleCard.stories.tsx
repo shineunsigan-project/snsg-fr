@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { NewBadge } from "./NewBadge";
 import { ScheduleCard } from "./ScheduleCard";
+import { StatusBadge } from "./StatusBadge";
 import { Tag } from "./Tag";
 
 const meta = {
@@ -15,7 +16,7 @@ const meta = {
     dateLabel: "09월26일(토) 21:00",
     participantCount: 2,
     capacity: 6,
-    badge: { variant: "recruiting" },
+    tags: <StatusBadge variant="recruiting" />,
   },
   decorators: [
     (Story) => (
@@ -39,7 +40,7 @@ export const Closed: Story = {
     dateLabel: "09월29일(화) 15:00",
     participantCount: 5,
     capacity: 5,
-    badge: { variant: "closed" },
+    tags: <StatusBadge variant="closed" />,
     isInactive: true,
   },
 };
@@ -47,11 +48,10 @@ export const Closed: Story = {
 /** LIST-04 참여한 일정: 참여 확정 + D-DAY */
 export const Joined: Story = {
   args: {
-    badge: undefined,
     tags: (
       <>
         <Tag tone="brand">참여 확정</Tag>
-        <Tag tone="dark">D-DAY</Tag>
+        <Tag tone="solid">D-DAY</Tag>
       </>
     ),
   },
@@ -60,7 +60,6 @@ export const Joined: Story = {
 /** LIST-05 개설한 일정: 모집완료 */
 export const Created: Story = {
   args: {
-    badge: undefined,
     title: "주말 오후 파티 게임",
     participantCount: 5,
     capacity: 5,
@@ -68,15 +67,13 @@ export const Created: Story = {
   },
 };
 
-/** CRT-07 방금 개설한 일정: 모집 중 + NEW, 녹색 테두리 */
-export const CreatedNew: Story = {
+/** LIST-01 모집 중 탭: 오늘 개설한 일정 + NEW */
+export const RecruitingNewToday: Story = {
   args: {
-    badge: undefined,
     participantCount: 1,
-    isHighlighted: true,
     tags: (
       <>
-        <Tag tone="brand">모집 중</Tag>
+        <StatusBadge variant="recruiting" />
         <NewBadge />
       </>
     ),

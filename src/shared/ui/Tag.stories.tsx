@@ -17,5 +17,5 @@ export const Brand: Story = {};
 /** 모집완료, D-N */
 export const Muted: Story = { args: { tone: "muted", children: "D-5" } };
 
-/** 오늘 시작하는 참여 일정 */
-export const Dark: Story = { args: { tone: "dark", children: "D-DAY" } };
+/** 오늘 시작하는 참여 일정. NEW와 같은 색 (SHI-189) */
+export const Solid: Story = { args: { tone: "solid", children: "D-DAY" } };
