@@ -551,3 +551,63 @@ test("로그아웃하면 받아 둔 참여한 일정을 보여주지 않는다",
   ).toBeVisible();
   await expect(cards(page)).toHaveCount(0);
 });
+
+test("첫 목록 응답을 기다리는 동안 스켈레톤을 보여준다", async ({ page }) => {
+  let releaseListResponse: () => void = () => {};
+  const listResponseGate = new Promise<void>((resolve) => {
+    releaseListResponse = resolve;
+  });
+
+  await page.route("**/api/v1/**", (route) =>
+    route.fulfill(fail(404, "NOT_FOUND")),
+  );
+  await page.route("**/api/v1/auth/tokens", (route) =>
+    route.fulfill(fail(401, "INVALID_REFRESH_TOKEN")),
+  );
+  await page.route("**/api/v1/activity-categories", (route) =>
+    route.fulfill(ok([])),
+  );
+  await page.route("**/api/v1/regions", (route) => route.fulfill(ok([])));
+  await page.route("**/api/v1/schedules?**", async (route) => {
+    await listResponseGate;
+    return route.fulfill(ok({ items: [makeSchedule(0)], nextCursor: null }));
+  });
+
+  await page.goto("/");
+  const loading = page.getByRole("status");
+  await expect(loading).toContainText("불러오는 중");
+  // 200ms 동안 투명했다가 보인다(자리는 처음부터 차지한다)
+  await expect(loading).toHaveCSS("opacity", "1");
+
+  releaseListResponse();
+  await expect(cards(page)).toHaveCount(1);
+  await expect(loading).toHaveCount(0);
+});
+
+test("빠른 목록 응답은 스켈레톤을 보이지 않은 채 목록으로 바뀐다", async ({
+  page,
+}) => {
+  // 안내 영역은 처음부터 있지만 200ms 안에 응답이 오면 한 번도 보이지(불투명해지지) 않는다. 매 프레임 기록한다
+  await page.addInitScript(() => {
+    const record = () => {
+      for (const el of document.querySelectorAll('[role="status"]')) {
+        if (
+          el.textContent?.includes("불러오는 중") &&
+          getComputedStyle(el).opacity !== "0"
+        ) {
+          sessionStorage.setItem("e2eSkeletonShown", "1");
+        }
+      }
+      requestAnimationFrame(record);
+    };
+    requestAnimationFrame(record);
+  });
+  await mockApis(page, { loggedIn: false });
+  await page.goto("/");
+
+  await expect(cards(page)).toHaveCount(20);
+  await expect(page.getByRole("status")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => sessionStorage.getItem("e2eSkeletonShown")),
+  ).toBeNull();
+});

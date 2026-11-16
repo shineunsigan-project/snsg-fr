@@ -48,8 +48,8 @@ import {
 } from "@/shared/lib/api/client";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { Button } from "@/shared/ui/button";
-import { PageStatus } from "@/shared/ui/PageStatus";
 import { showToast } from "@/shared/ui/sonner";
+import { ProfileFormSkeleton } from "./ProfileSkeleton";
 
 const MY_PATH = "/my";
 const EDIT_PATH = "/my/edit";
@@ -137,7 +137,13 @@ export function ProfileEditScreen() {
       <ProfileEditForm profile={profile} onBack={goBack} refetch={refetch} />
     );
   }
-  if (isUnauthorized || !error) return <PageStatus message="불러오는 중..." />;
+  if (isUnauthorized || !error)
+    return (
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card">
+        <ProfileEditHeader onBack={goBack} />
+        <ProfileFormSkeleton />
+      </div>
+    );
   // 401이 아닌 오류는 화면에 두고 다시 시도 (MY-01과 같다)
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card">

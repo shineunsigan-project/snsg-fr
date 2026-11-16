@@ -12,6 +12,7 @@ import { StepTitle } from "./StepTitle";
 import { BottomCta } from "@/shared/ui/BottomCta";
 import { Button } from "@/shared/ui/button";
 import { RadioList, RadioListItem } from "@/shared/ui/RadioList";
+import { ActivityListSkeleton } from "./CreateListSkeleton";
 
 /** CRT-01 활동 선택. 미선택이면 `다음` 비활성 */
 export function ActivityStep({ onNext }: { onNext: () => void }) {
@@ -30,9 +31,7 @@ export function ActivityStep({ onNext }: { onNext: () => void }) {
 
         <div className="mt-6 flex-1">
           {isPending ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              불러오는 중...
-            </p>
+            <ActivityListSkeleton />
           ) : isError ? (
             // TODO(F-19): 활동 목록 조회 실패 문구 미정. TODO(D-5): 상태 디자인 없음
             <div role="alert" className="flex flex-col items-start gap-3">

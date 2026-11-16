@@ -23,7 +23,10 @@ const ok = (data: unknown) => ({
 });
 
 /** 로그인한 상태와 개설에 필요한 API를 가짜 응답으로 채운다. 일정 생성 요청 본문을 돌려준다 */
-async function mockApis(page: Page) {
+async function mockApis(
+  page: Page,
+  { failPlaces = false }: { failPlaces?: boolean } = {},
+) {
   const createRequests: unknown[] = [];
 
   // 네이버 지도는 외부 키 인증이 필요해 막는다. 지도 자리에 안내 문구가 나오고 목록으로 고를 수 있다
@@ -77,18 +80,28 @@ async function mockApis(page: Page) {
   );
   await page.route("**/api/v1/place-candidates?**", (route) =>
     route.fulfill(
-      ok([
-        PLACE,
-        {
-          id: "01a178b9-b980-7000-8000-000000000002",
-          name: "홈즈앤루팡 보드게임카페 홍대점",
-          roadAddress: "서울특별시 마포구 홍익로3길 8",
-          addressDetail: "5층",
-          latitude: 37.554176,
-          longitude: 126.9221472,
-          regionCode: "11440",
-        },
-      ]),
+      failPlaces
+        ? {
+            status: 500,
+            contentType: "application/json",
+            body: JSON.stringify({
+              isSuccess: false,
+              code: "INTERNAL_ERROR",
+              message: "",
+            }),
+          }
+        : ok([
+            PLACE,
+            {
+              id: "01a178b9-b980-7000-8000-000000000002",
+              name: "홈즈앤루팡 보드게임카페 홍대점",
+              roadAddress: "서울특별시 마포구 홍익로3길 8",
+              addressDetail: "5층",
+              latitude: 37.554176,
+              longitude: 126.9221472,
+              regionCode: "11440",
+            },
+          ]),
     ),
   );
   // 일정 생성. 요청을 기록한다
@@ -439,4 +452,53 @@ test("활동명은 이모지도 한 글자로 세어 20자까지 쓸 수 있다"
   await expect(page.getByText("20/20")).toBeVisible();
   await page.getByRole("button", { name: "다음" }).click();
   await expect(page).toHaveURL(/step=4/);
+});
+
+test("장소 조회 오류에서는 아직 모르는 장소 수를 표시하지 않는다", async ({
+  page,
+}) => {
+  await mockApis(page, { failPlaces: true });
+  await page.goto("/create?step=1");
+
+  await page.getByText("보드게임", { exact: true }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+
+  await expect(page).toHaveURL(/step=2/);
+  await expect(page.getByText("장소를 불러오지 못했어요.")).toBeVisible();
+  // 장소 수를 받지 못했으면 "0곳"으로 보이지 않게 숫자를 빼고 제목만 둔다
+  await expect(
+    page.getByRole("heading", { name: "마포구 매장", exact: true }),
+  ).toBeVisible();
+});
+
+test("장소 목록을 기다리는 동안 스켈레톤을 보이고, 시트 제목에 0곳을 보이지 않는다", async ({
+  page,
+}) => {
+  let releasePlaces: () => void = () => {};
+  const placesGate = new Promise<void>((resolve) => {
+    releasePlaces = resolve;
+  });
+  await mockApis(page);
+  await page.route("**/api/v1/place-candidates?**", async (route) => {
+    await placesGate;
+    return route.fallback();
+  });
+
+  await page.goto("/create?step=1");
+  await page.getByText("보드게임", { exact: true }).click();
+  await page.getByRole("button", { name: "다음" }).click();
+  await expect(page).toHaveURL(/step=2/);
+
+  // 지도 영역에도 상태 안내가 있어 "불러오는 중" 묶음만 고른다
+  const loading = page.getByRole("status").filter({ hasText: "불러오는 중" });
+  await expect(loading).toHaveCount(1);
+  await expect(
+    page.getByRole("heading", { name: "마포구 매장", exact: true }),
+  ).toBeVisible();
+
+  releasePlaces();
+  await expect(
+    page.getByRole("heading", { name: "마포구 매장 2곳", exact: true }),
+  ).toBeVisible();
+  await expect(loading).toHaveCount(0);
 });

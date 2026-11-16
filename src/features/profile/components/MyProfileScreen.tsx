@@ -23,7 +23,6 @@ import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { BottomNav, type BottomNavItem } from "@/shared/ui/BottomNav";
 import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { PageStatus } from "@/shared/ui/PageStatus";
 import { showToast } from "@/shared/ui/sonner";
 
 import { USER_NOT_FOUND_CODE, type MyProfile } from "../api/myProfile";
@@ -32,6 +31,7 @@ import { useMyProfile } from "../hooks/useMyProfile";
 import { useWithdraw } from "../hooks/useWithdraw";
 import { useWithdrawalEligibility } from "../hooks/useWithdrawalEligibility";
 import { MyProfileHeader, MyProfileView } from "./MyProfileView";
+import { MyProfileSkeleton } from "./ProfileSkeleton";
 
 const MY_PATH = "/my";
 
@@ -169,7 +169,12 @@ export function MyProfileScreen() {
       />,
     );
   } else if (isUnauthorized || !error) {
-    content = <PageStatus message="불러오는 중..." />;
+    content = page(
+      <>
+        <MyProfileHeader />
+        <MyProfileSkeleton />
+      </>,
+    );
   } else {
     // 401이 아닌 오류(5xx·네트워크 등)는 화면에 두고 다시 시도 (일정 상세와 같다, 사용자 결정 2026-11-07)
     content = page(

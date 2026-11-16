@@ -4,6 +4,7 @@ import type { ParticipantRow } from "../../lib/scheduleDetailView";
 import { Avatar } from "@/shared/ui/Avatar";
 import { cn } from "@/shared/lib/utils";
 import { Tag } from "@/shared/ui/Tag";
+import { ParticipantRowsSkeleton } from "./ScheduleDetailSkeleton";
 
 type ParticipantSectionProps = {
   /** 확정 인원 (개설자 포함) */
@@ -133,7 +134,7 @@ function ParticipantList({
   onRetry: () => void;
 }) {
   if (rows === undefined) {
-    // TODO(D-5): 명단 불러오는 중·실패 표시 디자인 없음. 텍스트만 둔다
+    // TODO(D-5): 명단 불러오기 실패 표시 디자인 없음. 텍스트만 둔다. 불러오는 중은 스켈레톤(SHI-188)
     return isError ? (
       <p className="flex items-center gap-2 px-5 pb-2 text-sm text-muted-foreground">
         명단을 불러오지 못했어요.
@@ -146,9 +147,7 @@ function ParticipantList({
         </button>
       </p>
     ) : (
-      <p role="status" className="px-5 pb-4 text-sm text-muted-foreground">
-        불러오는 중...
-      </p>
+      <ParticipantRowsSkeleton />
     );
   }
   return (

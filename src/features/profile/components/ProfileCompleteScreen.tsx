@@ -45,10 +45,10 @@ import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { getLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { AvatarEditor } from "@/shared/ui/AvatarEditor";
 import { Button } from "@/shared/ui/button";
-import { PageStatus } from "@/shared/ui/PageStatus";
 import { showToast } from "@/shared/ui/sonner";
 import { TextField } from "@/shared/ui/TextField";
 import { ToggleButtonGroup } from "@/shared/ui/ToggleButtonGroup";
+import { ProfileFormSkeleton } from "./ProfileSkeleton";
 
 // Zod 스키마를 React Hook Form에 연결한다. 필드마다 첫 번째 오류만 보여준다
 const profileResolver: Resolver<
@@ -107,7 +107,12 @@ export function ProfileCompleteScreen() {
     if (isExpired) restartLogin(router);
   }, [isExpired, router]);
 
-  if (isPending || isExpired) return <PageStatus message="불러오는 중..." />;
+  if (isPending || isExpired)
+    return (
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card pt-safe">
+        <ProfileFormSkeleton showTitle />
+      </div>
+    );
   // 그 밖의 조회 실패는 기본값 없이 입력받는다 (닉네임·사진을 비워 보내면 서버가 카카오 정보를 쓴다)
   return <ProfileCompleteForm session={session} />;
 }
