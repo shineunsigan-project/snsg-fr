@@ -22,7 +22,7 @@ function kstDate(offset = 0) {
   );
 }
 
-/** 한국 시간 `YYYY-MM-DDTHH:mm:ss` (지금 + offset시간). 개설 일시(NEW 배지)에 쓴다 */
+/** 한국 시간 `YYYY-MM-DDTHH:mm:ss` (지금 + offset시간). 개설 일시(createdAt)에 쓴다 */
 function kstDateTime(offsetHours = 0) {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
@@ -409,7 +409,7 @@ test("탭을 옮겨도 필터는 주소에 남고, 참여한 일정 요청에는
   await expect(filterChip(page, "방탈출")).toBeVisible();
 });
 
-test("로그인하면 참여한 일정에 참여 확정·D-day, 개설한 일정에 상태·NEW를 보여준다", async ({
+test("로그인하면 참여한 일정에 참여 확정·D-day, 개설한 일정에 상태를 보여준다", async ({
   page,
 }) => {
   await mockApis(page, { loggedIn: true });
@@ -432,13 +432,55 @@ test("로그인하면 참여한 일정에 참여 확정·D-day, 개설한 일정
   const created = cards(page);
   await expect(created).toHaveCount(3);
   await expect(created.nth(0)).toContainText("모집 중");
-  // NEW는 개설 후 24시간 안에만 (사용자 결정 2026-11-10)
-  await expect(created.nth(0)).toContainText("NEW");
+  // NEW는 모집 중 탭에만 표시한다 (SHI-189, 2026-11-15)
+  await expect(created.nth(0)).not.toContainText("NEW");
   await expect(created.nth(1)).toContainText("모집완료");
   await expect(created.nth(1)).not.toContainText("NEW");
   await expect(created.nth(2)).toContainText("일정 취소됨");
-  // 녹색 테두리는 방금 연 일정에만 보인다. NEW라도 강조하지 않는다 (사용자 결정 2026-11-08)
-  await expect(created.first().getByRole("link")).not.toHaveClass(/ring-brand/);
+});
+
+test("모집 중 탭 배지: 정원 절반 이상이면 N자리 남음, 차면 모집완료, 오늘 연 일정은 NEW", async ({
+  page,
+}) => {
+  await mockApis(page, { loggedIn: false });
+  // 화면은 서버 상태가 모집 중일 때만 인원으로 문구를 고른다. 남은 자리 수는 서버 remainingSeats (SHI-189)
+  const card = (index: number, overrides: object) =>
+    makeSchedule(index, { title: `배지 ${index}`, ...overrides });
+  await page.route("**/api/v1/schedules?**", (route) =>
+    route.fulfill(
+      ok({
+        items: [
+          card(0, { capacity: 4, confirmedCount: 1, remainingSeats: 3 }),
+          card(1, { capacity: 4, confirmedCount: 2, remainingSeats: 2 }),
+          card(2, { capacity: 5, confirmedCount: 2, remainingSeats: 3 }),
+          card(3, { capacity: 5, confirmedCount: 3, remainingSeats: 2 }),
+          card(4, {
+            capacity: 4,
+            confirmedCount: 4,
+            remainingSeats: 0,
+            displayStatus: "RECRUITMENT_CLOSED",
+          }),
+          card(5, { createdAt: `${kstDate(0)}T00:00:00` }),
+          card(6, { createdAt: `${kstDate(-1)}T23:59:59` }),
+        ],
+        nextCursor: null,
+      }),
+    ),
+  );
+  await page.goto("/");
+
+  const list = cards(page);
+  await expect(list).toHaveCount(7);
+  // 4명 정원: 1명은 모집중, 2명(절반)부터 남은 자리
+  await expect(list.nth(0)).toContainText("모집중");
+  await expect(list.nth(1)).toContainText("2자리 남음");
+  // 5명 정원(홀수는 올림 → 3명부터): 2명은 모집중, 3명은 남은 자리
+  await expect(list.nth(2)).toContainText("모집중");
+  await expect(list.nth(3)).toContainText("2자리 남음");
+  await expect(list.nth(4)).toContainText("모집완료");
+  // NEW는 한국 날짜로 오늘 연 일정만
+  await expect(list.nth(5)).toContainText("NEW");
+  await expect(list.nth(6)).not.toContainText("NEW");
 });
 
 test("비로그인이 참여한 일정 탭을 누르면 로그인 안내를 보여준다", async ({
@@ -508,4 +550,64 @@ test("로그아웃하면 받아 둔 참여한 일정을 보여주지 않는다",
     page.getByRole("button", { name: "로그인 후 사용 가능합니다" }),
   ).toBeVisible();
   await expect(cards(page)).toHaveCount(0);
+});
+
+test("첫 목록 응답을 기다리는 동안 스켈레톤을 보여준다", async ({ page }) => {
+  let releaseListResponse: () => void = () => {};
+  const listResponseGate = new Promise<void>((resolve) => {
+    releaseListResponse = resolve;
+  });
+
+  await page.route("**/api/v1/**", (route) =>
+    route.fulfill(fail(404, "NOT_FOUND")),
+  );
+  await page.route("**/api/v1/auth/tokens", (route) =>
+    route.fulfill(fail(401, "INVALID_REFRESH_TOKEN")),
+  );
+  await page.route("**/api/v1/activity-categories", (route) =>
+    route.fulfill(ok([])),
+  );
+  await page.route("**/api/v1/regions", (route) => route.fulfill(ok([])));
+  await page.route("**/api/v1/schedules?**", async (route) => {
+    await listResponseGate;
+    return route.fulfill(ok({ items: [makeSchedule(0)], nextCursor: null }));
+  });
+
+  await page.goto("/");
+  const loading = page.getByRole("status");
+  await expect(loading).toContainText("불러오는 중");
+  // 200ms 동안 투명했다가 보인다(자리는 처음부터 차지한다)
+  await expect(loading).toHaveCSS("opacity", "1");
+
+  releaseListResponse();
+  await expect(cards(page)).toHaveCount(1);
+  await expect(loading).toHaveCount(0);
+});
+
+test("빠른 목록 응답은 스켈레톤을 보이지 않은 채 목록으로 바뀐다", async ({
+  page,
+}) => {
+  // 안내 영역은 처음부터 있지만 200ms 안에 응답이 오면 한 번도 보이지(불투명해지지) 않는다. 매 프레임 기록한다
+  await page.addInitScript(() => {
+    const record = () => {
+      for (const el of document.querySelectorAll('[role="status"]')) {
+        if (
+          el.textContent?.includes("불러오는 중") &&
+          getComputedStyle(el).opacity !== "0"
+        ) {
+          sessionStorage.setItem("e2eSkeletonShown", "1");
+        }
+      }
+      requestAnimationFrame(record);
+    };
+    requestAnimationFrame(record);
+  });
+  await mockApis(page, { loggedIn: false });
+  await page.goto("/");
+
+  await expect(cards(page)).toHaveCount(20);
+  await expect(page.getByRole("status")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => sessionStorage.getItem("e2eSkeletonShown")),
+  ).toBeNull();
 });

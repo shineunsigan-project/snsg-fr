@@ -8,6 +8,7 @@ import { scheduleQueryKeys } from "../../hooks/scheduleQueryKeys";
 import { useScheduleList } from "../../hooks/useScheduleList";
 import { toScheduleListQuery } from "../../lib/scheduleListParams";
 import type { ScheduleListTab } from "../../types";
+import { ScheduleListSkeleton } from "./ScheduleListSkeleton";
 import { ScheduleListCard } from "./ScheduleListCard";
 import { getApiErrorCode } from "@/shared/lib/api/client";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
@@ -70,21 +71,6 @@ function EmptyState({
 }
 
 /**
- * 불러오는 중 (D-5 공통 텍스트 표시).
- * 공통 `PageStatus`는 화면 전체 높이(min-h-dvh)라 탭 안 목록 자리에는 이 표시를 쓴다
- */
-function ListLoading() {
-  return (
-    <p
-      role="status"
-      className="py-16 text-center text-sm text-muted-foreground"
-    >
-      불러오는 중...
-    </p>
-  );
-}
-
-/**
  * 탭 하나의 일정 목록 (LIST-01·02·04·05). 20개씩 불러오고 [더 보기]로 이어 붙인다
  * 참여한·개설한 일정은 로그인해야 볼 수 있다. 비로그인이면 안내와 로그인 버튼을 보여준다
  */
@@ -92,14 +78,11 @@ export function ScheduleListPanel({
   tab,
   filter,
   isLoggedIn,
-  highlightedScheduleId,
 }: {
   tab: ScheduleListTab;
   filter: ScheduleFilter;
   /** 로그인 확인 중이면 undefined */
   isLoggedIn: boolean | undefined;
-  /** 방금 연 일정. 개설한 일정 탭에서 이 카드만 강조한다 */
-  highlightedScheduleId?: string;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -139,7 +122,7 @@ export function ScheduleListPanel({
         action={{ label: "다시 시도", onClick: () => refetch() }}
       />
     ) : (
-      <ListLoading />
+      <ScheduleListSkeleton />
     );
   }
 
@@ -174,11 +157,7 @@ export function ScheduleListPanel({
       <ul className="flex flex-col gap-3">
         {schedules.map((schedule) => (
           <li key={schedule.id}>
-            <ScheduleListCard
-              schedule={schedule}
-              tab={tab}
-              isHighlighted={schedule.id === highlightedScheduleId}
-            />
+            <ScheduleListCard schedule={schedule} tab={tab} />
           </li>
         ))}
       </ul>

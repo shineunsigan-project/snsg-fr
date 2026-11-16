@@ -27,6 +27,7 @@ import { BottomCta } from "@/shared/ui/BottomCta";
 import { Button } from "@/shared/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/shared/ui/drawer";
 import { showToast } from "@/shared/ui/sonner";
+import { PlaceListSkeleton } from "./CreateListSkeleton";
 
 /** URL `region` 값. 지역 코드이거나 `ALL`(`전체` 칩)이다 */
 const ALL_REGIONS = "ALL";
@@ -254,8 +255,13 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
           <DrawerContent className="mx-auto h-place-sheet-max max-w-md rounded-t-3xl border-0 bg-card shadow-toast">
             <div className="flex shrink-0 items-baseline justify-between gap-3 px-5 pt-3 pb-3">
               <DrawerTitle className="text-base font-bold">
-                {region?.name ?? "전체"} 매장{" "}
-                <span className="text-primary">{places?.length ?? 0}</span>곳
+                {region?.name ?? "전체"} 매장
+                {places !== undefined ? (
+                  <>
+                    {" "}
+                    <span className="text-primary">{places.length}</span>곳
+                  </>
+                ) : null}
               </DrawerTitle>
               <p className="text-xs text-subtle-foreground">
                 {isSheetExpanded
@@ -281,9 +287,7 @@ export function PlaceStep({ onNext }: { onNext: () => void }) {
                   </Button>
                 </div>
               ) : !regions || (regions.length > 0 && isPending) ? (
-                <p role="status" className="py-6 text-sm text-muted-foreground">
-                  불러오는 중...
-                </p>
+                <PlaceListSkeleton />
               ) : !places?.length ? (
                 <p role="status" className="py-6 text-sm text-muted-foreground">
                   이 지역에는 아직 장소가 없어요.

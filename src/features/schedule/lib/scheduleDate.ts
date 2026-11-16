@@ -41,15 +41,10 @@ export function getDdayLabel(startAt: string, now: Date = new Date()) {
   return days === 0 ? "D-DAY" : `D-${days}`;
 }
 
-/** NEW 배지 기준: 개설 후 24시간 (사용자 결정 2026-11-10) */
-const NEW_BADGE_MS = 24 * 60 * 60 * 1000;
-
 /**
- * 개설한 일정 탭의 NEW 배지를 붙일지. `createdAt`은 오프셋 없는 한국 시간이다.
- * 서버가 소수 초를 6자리까지 줄 수 있어 `Date.parse` 대신 parseISO로 읽는다(브라우저마다 다르게 읽지 않게)
+ * 모집 중 탭의 NEW 배지 기준: 개설일이 오늘과 같은 한국 날짜인지 확인한다.
+ * `createdAt`은 오프셋 없는 한국 시간이다.
  */
-export function isNewSchedule(createdAt: string, now: Date = new Date()) {
-  return (
-    now.getTime() - parseISO(`${createdAt}+09:00`).getTime() < NEW_BADGE_MS
-  );
+export function isNewScheduleToday(createdAt: string, now: Date = new Date()) {
+  return createdAt.slice(0, 10) === toKstDate(now);
 }

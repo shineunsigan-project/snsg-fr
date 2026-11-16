@@ -26,6 +26,7 @@ import {
 } from "./actionErrorToast";
 import { CancelParticipationFlow } from "./CancelParticipationFlow";
 import { CancelScheduleFlow } from "./CancelScheduleFlow";
+import { ScheduleDetailSkeleton } from "./ScheduleDetailSkeleton";
 import { DetailBottomBar } from "./DetailBottomBar";
 import { DetailHeader } from "./DetailHeader";
 import { DetailInfo } from "./DetailInfo";
@@ -38,7 +39,6 @@ import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { canGoBackInApp } from "@/shared/lib/navigation";
 import { Button } from "@/shared/ui/button";
-import { PageStatus } from "@/shared/ui/PageStatus";
 import { showToast } from "@/shared/ui/sonner";
 
 /** 주소의 일정 ID(UUID 문자열, api-guide 일정 개설 응답과 같은 형식). 형식이 다르면 없는 일정과 같이 처리한다 */
@@ -163,14 +163,13 @@ export function ScheduleDetailScreen({
       failure: "링크를 복사하지 못했어요.",
     });
 
-  if (isNotFound) return <PageStatus message="불러오는 중..." />;
-
-  if (!detail) {
+  // 없는 일정(404)은 홈으로 보내는 동안에도 불러오는 중과 같은 스켈레톤을 둔다 (SHI-188 Q4, 스켈레톤 통일)
+  if (isNotFound || !detail) {
     // 404가 아닌 오류(5xx·네트워크 등)는 화면에 두고 다시 시도 (화면 기능 명세서 공통 예외)
     return (
       <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card">
         <DetailHeader onBack={handleBack} onShare={handleShare} />
-        {error ? (
+        {error && !isNotFound ? (
           <div className="flex flex-col items-center gap-3 px-5 py-16 text-center">
             {/* 📝 임시 문구 TODO(F-19) */}
             <p className="text-sm text-muted-foreground">
@@ -181,12 +180,7 @@ export function ScheduleDetailScreen({
             </Button>
           </div>
         ) : (
-          <p
-            role="status"
-            className="py-16 text-center text-sm text-muted-foreground"
-          >
-            불러오는 중...
-          </p>
+          <ScheduleDetailSkeleton />
         )}
       </div>
     );

@@ -16,7 +16,7 @@ import {
 } from "../lib/homeScreenGuide";
 import { HomeScreenGuide } from "./HomeScreenGuide";
 import { getLoginRedirect } from "@/shared/lib/kakaoLogin";
-import { PageStatus } from "@/shared/ui/PageStatus";
+import { PageSkeleton } from "@/shared/ui/Skeleton";
 
 const noopSubscribe = () => () => {};
 
@@ -75,7 +75,7 @@ export function HomeScreenGuideScreen() {
     if (shouldLeave) leave();
   });
 
-  if (!platform) return <PageStatus message="불러오는 중..." />;
+  if (!platform) return <PageSkeleton />;
 
   const handle = (action: "confirm" | "later") => {
     const record = nextHomeScreenGuideRecord(source, action, Date.now());
