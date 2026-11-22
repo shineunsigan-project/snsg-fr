@@ -138,7 +138,7 @@ export function MyProfileScreen() {
       ? undefined
       : profile;
   const page = (body: ReactNode) => (
-    <div className="mx-auto flex h-dvh max-w-md flex-col bg-background shadow-column">
+    <div className="mx-auto flex h-dvh max-w-md flex-col bg-background">
       {body}
       <BottomNav
         activeItem="my"

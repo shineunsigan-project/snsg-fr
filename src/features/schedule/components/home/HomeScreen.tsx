@@ -71,7 +71,7 @@ export function HomeScreen() {
   };
 
   return (
-    <div className="mx-auto flex h-dvh max-w-md flex-col bg-card shadow-column">
+    <div className="mx-auto flex h-dvh max-w-md flex-col bg-card">
       <header className="relative z-10 bg-card pt-safe shadow-header">
         <div className="flex items-center justify-between px-5 py-2">
           <AppHeader />

@@ -619,3 +619,19 @@ test("빠른 목록 응답은 스켈레톤을 보이지 않은 채 목록으로 
     await page.evaluate(() => sessionStorage.getItem("e2eSkeletonShown")),
   ).toBeNull();
 });
+
+test.describe("기기가 다크 모드일 때", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("선택한 탭은 라이트 모드와 같이 흰색이다 (SHI-191)", async ({
+    page,
+  }) => {
+    await mockApis(page, { loggedIn: false });
+    await page.goto("/schedules");
+
+    const selected = page.getByRole("tab", { name: "모집 중" });
+    await expect(selected).toHaveAttribute("aria-selected", "true");
+    await expect(selected).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(selected).toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
+  });
+});

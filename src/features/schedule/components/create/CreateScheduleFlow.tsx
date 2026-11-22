@@ -327,7 +327,7 @@ function CreateScheduleForm() {
 
   return (
     <FormProvider {...form}>
-      <div className="mx-auto flex h-dvh max-w-md flex-col bg-card shadow-column">
+      <div className="mx-auto flex h-dvh max-w-md flex-col bg-card">
         <CreateStepHeader
           step={step}
           onBack={handleBack}

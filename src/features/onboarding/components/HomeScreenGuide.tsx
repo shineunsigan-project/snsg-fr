@@ -95,7 +95,7 @@ export function HomeScreenGuide({
   onLater,
 }: HomeScreenGuideProps) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-card shadow-column">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-card">
       <main className="flex-1 px-5 pt-safe pb-6">
         <h1 className="pt-12 text-2xl leading-8.5 font-bold break-keep">
           홈 화면에 추가하고

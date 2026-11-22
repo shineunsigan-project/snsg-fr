@@ -19,7 +19,7 @@
 - MSW(가짜 API)는 배포 API가 생겨 개발 서버에서는 쓰지 않는다. Storybook(내 정보·프로필 수정)에서 쓰므로 코드는 유지한다(사용자 결정 2026-11-15). 켜려면 `NEXT_PUBLIC_API_MOCKING=enabled`
 
 ## 다음에 할 일
-0. [ ] 기획 v1.5 코드 반영: 홈(SHI-200)·내 정보 참여 이력(SHI-201) 구현. 일정 탭 구조(PLAN 10)는 이슈 미생성. 백엔드 대조는 F-35(develop e551d3e). 약속 장소 지도 예제(SHI-195) 코드는 `git stash list`의 SHI-195 항목에 보관(복구는 `git stash pop`)
+0. [ ] 기획 v1.5 코드 반영: 홈(SHI-200)·내 정보 참여 이력(SHI-201) 구현. 일정 탭 구조(PLAN 11)는 이슈 미생성. 백엔드 대조는 F-35(develop e551d3e). 약속 장소 지도 예제(SHI-195) 코드는 `git stash list`의 SHI-195 항목에 보관(복구는 `git stash pop`)
 1. [ ] PR #21(SHI-189·SHI-188) 머지 → 배포 화면에서 목록 뱃지(모집 중 탭 N자리 남음·NEW)와 Slow 3G 스켈레톤·동작 줄이기·실제 iPhone Safari 확인
 2. [ ] SHI-186 배포 화면에서 홈 → 상세 → `로그인하고 참여하기` → 카카오 → 뒤로가기·앞으로 가기 확인(PC Chrome에서 앞으로 가기 때 검은 오버레이가 보였음, 실제 iPhone Safari 포함)
 3. [ ] SHI-165 PR #18 머지 → 이로써 MVP 화면의 실제 API 연결이 모두 끝난다. 결정은 `.claude/tasks/SHI-165.md`. 로컬 서버(Redis·백엔드·프론트)는 켜 둔 채 이어 간다

@@ -167,7 +167,7 @@ export function ScheduleDetailScreen({
   if (isNotFound || !detail) {
     // 404가 아닌 오류(5xx·네트워크 등)는 화면에 두고 다시 시도 (화면 기능 명세서 공통 예외)
     return (
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card shadow-column">
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card">
         <DetailHeader onBack={handleBack} onShare={handleShare} />
         {error && !isNotFound ? (
           <div className="flex flex-col items-center gap-3 px-5 py-16 text-center">
@@ -190,7 +190,7 @@ export function ScheduleDetailScreen({
 
   return (
     // 화면 전체가 스크롤되고 헤더는 위에 붙는다. 넓은 화면에서는 모바일 폭(max-w-md)으로 가운데 둔다
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card shadow-column">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card">
       <DetailHeader onBack={handleBack} onShare={handleShare} />
       <main className="flex-1">
         <DetailInfo

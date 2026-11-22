@@ -49,7 +49,7 @@ export function LoginScreen() {
     // 넓은 화면에서 최대 폭 밖으로 늘어나는 양옆은 페이지 바탕(흰색)이고, 로그인 영역만 검정 바탕 + 이미지다
     <main
       aria-busy={isChecking}
-      className="relative isolate mx-auto grid h-dvh max-w-md grid-rows-[1fr_1fr] overflow-y-auto bg-black px-5 pt-safe pb-safe shadow-column"
+      className="relative isolate mx-auto grid h-dvh max-w-md grid-rows-[1fr_1fr] overflow-y-auto bg-black px-5 pt-safe pb-safe"
     >
       {/* 배경: 검정 바탕 위에 로그인 화면 배경 사진(`login-bg.jpg`)을 불투명도 60%로 깐다. 검정 막(40%)을 얹은 것과 같아 흰 글자가 읽힌다 (사용자 요청 2026-11-23) */}
       <Image

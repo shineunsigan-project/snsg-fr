@@ -82,7 +82,7 @@ export function ScheduleListScreen() {
   };
 
   return (
-    <div className="mx-auto flex h-dvh max-w-md flex-col bg-card shadow-column">
+    <div className="mx-auto flex h-dvh max-w-md flex-col bg-card">
       <Tabs
         value={tab}
         // Base UI가 값을 any로 넘겨서, 주소를 읽을 때와 같은 함수로 탭 값을 좁힌다
