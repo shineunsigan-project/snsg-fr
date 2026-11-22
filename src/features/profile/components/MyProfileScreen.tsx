@@ -19,6 +19,7 @@ import {
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { clearSession } from "@/features/auth/lib/clearSession";
 import { getApiErrorCode } from "@/shared/lib/api/client";
+import { SCHEDULE_LIST_PATH } from "@/features/schedule/lib/scheduleListParams";
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { BottomNav, type BottomNavItem } from "@/shared/ui/BottomNav";
 import { Button } from "@/shared/ui/button";
@@ -85,7 +86,8 @@ export function MyProfileScreen() {
   }, [isUnauthorized, isLeaving, router]);
 
   const handleNavSelect = (item: BottomNavItem) => {
-    if (item === "schedule") router.push("/");
+    if (item === "home") router.push("/");
+    if (item === "schedule") router.push(SCHEDULE_LIST_PATH);
     // 입력하던 값은 유지하고 1단계부터 보여준다 (홈과 같다)
     if (item === "create") router.push("/create?step=1");
   };

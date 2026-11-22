@@ -3,11 +3,13 @@ import { isValid, parseISO } from "date-fns";
 import type { ScheduleFilter } from "../api/schedules";
 import type { ScheduleListTab } from "../types";
 
-// 홈 목록의 탭과 필터 값은 URL에만 둔다. 기기에 저장하지 않는다 (rules/api.md 상태 위치, 팀 결정 2026-11-02)
+// 일정 목록의 탭과 필터 값은 URL에만 둔다. 기기에 저장하지 않는다 (rules/api.md 상태 위치, 팀 결정 2026-11-02)
 // ?tab=joined&activity=<활동 UUID>&region=11440&from=2026-11-02&to=2026-11-05
 // 주소는 사용자가 고치거나 공유할 수 있어 잘못된 값은 없는 것으로 본다
 // 목록에 없는 활동·지역 값(`?activity=<없는 UUID>`)은 형식만 맞으면 그대로 보낸다. 서버는 오류 없이 빈 결과를 준다 (api-guide 일정 목록)
 
+/** 일정 목록 경로. 앱 첫 화면(`/`)은 홈이다 */
+export const SCHEDULE_LIST_PATH = "/schedules";
 const TABS: readonly ScheduleListTab[] = ["recruiting", "joined", "created"];
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const REGION_PATTERN = /^\d{5}$/;
@@ -55,5 +57,5 @@ export function toScheduleListQuery(
   if (filter.startDate) params.set("from", filter.startDate);
   if (filter.endDate) params.set("to", filter.endDate);
   const query = params.toString();
-  return query ? `/?${query}` : "/";
+  return query ? `${SCHEDULE_LIST_PATH}?${query}` : SCHEDULE_LIST_PATH;
 }

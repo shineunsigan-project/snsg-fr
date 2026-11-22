@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -45,42 +46,51 @@ export function LoginScreen() {
     startKakaoLogin({ replaceHistory: canGoBackInApp() });
 
   return (
-    // 넓은 화면에서 최대 폭 밖으로 늘어나는 양옆은 앱 기본 배경(bg.app)이고, 로그인 영역만 브랜드 녹색이다
+    // 넓은 화면에서 최대 폭 밖으로 늘어나는 양옆은 페이지 바탕(흰색)이고, 로그인 영역만 검정 바탕 + 이미지다
     <main
       aria-busy={isChecking}
-      className="mx-auto flex h-dvh max-w-md flex-col justify-center-safe overflow-y-auto bg-brand px-5 pt-safe pb-safe"
+      className="relative isolate mx-auto grid h-dvh max-w-md grid-rows-[1fr_1fr] overflow-y-auto bg-black px-5 pt-safe pb-safe"
     >
-      {/* 대표 이미지 (DESIGN §3.1) — 폭에 맞춘 5:4 상자 (휴대폰 350×280, 웹에서는 최대 408×326)
-          낮은 화면(iPhone SE 등)에서는 이 상자만 줄어들어 아래 버튼·안내가 스크롤 없이 보인다 */}
-      <div
-        aria-hidden
-        className="relative mt-5.5 aspect-5/4 min-h-0 w-full overflow-hidden rounded-3xl bg-background"
-      >
-        {/* 애니메이션이 SVG 안의 스크립트(SVGator)로 동작한다. <img>로 넣으면 스크립트가 돌지 않아 멈춰 보이므로 <object>로 넣는다 */}
-        <object
-          type="image/svg+xml"
-          data="/images/snsg-loop.svg"
-          tabIndex={-1}
-          // 상자 크기를 정하지 않고 채우기만 한다 (SVG 자체 크기 때문에 상자가 줄어들지 못하는 것을 막는다)
-          className="pointer-events-none absolute inset-0 size-full"
-        />
+      {/* 배경: 검정 바탕 위에 로그인 화면 배경 사진(`login-bg.jpg`)을 불투명도 60%로 깐다. 검정 막(40%)을 얹은 것과 같아 흰 글자가 읽힌다 (사용자 요청 2026-11-23) */}
+      <Image
+        src="/images/login-bg.jpg"
+        alt=""
+        fill
+        priority
+        // 세로로 긴 화면을 채우려고 이미지가 가로 약 1500px로 늘어난다. 작은 이미지가 내려가지 않게 큰 폭을 알려 준다
+        sizes="1700px"
+        className="-z-10 object-cover opacity-60"
+      />
+
+      {/* 화면을 위·아래 절반으로 나눈다. 위 절반: 로고와 문구를 중앙선 바로 위(32px)에 놓는다 (사용자 요청 2026-11-23) */}
+      <div className="flex flex-col justify-end pb-6">
+        {/* 로고: 가운데, 배경 없이 검정 바탕 위에 바로 놓는다. 색은 필터로 흰색으로 바꾼다. 문구 바로 위(약 24px) */}
+        <div className="flex justify-center pb-4">
+          <Image
+            src="/images/snsg-logo.png"
+            alt="쉬는시간"
+            width={2720}
+            height={937}
+            priority
+            className="h-10 w-auto brightness-0 invert"
+          />
+        </div>
+
+        <div className="py-2 text-center">
+          <h1 className="text-display font-bold break-keep text-white">
+            눈치 보느라 망설였다면,
+            <br />
+            이번엔 그냥 저질러보세요.
+          </h1>
+          <p className="mt-3 text-base text-white">
+            사람 모아서, 하고 싶은 거 해보세요.
+          </p>
+        </div>
       </div>
 
-      {/* 이미지와 문구 사이는 항상 32px. 화면이 길면 이미지부터 약관까지 묶음 전체가 세로 가운데에 놓인다 */}
-      <div className="shrink-0 pt-8">
-        <p className="text-md font-medium text-on-brand-accent">쉬는시간</p>
-        <h1 className="mt-3 text-display font-bold break-keep text-white">
-          눈치 보느라 망설였다면,
-          <br />
-          이번엔 그냥 저질러보세요.
-        </h1>
-        <p className="mt-3 text-base text-on-brand-muted">
-          사람 모아서, 하고 싶은 거 해보세요.
-        </p>
-
-        <div
-          className={cn("mt-6 flex flex-col gap-4", isChecking && "invisible")}
-        >
+      {/* 아래 절반: 버튼·약관은 세로 중앙선보다 24px 아래에서 시작한다. 중앙선 위로는 올라가지 않는다 */}
+      <div className="pt-6">
+        <div className={cn("flex flex-col gap-4", isChecking && "invisible")}>
           <SocialLoginButton asset="kakao-large" onClick={handleKakaoStart} />
           {/* TODO(T-5): 네이버 인증을 연결하면 카카오 버튼 아래에 `naver-large` 버튼을 다시 둔다. 연결 전이라 숨긴다(사용자 결정 2026-11-15) */}
           <Button
@@ -93,7 +103,7 @@ export function LoginScreen() {
           </Button>
         </div>
 
-        <p className="mt-4 mb-7 text-center text-2xs break-keep text-on-brand-muted/85">
+        <p className="mt-4 mb-7 text-center text-2xs break-keep text-white">
           로그인 하시면{" "}
           <ExternalTextLink href={PRIVACY_POLICY_URL}>
             개인정보처리방침

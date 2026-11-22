@@ -1,6 +1,6 @@
 "use client";
 
-import { UUID_PATTERN } from "../../lib/scheduleListParams";
+import { SCHEDULE_LIST_PATH, UUID_PATTERN } from "../../lib/scheduleListParams";
 import { formatPlaceAddress } from "../../api/scheduleCreate";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -112,16 +112,16 @@ export function ScheduleDetailScreen({
     if (!isNotFound || isLoggedIn === undefined || hasNotifiedNotFound.current)
       return;
     hasNotifiedNotFound.current = true;
-    router.replace("/");
+    router.replace(SCHEDULE_LIST_PATH);
     showToast("찾을 수 없는 일정이에요", {
       variant: "error",
       duration: DETAIL_TOAST_DURATION,
     });
   }, [isNotFound, isLoggedIn, router]);
 
-  // 앱 안에서 이동해 왔으면 뒤로, 아니면 홈(모집 중) (팀 결정 Q7)
+  // 앱 안에서 이동해 왔으면 뒤로, 아니면 일정 목록(모집 중) (팀 결정 Q7)
   const handleBack = () =>
-    canGoBackInApp() ? router.back() : router.push("/");
+    canGoBackInApp() ? router.back() : router.push(SCHEDULE_LIST_PATH);
 
   // 로그인 후 이 상세로만 돌아온다. 참여는 자동으로 실행하지 않는다 (USER_FLOW §4.3)
   const handleLogin = () => {

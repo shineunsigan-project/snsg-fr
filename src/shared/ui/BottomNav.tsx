@@ -3,6 +3,7 @@
 import {
   Calendar,
   CirclePlus,
+  House,
   LogIn,
   User,
   type LucideIcon,
@@ -10,15 +11,17 @@ import {
 
 import { cn } from "@/shared/lib/utils";
 
-export type BottomNavItem = "schedule" | "create" | "login" | "my";
+export type BottomNavItem = "home" | "schedule" | "create" | "login" | "my";
 
 type NavEntry = { value: BottomNavItem; label: string; icon: LucideIcon };
 
+// 홈 / 일정 / 개설하기 / 내 정보 (화면 기능 명세서 v1.5)
 const commonEntries: ReadonlyArray<NavEntry> = [
+  { value: "home", label: "홈", icon: House },
   { value: "schedule", label: "일정", icon: Calendar },
-  { value: "create", label: "일정 개설", icon: CirclePlus },
+  { value: "create", label: "개설하기", icon: CirclePlus },
 ];
-// 세 번째 항목은 비로그인이면 로그인, 로그인 상태면 내 정보다 (Figma 430:28279, 팀 결정 2026-10-11)
+// 네 번째 항목은 비로그인이면 로그인, 로그인 상태면 내 정보다 (Figma 430:28279, 팀 결정 2026-10-11)
 const loginEntry: NavEntry = { value: "login", label: "로그인", icon: LogIn };
 const myEntry: NavEntry = { value: "my", label: "내 정보", icon: User };
 

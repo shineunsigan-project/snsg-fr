@@ -29,7 +29,10 @@ import {
   saveDraft,
 } from "../../lib/createDraft";
 import { saveCreatedNotice } from "../../lib/createdNotice";
-import { toScheduleListQuery } from "../../lib/scheduleListParams";
+import {
+  SCHEDULE_LIST_PATH,
+  toScheduleListQuery,
+} from "../../lib/scheduleListParams";
 import { toStartAt } from "../../lib/startTime";
 import {
   createScheduleSchema,
@@ -197,7 +200,8 @@ function CreateScheduleForm() {
   const goTo = (next: number) => router.push(stepPath(next));
   const openRestart = () => setIsRestartOpen(true);
 
-  const handleBack = () => (step === 1 ? router.push("/") : goTo(step - 1));
+  const handleBack = () =>
+    step === 1 ? router.push(SCHEDULE_LIST_PATH) : goTo(step - 1);
 
   // 확인 팝업에서 [초기화]를 누르면 입력값을 모두 비우고 1단계로 (시안 CRT-06 초기화 수정안, 사용자 결정 2026-11-07)
   const restart = () => {

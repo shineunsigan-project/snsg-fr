@@ -26,7 +26,7 @@ const UA = {
 
 const RECORD_KEY = "homeScreenGuide.v1";
 const DAY_MS = 24 * 60 * 60 * 1000;
-const RETURN_PATH = "/?tab=joined";
+const RETURN_PATH = "/schedules?tab=joined";
 // 저장소에 기록을 넣을 때 여는 같은 출처의 주소. 화면 동작이 없는 파일이라 기록을 넣는 도중에 이동하지 않는다
 // (로그인 화면은 로그인한 사람을 바로 내보내므로 쓰지 않는다, SHI-185)
 const BLANK_PATH = "/manifest.webmanifest";
@@ -101,6 +101,12 @@ async function signUp(page: Page) {
   await page.getByRole("button", { name: "시작하기" }).click();
 }
 
+/** 홈이 열렸는지 보는 표식: GNB 홈 */
+const homeNavItem = (page: Page) =>
+  page
+    .getByRole("navigation", { name: "주요 메뉴" })
+    .getByRole("button", { name: "홈", exact: true });
+
 /** 다른 화면에서 기록을 넣은 뒤 홈으로 들어간다 */
 async function openHomeWithRecord(page: Page, record: unknown) {
   await page.goto(BLANK_PATH);
@@ -126,7 +132,7 @@ test.describe("아이폰 Safari", () => {
 
     const before = Date.now();
     await page.getByRole("button", { name: "나중에 할게요" }).click();
-    await expect(page).toHaveURL(/\/\?tab=joined$/);
+    await expect(page).toHaveURL(/\/schedules\?tab=joined$/);
     const record = await readRecord(page);
     expect(record.status).toBe("later");
     expect(record.at).toBeGreaterThanOrEqual(before);
@@ -149,7 +155,7 @@ test.describe("아이폰 Safari", () => {
     expect(await readRecord(page)).toEqual({ status: "done" });
 
     await page.reload();
-    await expect(page.getByRole("tab", { name: "모집 중" })).toBeVisible();
+    await expect(homeNavItem(page)).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
     await expect(guideHeading(page)).toHaveCount(0);
   });
@@ -162,11 +168,11 @@ test.describe("아이폰 Safari", () => {
       status: "later",
       at: Date.now() - 6 * DAY_MS,
     });
-    await expect(page.getByRole("tab", { name: "모집 중" })).toBeVisible();
+    await expect(homeNavItem(page)).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
 
     await openHomeWithRecord(page, { status: "confirmed" });
-    await expect(page.getByRole("tab", { name: "모집 중" })).toBeVisible();
+    await expect(homeNavItem(page)).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
   });
 
@@ -191,10 +197,10 @@ test.describe("아이폰 Safari", () => {
         JSON.stringify({ status: "later", at: Date.now() - 8 * DAY_MS }),
       ] as const,
     );
-    await page.goto("/?tab=created");
+    await page.goto("/schedules?tab=created");
     // 개설 완료 팝업이 먼저 뜨고 안내는 띄우지 않는다
     await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(page).toHaveURL(/\/\?tab=created$/);
+    await expect(page).toHaveURL(/\/schedules\?tab=created$/);
     expect(await readRecord(page)).toMatchObject({ status: "later" });
 
     await page.goto("/");
@@ -242,7 +248,7 @@ test.describe("아이폰 Safari — 예외 경우", () => {
       JSON.stringify({ status: "confirmed" }),
     ] as const);
     await signUp(page);
-    await expect(page).toHaveURL(/\/\?tab=joined$/);
+    await expect(page).toHaveURL(/\/schedules\?tab=joined$/);
     expect(await readRecord(page)).toEqual({ status: "confirmed" });
   });
 
@@ -258,7 +264,7 @@ test.describe("아이폰 Safari — 예외 경우", () => {
 
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole("tab", { name: "모집 중" })).toBeVisible();
+    await expect(homeNavItem(page)).toBeVisible();
     expect(await readRecord(page)).toEqual({ status: "done" });
     await expect(page).toHaveURL(/\/$/);
   });
@@ -273,7 +279,7 @@ test.describe("아이폰 Safari — 예외 경우", () => {
       RECORD_KEY,
     );
     await page.goto("/");
-    await expect(page.getByRole("tab", { name: "모집 중" })).toBeVisible();
+    await expect(homeNavItem(page)).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
   });
 
@@ -318,7 +324,7 @@ test.describe("안드로이드 Chrome", () => {
     await expect(page.getByText(/주소창 오른쪽 ⋮/)).toBeVisible();
     await page.getByRole("button", { name: "확인했어요" }).click();
 
-    await expect(page).toHaveURL(/\/\?tab=joined$/);
+    await expect(page).toHaveURL(/\/schedules\?tab=joined$/);
     expect(await readRecord(page)).toEqual({ status: "confirmed" });
   });
 });
@@ -339,7 +345,7 @@ for (const [name, userAgent] of [
     }) => {
       await mockApis(page);
       await signUp(page);
-      await expect(page).toHaveURL(/\/\?tab=joined$/);
+      await expect(page).toHaveURL(/\/schedules\?tab=joined$/);
       await expect(guideHeading(page)).toHaveCount(0);
       expect(await readRecord(page)).toBeNull();
 
@@ -347,7 +353,7 @@ for (const [name, userAgent] of [
         status: "later",
         at: Date.now() - 8 * DAY_MS,
       });
-      await expect(page.getByRole("tab", { name: "모집 중" })).toBeVisible();
+      await expect(homeNavItem(page)).toBeVisible();
       await expect(page).toHaveURL(/\/$/);
       // 대상이 아니므로 홈이 기록을 바꾸지 않는다
       expect(await readRecord(page)).toMatchObject({ status: "later" });

@@ -169,7 +169,7 @@
   /* TODO(D-4): radius 수치 미확인 */
   --radius: 0.625rem;
 
-  /* brand.primary — 로그인 배경, GNB 활성, 날짜 텍스트 */
+  /* brand.primary — GNB 활성, 날짜 텍스트, 다가오는 일정 카드 */
   --brand: #356516;
   /* chip.selected / badge.recruiting — 선택된 칩, 모집중 배지, 선택된 토글 배경 */
   /* DESIGN §6은 #E8F1D8 부근이었으나 홈·프로필 캡처 두 곳에서 모두 #F1F7E8로 측정되어 맞춘다 */
@@ -214,6 +214,24 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* 가로로 미는 목록(홈 슬라이드)에서 스크롤 막대를 숨긴다. 손가락·키보드로는 그대로 민다 */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 스크롤 막대를 스크롤하는 동안에만 보이게 한다. 막대 뒤 트랙(배경·선)은 항상 투명하다.
+   스크롤하는 동안 요소에 `data-scrolling="true"`를 단다(홈 화면). Tailwind 기본 `scrollbar-*` 클래스와 이름이 겹치지 않게 한다 */
+@utility scrollbar-on-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  &[data-scrolling="true"] {
+    scrollbar-color: var(--subtle-foreground) transparent;
+  }
+}
+
 /* 이미지 placeholder 사선 패턴 (DESIGN §9.1) */
 @utility bg-stripe-pattern {
   background-image: repeating-linear-gradient(
@@ -243,6 +261,7 @@
     @apply font-sans;
   }
   body {
-    @apply bg-background text-foreground;
+    /* 최대 폭 밖 양옆의 바탕도 흰색이다(사용자 요청 2026-11-23). 회백색 bg-background는 일부 안쪽 영역에서만 쓴다 */
+    @apply bg-card text-foreground;
   }
 }

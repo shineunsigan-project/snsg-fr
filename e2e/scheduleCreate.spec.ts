@@ -157,12 +157,12 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
   const createRequests = await mockApis(page);
 
   // 개설한 일정 탭을 먼저 열어 빈 목록을 받아 둔다. 개설 뒤 이 목록이 다시 불러와지는지 본다 (무효화)
-  await page.goto("/?tab=created");
+  await page.goto("/schedules?tab=created");
   await expect(
     page.getByText("눈치 보느라 망설였다면,", { exact: false }),
   ).toBeVisible();
   // 같은 앱 안에서 이동해야 받아 둔 목록이 남는다
-  await page.getByRole("button", { name: "일정 개설", exact: true }).click();
+  await page.getByRole("button", { name: "개설하기", exact: true }).click();
 
   // 1단계 활동
   await expect(page).toHaveURL(/\/create\?step=1$/);
@@ -235,7 +235,7 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
   });
 
   // 개설한 일정 탭(LIST-05)에서는 NEW를 표시하지 않는다
-  await expect(page).toHaveURL(/\/\?tab=created$/);
+  await expect(page).toHaveURL(/\/schedules\?tab=created$/);
   const firstCard = page.locator("[data-slot=tabs-content] li").first();
   await expect(firstCard).toContainText("초보 환영 보드게임");
   await expect(firstCard).not.toContainText("NEW");
@@ -243,11 +243,11 @@ test("로그인한 사용자가 일정을 열면 개설 완료 팝업이 뜬다"
   // 확인을 누르면 팝업이 닫히고 홈에 머문다
   await dialog.getByRole("button", { name: "확인" }).click();
   await expect(dialog).toBeHidden();
-  await expect(page).toHaveURL(/\/\?tab=created$/);
+  await expect(page).toHaveURL(/\/schedules\?tab=created$/);
 
   // 새로고침하면 팝업이 다시 뜨지 않고 NEW는 표시되지 않는다
   await page.reload();
-  await expect(page.getByRole("button", { name: "일정 개설" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "개설하기" })).toBeVisible();
   await expect(dialog).toBeHidden();
   await expect(firstCard).not.toContainText("NEW");
 });
@@ -257,8 +257,8 @@ test("일정을 열지 않고 홈에 오면 개설 완료 팝업이 뜨지 않�
 }) => {
   await mockApis(page);
   // 예전 방식의 주소로 들어와도 뜨지 않는다
-  await page.goto("/?created=보드게임카페");
-  await expect(page.getByRole("button", { name: "일정 개설" })).toBeVisible();
+  await page.goto("/schedules?created=보드게임카페");
+  await expect(page.getByRole("button", { name: "개설하기" })).toBeVisible();
   await expect(
     page.getByRole("dialog", { name: "일정이 열렸어요" }),
   ).toBeHidden();
