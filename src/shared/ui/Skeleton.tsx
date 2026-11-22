@@ -45,7 +45,7 @@ export function SkeletonGroup({
  */
 export function PageSkeleton() {
   return (
-    <SkeletonGroup className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 bg-card px-5 pt-safe">
+    <SkeletonGroup className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 bg-card px-5 pt-safe shadow-column">
       <Skeleton className="mt-16 h-8 w-48" />
       <Skeleton className="h-20 rounded-xl" />
       <Skeleton className="h-20 rounded-xl" />

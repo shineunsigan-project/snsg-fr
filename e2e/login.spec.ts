@@ -76,14 +76,14 @@ test("표시용 쿠키가 없으면 화면이 안전장치로 확인해, 앱 안
   page,
 }) => {
   await mockApis(page, { loggedIn: true });
-  await page.goto("/?tab=joined");
+  await page.goto("/schedules?tab=joined");
   // 로그인 복구가 끝나 쿠키가 생긴 뒤 지워, 쿠키가 없는 경우를 만든다. 있으면 앱 서버가 먼저 홈으로 보낸다
   await expect.poll(() => hasLoginHint(page)).toBe(true);
   await page.context().clearCookies({ name: LOGIN_HINT });
   await page.goto("/login");
 
   // 홈(/)이 아니라 앞 화면(참여한 일정 탭)이다
-  await expect(page).toHaveURL(/\/\?tab=joined$/);
+  await expect(page).toHaveURL(/\/schedules\?tab=joined$/);
   await expect(kakaoButton(page)).toHaveCount(0);
 });
 
@@ -153,7 +153,7 @@ test("로그인 복구가 서버 오류로 실패해 예전 쿠키가 남아도,
   await page
     .context()
     .addCookies([{ name: LOGIN_HINT, value: "1", url: baseURL }]);
-  await page.goto("/?tab=joined");
+  await page.goto("/schedules?tab=joined");
 
   await page
     .getByRole("button", { name: "로그인", exact: true })

@@ -109,7 +109,7 @@ export function ProfileCompleteScreen() {
 
   if (isPending || isExpired)
     return (
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card pt-safe">
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card pt-safe shadow-column">
         <ProfileFormSkeleton showTitle />
       </div>
     );
@@ -278,7 +278,7 @@ function ProfileCompleteForm({ session }: { session?: SignUpSession }) {
     <form
       noValidate
       onSubmit={handleSubmit(submit)}
-      className="mx-auto flex min-h-dvh max-w-md flex-col bg-card"
+      className="mx-auto flex min-h-dvh max-w-md flex-col bg-card shadow-column"
     >
       <div className="flex-1 px-5 pt-safe">
         {/* 제목·소개는 시안 AUTH-03·04 (결정 2026-11-07) */}

@@ -185,7 +185,7 @@ test("목록 카드로 상세에 들어가고, 뒤로 가면 목록으로 돌아
   page,
 }) => {
   await mockApis(page, { loggedIn: false, viewerRole: "GUEST" });
-  await page.goto("/?activity=01a19cc6-3d80-7000-8000-000000000001");
+  await page.goto("/schedules?activity=01a19cc6-3d80-7000-8000-000000000001");
 
   await page.getByRole("link", { name: new RegExp(TITLE) }).click();
   await expect(page).toHaveURL(`/schedules/${SCHEDULE_ID}`);
@@ -200,7 +200,7 @@ test("목록 카드로 상세에 들어가고, 뒤로 가면 목록으로 돌아
   // 앱 안에서 이동해 왔으므로 뒤로 = 브라우저 뒤로 (필터가 남은 이전 주소)
   await page.getByRole("button", { name: "뒤로" }).click();
   await expect(page).toHaveURL(
-    "/?activity=01a19cc6-3d80-7000-8000-000000000001",
+    "/schedules?activity=01a19cc6-3d80-7000-8000-000000000001",
   );
 });
 
@@ -220,7 +220,7 @@ test("공유 링크로 바로 들어온 조회자는 명단을 펼칠 수 없고
   expect(requests.participants).toBe(0);
 
   await page.getByRole("button", { name: "뒤로" }).click();
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/schedules");
 });
 
 test("확정 참여자는 접힌 요약에 명단 사진을 보고, 펼쳐 개설자·탈퇴한 사용자를 본다", async ({
@@ -281,7 +281,7 @@ test("없는 일정이면 홈으로 가고 토스트를 보여준다", async ({ 
   );
   await page.goto(`/schedules/${missingId}`);
 
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/schedules");
   await expect(page.getByText("찾을 수 없는 일정이에요")).toBeVisible();
 });
 
@@ -291,7 +291,7 @@ test("주소의 일정 ID가 UUID 형식이 아니면 없는 일정과 같이 �
   await mockApis(page, { loggedIn: false, viewerRole: "GUEST" });
   await page.goto("/schedules/abc");
 
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/schedules");
   await expect(page.getByText("찾을 수 없는 일정이에요")).toBeVisible();
 });
 
@@ -905,7 +905,7 @@ test("로그인했는데 상세가 GUEST이고 재발급도 401이면 조회자 
 
   // 토큰을 지웠으므로 앱 안에서 홈으로 가면 비로그인으로 보인다
   await page.getByRole("button", { name: "뒤로" }).click();
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/schedules");
   await page.getByRole("tab", { name: "참여한 일정" }).click();
   await expect(
     page.getByRole("button", { name: "로그인 후 사용 가능합니다" }),
@@ -1026,7 +1026,7 @@ test("명단을 받을 때 일정이 없어졌으면(404) 홈으로 가고 토�
   await page.goto(`/schedules/${SCHEDULE_ID}`);
 
   // 확정 참여자는 상세를 열 때 명단도 받는다
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/schedules");
   await expect(page.getByText("찾을 수 없는 일정이에요")).toBeVisible();
 });
 

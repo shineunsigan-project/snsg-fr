@@ -203,7 +203,7 @@ test("모집 중 목록은 20개씩 보여주고 [더 보기]로 이어 붙인�
   page,
 }) => {
   await mockApis(page, { loggedIn: false });
-  await page.goto("/");
+  await page.goto("/schedules");
 
   await expect(cards(page)).toHaveCount(20);
   // 약속 시간 표기 MM월DD일(요일) HH:MM
@@ -221,7 +221,7 @@ test("[더 보기]가 실패하면 받은 목록은 두고 그 자리에 다시 
     loggedIn: false,
     failNextPageOnce: "INVALID_REQUEST",
   });
-  await page.goto("/");
+  await page.goto("/schedules");
 
   await page.getByRole("button", { name: "더 보기" }).click();
   await expect(page.getByRole("button", { name: "다시 시도" })).toBeVisible();
@@ -244,7 +244,7 @@ test("[더 보기]가 INVALID_CURSOR로 실패하면 다시 시도는 cursor 없
     loggedIn: false,
     failNextPageOnce: "INVALID_CURSOR",
   });
-  await page.goto("/");
+  await page.goto("/schedules");
 
   await page.getByRole("button", { name: "더 보기" }).click();
   await page.getByRole("button", { name: "다시 시도" }).click();
@@ -260,7 +260,7 @@ test("[더 보기]가 INVALID_CURSOR로 실패하면 다시 시도는 cursor 없
 
 test("활동 필터를 적용하면 주소와 요청에 반영된다", async ({ page }) => {
   const listRequests = await mockApis(page, { loggedIn: false });
-  await page.goto("/");
+  await page.goto("/schedules");
   // 다음 페이지를 받은 뒤 필터를 바꿔도 이전 커서를 쓰지 않고 처음부터 부른다
   await page.getByRole("button", { name: "더 보기" }).click();
   await expect(cards(page)).toHaveCount(25);
@@ -270,7 +270,7 @@ test("활동 필터를 적용하면 주소와 요청에 반영된다", async ({ 
   await page.getByRole("button", { name: "적용하기" }).click();
 
   await expect(page).toHaveURL(
-    /\/\?activity=01a19cc6-3d80-7000-8000-000000000002$/,
+    /\/schedules\?activity=01a19cc6-3d80-7000-8000-000000000002$/,
   );
   await expect(filterChip(page, "방탈출")).toBeVisible();
   await expect
@@ -281,12 +281,12 @@ test("활동 필터를 적용하면 주소와 요청에 반영된다", async ({ 
 
 test("지역 필터를 적용하고 초기화하면 필터가 빠진다", async ({ page }) => {
   const listRequests = await mockApis(page, { loggedIn: false });
-  await page.goto("/");
+  await page.goto("/schedules");
 
   await filterChip(page, "지역").click();
   await page.getByRole("radio", { name: "마포구" }).click();
   await page.getByRole("button", { name: "적용하기" }).click();
-  await expect(page).toHaveURL(/\/\?region=11440$/);
+  await expect(page).toHaveURL(/\/schedules\?region=11440$/);
   await expect
     .poll(() => listRequests.at(-1)?.searchParams.getAll("regionCodes"))
     .toEqual(["11440"]);
@@ -296,7 +296,7 @@ test("지역 필터를 적용하고 초기화하면 필터가 빠진다", async 
   await page.getByRole("button", { name: "초기화" }).click();
   await expect(page.getByRole("radio", { name: "전체" })).toBeChecked();
   await page.getByRole("button", { name: "적용하기" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/schedules$/);
   await expect(filterChip(page, "지역")).toBeVisible();
 });
 
@@ -304,7 +304,7 @@ test("같은 날을 두 번 누르면 그 하루로 남는다. 시작 시각 설
   page,
 }) => {
   const listRequests = await mockApis(page, { loggedIn: false });
-  await page.goto("/");
+  await page.goto("/schedules");
   const today = kstDate();
 
   await filterChip(page, "날짜").click();
@@ -317,7 +317,7 @@ test("같은 날을 두 번 누르면 그 하루로 남는다. 시작 시각 설
   ).toHaveCount(0);
   await page.getByRole("button", { name: "적용하기" }).click();
 
-  await expect(page).toHaveURL(`/?from=${today}&to=${today}`);
+  await expect(page).toHaveURL(`/schedules?from=${today}&to=${today}`);
   await expect(
     filterChip(page, today.slice(5).replace("-", ".")),
   ).toBeVisible();
@@ -337,7 +337,7 @@ test("기간이 있을 때 새 날짜 두 개를 누르면 새 기간으로 바�
   const [year, month] = kstDate().split("-").map(Number);
   const nextMonth = `${month === 12 ? year + 1 : year}-${String((month % 12) + 1).padStart(2, "0")}`;
   const day = (date: number) => `${nextMonth}-${String(date).padStart(2, "0")}`;
-  await page.goto(`/?from=${day(3)}&to=${day(10)}`);
+  await page.goto(`/schedules?from=${day(3)}&to=${day(10)}`);
 
   await filterChip(
     page,
@@ -347,7 +347,7 @@ test("기간이 있을 때 새 날짜 두 개를 누르면 새 기간으로 바�
   await page.locator(`button[data-day="${day(22)}"]`).click();
   await page.getByRole("button", { name: "적용하기" }).click();
 
-  await expect(page).toHaveURL(`/?from=${day(20)}&to=${day(22)}`);
+  await expect(page).toHaveURL(`/schedules?from=${day(20)}&to=${day(22)}`);
   await expect
     .poll(() => {
       const params = listRequests.at(-1)?.searchParams;
@@ -361,7 +361,7 @@ test("주소의 잘못된 탭·필터 값은 없는 것으로 보고 목록을 �
 }) => {
   const listRequests = await mockApis(page, { loggedIn: false });
   await page.goto(
-    "/?tab=unknown&activity=abc&region=12&from=2026-02-31&to=2026-13-01",
+    "/schedules?tab=unknown&activity=abc&region=12&from=2026-02-31&to=2026-13-01",
   );
 
   await expect(cards(page)).toHaveCount(20);
@@ -377,7 +377,7 @@ test("주소의 잘못된 탭·필터 값은 없는 것으로 보고 목록을 �
 
 test("종료일이 시작일보다 앞서면 시작일 하루로 찾는다", async ({ page }) => {
   const listRequests = await mockApis(page, { loggedIn: false });
-  await page.goto(`/?from=${kstDate(2)}&to=${kstDate(1)}`);
+  await page.goto(`/schedules?from=${kstDate(2)}&to=${kstDate(1)}`);
 
   await expect(cards(page)).toHaveCount(20);
   const params = listRequests.at(-1)?.searchParams;
@@ -389,11 +389,11 @@ test("탭을 옮겨도 필터는 주소에 남고, 참여한 일정 요청에는
   page,
 }) => {
   const listRequests = await mockApis(page, { loggedIn: true });
-  await page.goto("/?activity=01a19cc6-3d80-7000-8000-000000000002");
+  await page.goto("/schedules?activity=01a19cc6-3d80-7000-8000-000000000002");
 
   await page.getByRole("tab", { name: "참여한 일정" }).click();
   await expect(page).toHaveURL(
-    /\/\?tab=joined&activity=01a19cc6-3d80-7000-8000-000000000002$/,
+    /\/schedules\?tab=joined&activity=01a19cc6-3d80-7000-8000-000000000002$/,
   );
   await expect(cards(page)).toHaveCount(3);
   const joinedRequest = lastListRequest(
@@ -404,7 +404,7 @@ test("탭을 옮겨도 필터는 주소에 남고, 참여한 일정 요청에는
 
   await page.getByRole("tab", { name: "모집 중" }).click();
   await expect(page).toHaveURL(
-    /\/\?activity=01a19cc6-3d80-7000-8000-000000000002$/,
+    /\/schedules\?activity=01a19cc6-3d80-7000-8000-000000000002$/,
   );
   await expect(filterChip(page, "방탈출")).toBeVisible();
 });
@@ -413,7 +413,7 @@ test("로그인하면 참여한 일정에 참여 확정·D-day, 개설한 일정
   page,
 }) => {
   await mockApis(page, { loggedIn: true });
-  await page.goto("/?tab=joined");
+  await page.goto("/schedules?tab=joined");
 
   // 받은 순서 그대로 그린다
   const joined = cards(page);
@@ -428,7 +428,7 @@ test("로그인하면 참여한 일정에 참여 확정·D-day, 개설한 일정
   await expect(joined.nth(2)).not.toContainText("D-4");
 
   await page.getByRole("tab", { name: "개설한 일정" }).click();
-  await expect(page).toHaveURL(/\/\?tab=created$/);
+  await expect(page).toHaveURL(/\/schedules\?tab=created$/);
   const created = cards(page);
   await expect(created).toHaveCount(3);
   await expect(created.nth(0)).toContainText("모집 중");
@@ -467,7 +467,7 @@ test("모집 중 탭 배지: 정원 절반 이상이면 N자리 남음, 차면 �
       }),
     ),
   );
-  await page.goto("/");
+  await page.goto("/schedules");
 
   const list = cards(page);
   await expect(list).toHaveCount(7);
@@ -487,10 +487,10 @@ test("비로그인이 참여한 일정 탭을 누르면 로그인 안내를 보�
   page,
 }) => {
   await mockApis(page, { loggedIn: false });
-  await page.goto("/");
+  await page.goto("/schedules");
 
   await page.getByRole("tab", { name: "참여한 일정" }).click();
-  await expect(page).toHaveURL(/\/\?tab=joined$/);
+  await expect(page).toHaveURL(/\/schedules\?tab=joined$/);
   // 시안 LIST-04 비로그인 화면: 안내 문구 + `로그인 후 사용 가능합니다` 버튼
   await expect(page.getByText("아직 함께한 일정이 없네요.")).toBeVisible();
   await expect(
@@ -507,31 +507,33 @@ test("로그인 안내 버튼을 누르면 로그인 화면으로 가고, 돌아
 }) => {
   await mockApis(page, { loggedIn: false });
   await page.goto(
-    "/?tab=created&activity=01a19cc6-3d80-7000-8000-000000000002",
+    "/schedules?tab=created&activity=01a19cc6-3d80-7000-8000-000000000002",
   );
 
   await page.getByRole("button", { name: "로그인 후 사용 가능합니다" }).click();
   await expect(page).toHaveURL(/\/login$/);
   expect(
     await page.evaluate(() => sessionStorage.getItem("loginRedirect")),
-  ).toBe("/?tab=created&activity=01a19cc6-3d80-7000-8000-000000000002");
+  ).toBe(
+    "/schedules?tab=created&activity=01a19cc6-3d80-7000-8000-000000000002",
+  );
 });
 
 test("참여한 일정 중 세션이 만료되면 로그인 화면으로 가고 그 탭으로 돌아오게 한다", async ({
   page,
 }) => {
   await mockApis(page, { loggedIn: true, expireSession: true });
-  await page.goto("/?tab=joined");
+  await page.goto("/schedules?tab=joined");
 
   await expect(page).toHaveURL(/\/login$/);
   expect(
     await page.evaluate(() => sessionStorage.getItem("loginRedirect")),
-  ).toBe("/?tab=joined");
+  ).toBe("/schedules?tab=joined");
 });
 
 test("로그아웃하면 받아 둔 참여한 일정을 보여주지 않는다", async ({ page }) => {
   await mockApis(page, { loggedIn: true });
-  await page.goto("/?tab=joined");
+  await page.goto("/schedules?tab=joined");
   await expect(cards(page)).toHaveCount(3);
 
   // 로그아웃은 내 정보에서만 한다 (USER_FLOW §4.4)
@@ -544,7 +546,13 @@ test("로그아웃하면 받아 둔 참여한 일정을 보여주지 않는다",
     .getByRole("dialog")
     .getByRole("button", { name: "로그아웃" })
     .click();
+  // 로그아웃하면 홈으로 가고, 일정 목록으로 다시 와도 받아 둔 목록이 남지 않는다
   await expect(page).toHaveURL(/\/$/);
+  await page
+    .getByRole("navigation", { name: "주요 메뉴" })
+    .getByRole("button", { name: "일정", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/schedules$/);
   await page.getByRole("tab", { name: "참여한 일정" }).click();
   await expect(
     page.getByRole("button", { name: "로그인 후 사용 가능합니다" }),
@@ -573,7 +581,7 @@ test("첫 목록 응답을 기다리는 동안 스켈레톤을 보여준다", as
     return route.fulfill(ok({ items: [makeSchedule(0)], nextCursor: null }));
   });
 
-  await page.goto("/");
+  await page.goto("/schedules");
   const loading = page.getByRole("status");
   await expect(loading).toContainText("불러오는 중");
   // 200ms 동안 투명했다가 보인다(자리는 처음부터 차지한다)
@@ -603,7 +611,7 @@ test("빠른 목록 응답은 스켈레톤을 보이지 않은 채 목록으로 
     requestAnimationFrame(record);
   });
   await mockApis(page, { loggedIn: false });
-  await page.goto("/");
+  await page.goto("/schedules");
 
   await expect(cards(page)).toHaveCount(20);
   await expect(page.getByRole("status")).toHaveCount(0);

@@ -139,14 +139,14 @@ export function ProfileEditScreen() {
   }
   if (isUnauthorized || !error)
     return (
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card">
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card shadow-column">
         <ProfileEditHeader onBack={goBack} />
         <ProfileFormSkeleton />
       </div>
     );
   // 401이 아닌 오류는 화면에 두고 다시 시도 (MY-01과 같다)
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-card shadow-column">
       <ProfileEditHeader onBack={goBack} />
       <main className="flex flex-1 flex-col items-center justify-center gap-3 px-5 text-center">
         {/* 📝 임시 문구 TODO(F-19) */}

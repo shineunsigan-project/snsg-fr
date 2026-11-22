@@ -39,7 +39,7 @@ export function ScheduleCard({
   return (
     <Link
       href={href}
-      className="flex flex-col gap-1.5 rounded-2xl bg-card px-4 py-3.5 focus-visible:outline-3 focus-visible:outline-ring/50"
+      className="flex flex-col gap-1.5 rounded-2xl border border-border bg-card px-4 py-3.5 focus-visible:outline-3 focus-visible:outline-ring/50"
     >
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <span

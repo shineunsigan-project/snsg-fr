@@ -7,6 +7,13 @@ export const scheduleQueryKeys = {
   /** 참여한·개설한 탭은 필터를 쓰지 않으므로 키에서도 빼서, 필터가 바뀌어도 다시 받지 않는다 */
   list: (tab: ScheduleListTab, filter: ScheduleFilter) =>
     ["schedules", "list", tab, tab === "recruiting" ? filter : {}] as const,
+  /** 홈의 다가오는 내 일정 1건. 목록 키 아래에 두어 개설·참여 뒤 함께 무효화한다 */
+  homeNext: ["schedules", "home", "next"] as const,
+  /** 홈의 곧 마감돼요 */
+  homeClosingSoon: ["schedules", "home", "closing-soon"] as const,
+  /** 홈의 새로 열린 일정. 활동을 고르면 그 활동만 */
+  homeNewlyOpened: (activityId?: string) =>
+    ["schedules", "home", "newly-opened", activityId ?? "all"] as const,
   activities: ["activities"] as const,
   regions: ["regions"] as const,
   /** 일정 상세. 참여·참여 취소·전체 취소 뒤 무효화한다 */

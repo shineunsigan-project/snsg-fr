@@ -1,7 +1,7 @@
 import type { ScheduleListTab, ScheduleStatus } from "../types";
 import { apiClient, type ApiSuccess } from "@/shared/lib/api/client";
 
-// 일정 목록 (snsg-be api-guide "일정 목록", develop e746440). 필드 이름은 서버 응답 그대로 쓴다
+// 일정 목록 (snsg-be api-guide "일정 목록", develop 96f6cee). 필드 이름은 서버 응답 그대로 쓴다
 
 /** 한 번에 불러오는 개수 (팀 결정 2026-11-02, F-18) */
 export const SCHEDULE_PAGE_SIZE = 20;
@@ -38,6 +38,9 @@ export type SchedulePage = {
 /** 커서가 잘못됐다. 처음부터 다시 받는다 */
 export const INVALID_CURSOR = "INVALID_CURSOR";
 
+/** 모집 중 목록 정렬. 생략하면 시작 빠른 순(`START_AT`) */
+export type ScheduleSort = "START_AT" | "LATEST" | "CLOSING_SOON";
+
 /** 모집 중 목록 필터. 활동·지역은 하나만 고른다 (팀 결정 2026-11-02) */
 export type ScheduleFilter = {
   /** 활동 목록 API의 `id` */
@@ -73,11 +76,17 @@ export async function getScheduleList({
   tab,
   cursor,
   filter = {},
+  size = SCHEDULE_PAGE_SIZE,
+  sort,
   signal,
 }: {
   tab: ScheduleListTab;
   cursor?: string;
   filter?: ScheduleFilter;
+  /** 한 번에 받을 개수. 홈이 아니면 기본 20개 (서버 최대 50) */
+  size?: number;
+  /** 모집 중 목록만. `LATEST`는 최근 열린 순, `CLOSING_SOON`은 마감 임박 순(오늘~모레 시작, 자리 적은 순). 홈이 쓴다 */
+  sort?: ScheduleSort;
   /** 필터를 바꾸거나 화면을 떠나면 이전 요청을 취소한다 */
   signal?: AbortSignal;
 }) {
@@ -86,8 +95,9 @@ export async function getScheduleList({
     {
       params: {
         ...(tab === "recruiting" ? toFilterParams(filter) : {}),
+        ...(tab === "recruiting" && sort ? { sort } : {}),
         ...(cursor ? { cursor } : {}),
-        size: SCHEDULE_PAGE_SIZE,
+        size,
       },
       signal,
     },

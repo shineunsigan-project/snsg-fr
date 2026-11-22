@@ -5,14 +5,6 @@ import { useEffect, useState } from "react";
 
 import { AuthHeaderButton } from "@/features/auth/components/AuthHeaderButton";
 import { useIsLoggedIn } from "@/features/auth/hooks/useIsLoggedIn";
-import {
-  detectHomeScreenGuidePlatform,
-  markHomeScreenGuideOpenedInApp,
-  readHomeScreenGuideRecord,
-  saveHomeScreenGuideRecord,
-  shouldShowOnHome,
-  toHomeScreenGuidePath,
-} from "@/features/onboarding/lib/homeScreenGuide";
 
 import { saveLoginRedirect } from "@/shared/lib/kakaoLogin";
 import { AppHeader } from "@/shared/ui/AppHeader";
@@ -38,14 +30,14 @@ const TAB_LABELS: Array<{ value: ScheduleListTab; label: string }> = [
 ];
 
 /**
- * 홈 = 일정 목록 (USER_FLOW §5, 화면 기능 명세서 LIST-01 ~ LIST-05)
+ * 일정 목록 `/schedules` (USER_FLOW §5.2, 화면 기능 명세서 LIST-01 ~ LIST-05). 앱 첫 화면은 홈(`/`)이다 (SHI-200)
  * - 탭: 모집 중 / 참여한 일정 / 개설한 일정. 탭과 필터 값은 URL에 둔다(기기에 저장하지 않는다)
  * - 필터(활동·지역·날짜)는 모집 중 탭에만 있다
- * - GNB 일정 개설 → 로그인 여부와 상관없이 개설 1단계. 로그인은 `일정 열기`에서 한다 (USER_FLOW §7.7)
+ * - GNB 개설하기 → 로그인 여부와 상관없이 개설 1단계. 로그인은 `일정 열기`에서 한다 (USER_FLOW §7.7)
  * - GNB 로그인 → 로그인 화면, 로그인 후 지금 보던 탭으로 돌아온다 (USER_FLOW §4.2)
  * - 일정을 열고 오면(개설한 일정 탭) 완료 팝업을 한 번 띄운다 (CRT-07). 장소명은 개설 화면이 탭 단위 저장소에 남긴다
  */
-export function ScheduleHome() {
+export function ScheduleListScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = readScheduleTab(searchParams);
@@ -63,18 +55,6 @@ export function ScheduleHome() {
   useEffect(() => {
     if (createdNotice !== null) clearCreatedNotice();
   }, [createdNotice]);
-  // 홈 화면 추가 안내: `나중에` 7일 뒤 홈에 처음 들어올 때 한 번 (USER_FLOW §9.1, 결정 Q4)
-  // 개설 완료 팝업(CRT-07)을 띄울 때는 다음 홈 진입으로 미룬다
-  const hasCreatedNotice = createdNotice !== null;
-  useEffect(() => {
-    if (hasCreatedNotice) return;
-    if (!shouldShowOnHome(readHomeScreenGuideRecord(), Date.now())) return;
-    if (!detectHomeScreenGuidePlatform()) return;
-    // 보여주는 순간 기록해 두어, 버튼 없이 뒤로 가도 다시 띄우지 않는다(두 번째는 마지막)
-    saveHomeScreenGuideRecord({ status: "done" });
-    markHomeScreenGuideOpenedInApp();
-    router.push(toHomeScreenGuidePath("home"));
-  }, [hasCreatedNotice, router]);
 
   const showList = (nextTab: ScheduleListTab, nextFilter: ScheduleFilter) =>
     router.replace(toScheduleListQuery(nextTab, nextFilter), {
@@ -82,6 +62,10 @@ export function ScheduleHome() {
     });
 
   const handleNavSelect = (item: BottomNavItem) => {
+    if (item === "home") {
+      router.push("/");
+      return;
+    }
     if (item === "create") {
       // 입력하던 값은 유지하고 1단계부터 보여준다
       router.push("/create?step=1");
@@ -98,7 +82,7 @@ export function ScheduleHome() {
   };
 
   return (
-    <div className="mx-auto flex h-dvh max-w-md flex-col bg-background">
+    <div className="mx-auto flex h-dvh max-w-md flex-col bg-card shadow-column">
       <Tabs
         value={tab}
         // Base UI가 값을 any로 넘겨서, 주소를 읽을 때와 같은 함수로 탭 값을 좁힌다

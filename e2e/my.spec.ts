@@ -153,9 +153,9 @@ test("GNB 내 정보를 누르면 내 프로필을 보여준다", async ({ page 
     "page",
   );
 
-  // GNB 일정 → 홈
+  // GNB 홈 → 홈, 일정 → 일정 목록
   await nav.getByRole("button", { name: "일정", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/schedules$/);
 });
 
 test("비로그인으로 내 정보에 들어오면 로그인 화면으로 가고 내 정보로 돌아오게 한다", async ({

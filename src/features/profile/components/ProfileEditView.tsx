@@ -79,7 +79,7 @@ export function ProfileEditView({
     <form
       noValidate
       onSubmit={onSubmit}
-      className="mx-auto flex min-h-dvh max-w-md flex-col bg-card"
+      className="mx-auto flex min-h-dvh max-w-md flex-col bg-card shadow-column"
     >
       <ProfileEditHeader onBack={onBack} />
 

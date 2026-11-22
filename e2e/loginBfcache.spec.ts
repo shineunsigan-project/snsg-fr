@@ -45,7 +45,7 @@ async function openWithMocks(page: Page, loggedIn: () => boolean) {
 /** 비로그인으로 참여한 일정 탭 → 헤더 로그인 → 로그인 화면까지 앱 안에서 이동한다 */
 async function openLoginInApp(page: Page, loggedIn: () => boolean) {
   await openWithMocks(page, loggedIn);
-  await page.goto("/?tab=joined");
+  await page.goto("/schedules?tab=joined");
   await page
     .getByRole("button", { name: "로그인", exact: true })
     .first()
@@ -58,7 +58,7 @@ async function openLoginInApp(page: Page, loggedIn: () => boolean) {
 
 /** 카카오·약관 대신 다른 문서로 갔다가 뒤로가기한다. 복원은 load 이벤트가 없어 commit까지만 기다린다 */
 async function leaveAndGoBack(page: Page) {
-  await page.goto("/?tab=created");
+  await page.goto("/schedules?tab=created");
   await page.goBack({ waitUntil: "commit" });
 }
 
@@ -125,7 +125,7 @@ test.describe("뒤로가기 캐시(bfcache)", () => {
     loggedIn = true;
     await leaveAndGoBack(page);
 
-    await expect(page).toHaveURL(/\/\?tab=joined$/);
+    await expect(page).toHaveURL(/\/schedules\?tab=joined$/);
     expect(await wasRestored(page)).toBe("1");
   });
 
@@ -192,7 +192,7 @@ test.describe("뒤로가기 캐시(bfcache)", () => {
         }),
       ),
     );
-    await page.goto("/");
+    await page.goto("/schedules");
     await page.getByRole("link", { name: /보드게임 추리 한 판/ }).click();
     await expect(page).toHaveURL(new RegExp(`/schedules/${scheduleId}$`));
     await page.getByRole("button", { name: "로그인하고 참여하기" }).click();
@@ -215,10 +215,10 @@ test.describe("뒤로가기 캐시(bfcache)", () => {
     await page.goForward({ waitUntil: "commit" });
     await expectLoggedInDetail(page, scheduleId);
 
-    // 두 번 뒤로가기: 로그인 후 상세 → 로그인 전 상세 → 홈(로그인 화면이 기록에 없다)
+    // 두 번 뒤로가기: 로그인 후 상세 → 로그인 전 상세 → 일정 목록(로그인 화면이 기록에 없다)
     await page.goBack({ waitUntil: "commit" });
     await page.goBack({ waitUntil: "commit" });
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/schedules$/);
   });
 
   test("주소를 직접 열어 온 로그인 화면은 기록을 바꾸지 않아, 카카오 화면에서 뒤로가기하면 로그인 화면으로 돌아온다", async ({
