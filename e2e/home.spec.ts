@@ -333,7 +333,7 @@ test("곧 마감돼요가 0개면 구역을 숨기고 모집 중인 일정 전�
   await expect(page).toHaveURL(/\/schedules$/);
 });
 
-test("한 구역이 실패해도 나머지는 그대로 두고 다시 시도로 그 구역만 다시 받는다", async ({
+test("다가오는 일정을 받지 못해도(400) 오류 화면 없이 메인 배너를 보여 주고 나머지 구역은 그대로 둔다", async ({
   page,
 }) => {
   await mockApis(page, {
@@ -344,25 +344,37 @@ test("한 구역이 실패해도 나머지는 그대로 두고 다시 시도로 
   });
   await page.goto("/");
 
-  await expect(
-    upcoming(page).getByRole("button", { name: "다시 시도" }),
-  ).toBeVisible();
+  await expect(banner(page)).toBeVisible();
+  await expect(upcoming(page)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "다시 시도" })).toHaveCount(0);
   // 다른 구역은 정상이다
   await expect(closingSoon_(page)).toContainText("마감 임박 일정");
   await expect(
     page.getByRole("link", { name: "방탈출", exact: true }),
   ).toBeVisible();
+});
+
+test("곧 마감돼요를 받지 못하면 그 구역에 다시 시도를 보여 주고 누르면 다시 받는다", async ({
+  page,
+}) => {
+  await mockApis(page, {
+    loggedIn: false,
+    closingSoon: [makeSchedule(5, { title: "마감 임박 일정" })],
+    failing: ["closingSoon"],
+  });
+  await page.goto("/");
+
+  await expect(
+    closingSoon_(page).getByRole("button", { name: "다시 시도" }),
+  ).toBeVisible();
 
   await page.unrouteAll();
   await mockApis(page, {
-    loggedIn: true,
-    next: makeNext({ title: "다시 받은 일정" }),
+    loggedIn: false,
     closingSoon: [makeSchedule(5, { title: "마감 임박 일정" })],
   });
-  await upcoming(page).getByRole("button", { name: "다시 시도" }).click();
-  await expect(upcoming(page).getByRole("link")).toContainText(
-    "다시 받은 일정",
-  );
+  await closingSoon_(page).getByRole("button", { name: "다시 시도" }).click();
+  await expect(closingSoon_(page)).toContainText("마감 임박 일정");
 });
 
 test("활동 목록을 못 받으면 활동 구역에 다시 시도를 보여 준다", async ({
