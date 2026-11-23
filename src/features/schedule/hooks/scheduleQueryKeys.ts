@@ -1,3 +1,4 @@
+import type { HistoryRole } from "../api/scheduleHistory";
 import type { ScheduleFilter } from "../api/schedules";
 import type { ScheduleListTab } from "../types";
 
@@ -14,6 +15,8 @@ export const scheduleQueryKeys = {
   /** 홈의 새로 열린 일정. 활동을 고르면 그 활동만 */
   homeNewlyOpened: (activityId?: string) =>
     ["schedules", "home", "newly-opened", activityId ?? "all"] as const,
+  /** 참여 이력(지난 일정). 목록 키 아래에 두어 개설·참여 뒤 함께 무효화한다 */
+  history: (role: HistoryRole) => ["schedules", "history", role] as const,
   activities: ["activities"] as const,
   regions: ["regions"] as const,
   /** 일정 상세. 참여·참여 취소·전체 취소 뒤 무효화한다 */

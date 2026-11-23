@@ -29,7 +29,7 @@ const meta = {
   // 페이지처럼 h-dvh 모바일 컨테이너 안에 넣는다. 하단 GNB는 페이지가 붙인다
   decorators: [
     (Story) => (
-      <div className="mx-auto flex h-dvh max-w-md flex-col bg-background">
+      <div className="mx-auto flex h-dvh max-w-md flex-col bg-card">
         <Story />
       </div>
     ),

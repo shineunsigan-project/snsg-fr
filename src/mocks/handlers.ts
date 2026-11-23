@@ -499,9 +499,13 @@ export const handlers: AnyHandler[] = [
       `*/api/v1/schedules/${path}`,
       ({ request }) => {
         if (!request.headers.get("Authorization")) return unauthenticated();
-        const page = readPage(new URL(request.url).searchParams);
-        if (!page) return invalidRequest();
-        return listResponse(listMine(kind), page);
+        const query = new URL(request.url).searchParams;
+        const page = readPage(query);
+        const period = readParam(query, "period") ?? "UPCOMING";
+        if (!page || (period !== "UPCOMING" && period !== "PAST")) {
+          return invalidRequest();
+        }
+        return listResponse(listMine(kind, period), page);
       },
     ),
   ),

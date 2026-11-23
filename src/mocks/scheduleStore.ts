@@ -404,6 +404,37 @@ function createSeed(): MockSchedule[] {
     participants: makeParticipants(5, { host: ME }),
     mine: true,
   };
+  // 참여 이력(지난 일정)에 개설한 일정도 섞여 보이도록 지난 개설 일정을 둔다 (SHI-201)
+  const pastMine: MockSchedule[] = [
+    {
+      ...mine,
+      scheduleId: mockScheduleId(902),
+      title: "퇴근 후 전략 게임",
+      startAt: dayAt(-12, "20:00"),
+      status: "COMPLETED",
+      participantCount: 6,
+      capacity: 6,
+      participants: makeParticipants(6, { host: ME }),
+      createdAt: now,
+    },
+    {
+      ...mine,
+      scheduleId: mockScheduleId(903),
+      title: "주말 추리 방탈출",
+      startAt: dayAt(-9, "14:00"),
+      status: "CANCELED",
+      participantCount: 2,
+      capacity: 4,
+      participants: makeParticipants(2, { host: ME }),
+      cancellation: {
+        reason: "개인 사정으로 일정을 취소하게 됐어요. 죄송해요.",
+        canceledAt: toKstDateTime(
+          new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        ),
+      },
+      createdAt: now,
+    },
+  ];
   // 참여한 일정은 모집 중 목록의 같은 일정을 가리킨다
   return [
     ...recruiting.map((schedule, index) =>
@@ -411,6 +442,7 @@ function createSeed(): MockSchedule[] {
     ),
     completed,
     mine,
+    ...pastMine,
     ...createSamples({
       ...recruiting[0],
       placeName: "보드게임카페 A",
@@ -505,8 +537,24 @@ export function listRecruiting(query: MockRecruitingQuery) {
  * 참여한·개설한 탭: 완료(시작 + 12시간) 전 일정. 시작했지만 완료 전이면 모집 마감으로,
  * 취소된 일정은 완료 시각 전까지 일정 취소됨으로 온다 (api-guide 일정 목록)
  */
-export function listMine(kind: "joined" | "mine") {
+export function listMine(
+  kind: "joined" | "mine",
+  period: "UPCOMING" | "PAST" = "UPCOMING",
+) {
   const now = Date.now();
+  if (period === "PAST") {
+    // 지난 일정: 완료(시작 + 12시간) 뒤, 취소 일정도 그때부터. 시작 늦은 순, 같으면 id 역순 (api-guide 참여한 일정 목록)
+    return loadMockSchedules()
+      .filter(
+        (schedule) =>
+          schedule[kind] &&
+          // 참여한 목록은 내가 연 일정을 뺀다
+          (kind === "mine" || !schedule.mine) &&
+          (schedule.status === "COMPLETED" ||
+            occupyStart(schedule.startAt) + COMPLETE_AFTER_MS <= now),
+      )
+      .sort((a, b) => -byStartAt(a, b));
+  }
   return loadMockSchedules()
     .filter(
       (schedule) =>
