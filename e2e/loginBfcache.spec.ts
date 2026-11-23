@@ -5,6 +5,11 @@ import { expect, test, type Page } from "@playwright/test";
 test.use({
   launchOptions: { ignoreDefaultArgs: ["--disable-back-forward-cache"] },
 });
+// 위 설정은 Chrome 전용이라 이 테스트들은 WebKit에서 같은 조건을 만들 수 없다. 사파리의 뒤로가기 캐시는 실제 기기에서 확인한다 (SHI-210)
+test.skip(
+  ({ browserName }) => browserName === "webkit",
+  "Chrome 뒤로가기 캐시 설정에 맞춘 테스트",
+);
 
 const ok = (data: unknown) => ({
   status: 200,

@@ -257,18 +257,38 @@ test("확정 참여자는 접힌 요약에 명단 사진을 보고, 펼쳐 개�
   expect(requests.participants).toBe(1);
 });
 
+/**
+ * 복사한 글을 가로채 탭 저장소에 남긴다. Playwright가 WebKit에는 클립보드 권한을 줄 수 없어서
+ * (`grantPermissions`·`readText` 불가) 크롬·WebKit 모두 같은 방식으로 확인한다 (SHI-210)
+ */
+async function captureClipboard(page: Page) {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          sessionStorage.setItem("e2eCopied", text);
+          return Promise.resolve();
+        },
+      },
+    });
+  });
+}
+
+const copiedText = (page: Page) =>
+  page.evaluate(() => sessionStorage.getItem("e2eCopied"));
+
 test("공유를 누르면 상세 링크를 복사하고 토스트를 보여준다", async ({
   page,
-  context,
 }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await captureClipboard(page);
   await mockApis(page, { loggedIn: false, viewerRole: "GUEST" });
   await page.goto(`/schedules/${SCHEDULE_ID}`);
   await expect(page.getByRole("heading", { name: TITLE })).toBeVisible();
 
   await page.getByRole("button", { name: "공유" }).click();
   await expect(page.getByText("링크가 복사되었습니다")).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+  expect(await copiedText(page)).toBe(
     new URL(`/schedules/${SCHEDULE_ID}`, page.url()).href,
   );
 });
@@ -1032,15 +1052,12 @@ test("명단을 받을 때 일정이 없어졌으면(404) 홈으로 가고 토�
 
 test("주소 복사는 도로명주소 뒤에 상세주소를 붙여 복사한다", async ({
   page,
-  context,
 }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await captureClipboard(page);
   await mockApis(page, { loggedIn: false, viewerRole: "GUEST" });
   await page.goto(`/schedules/${SCHEDULE_ID}`);
 
   await expect(page.getByText("서울 마포구 와우산로 00 2층")).toBeVisible();
   await page.getByRole("button", { name: "주소 복사" }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-    "서울 마포구 와우산로 00 2층",
-  );
+  expect(await copiedText(page)).toBe("서울 마포구 와우산로 00 2층");
 });
