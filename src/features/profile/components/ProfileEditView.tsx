@@ -189,7 +189,7 @@ export function ProfileEditView({
 /** MY-02 제목줄. 불러오기 실패 화면에서도 쓴다 */
 export function ProfileEditHeader({ onBack }: { onBack: () => void }) {
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-card px-5 pt-safe">
+    <header className="sticky top-0 z-10 bg-card px-5 pt-safe shadow-header">
       <div className="flex h-14 items-center">
         <button
           type="button"

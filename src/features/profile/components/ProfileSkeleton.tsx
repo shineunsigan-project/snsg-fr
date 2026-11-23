@@ -6,7 +6,7 @@ import { Skeleton, SkeletonGroup } from "@/shared/ui/Skeleton";
 export function MyProfileSkeleton() {
   return (
     <SkeletonGroup className="min-h-0 flex-1 px-5 py-4">
-      <div className="rounded-3xl bg-card p-5">
+      <div className="rounded-3xl border border-border bg-card p-5">
         <div className="flex items-center gap-4">
           <Skeleton className="size-16 shrink-0 rounded-full" />
           <div className="flex flex-1 flex-col gap-2">
@@ -17,7 +17,7 @@ export function MyProfileSkeleton() {
         </div>
         <Skeleton className="mt-4 h-11 rounded-xl" />
       </div>
-      <div className="mt-4 flex flex-col rounded-3xl bg-card">
+      <div className="mt-4 flex flex-col rounded-3xl border border-border bg-card">
         {[0, 1, 2].map((index) => (
           <div key={index} className="flex min-h-14 items-center px-5">
             <Skeleton className="h-5 w-36" />

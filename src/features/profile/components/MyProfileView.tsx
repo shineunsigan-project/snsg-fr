@@ -1,10 +1,12 @@
-import { ChevronRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 import type { MyProfile } from "../api/myProfile";
 import { formatBirthDate } from "../lib/birthDate";
 import { genderOptions } from "../schemas/profileSchema";
 
 import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
+import { PRIVACY_POLICY_URL, TERMS_URL } from "@/shared/lib/legalUrls";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Button } from "@/shared/ui/button";
 
@@ -22,8 +24,8 @@ type MyProfileViewProps = {
 /** 내 정보 제목줄. 불러오기 실패 화면에서도 같이 쓴다 */
 export function MyProfileHeader() {
   return (
-    <header className="border-b border-border bg-card px-5 pt-safe">
-      <h1 className="flex h-16 items-center text-2xl font-bold">내 정보</h1>
+    <header className="relative z-10 bg-card px-5 pt-safe shadow-header">
+      <h1 className="flex h-14 items-center text-lg font-bold">내 정보</h1>
     </header>
   );
 }
@@ -49,7 +51,7 @@ export function MyProfileView({
       <MyProfileHeader />
 
       <main className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-        <section className="rounded-3xl bg-card p-5">
+        <section className="rounded-3xl border border-border bg-card p-5">
           <div className="flex items-center gap-4">
             <Avatar
               // 서버 기본 이미지 경로도 그대로 보여준다 (SHI-164 결정 7)
@@ -80,7 +82,38 @@ export function MyProfileView({
           </Button>
         </section>
 
-        <section className="mt-4 overflow-hidden rounded-3xl bg-card">
+        {/* 시안 MY-01: 프로필 아래 `참여 이력 ›` 한 줄 */}
+        <Link
+          href="/my/history"
+          className="mt-4 flex min-h-14 items-center gap-2 rounded-3xl border border-border bg-card px-5 text-base font-bold"
+        >
+          <span className="flex-1">참여 이력</span>
+          <ChevronRight
+            aria-hidden
+            className="size-5 shrink-0 text-subtle-foreground"
+          />
+        </Link>
+
+        <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-card">
+          {/* 시안 MY-01: 이용약관 ↗ · 개인정보 처리방침 ↗는 새 창으로 연다 */}
+          {[
+            { label: "이용약관", href: TERMS_URL },
+            { label: "개인정보 처리방침", href: PRIVACY_POLICY_URL },
+          ].map(({ label, href }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-14 w-full items-center gap-2 border-b border-border px-5 text-base"
+            >
+              <span className="flex-1">{label}</span>
+              <ArrowUpRight
+                aria-hidden
+                className="size-5 shrink-0 text-subtle-foreground"
+              />
+            </a>
+          ))}
           {/* 정의서 UI 예시대로 로그아웃 위에. MY-01 시안에 없어 로그아웃 줄 모양을 따른다 (SHI-160 결정) */}
           {onHomeScreenGuide && (
             <button

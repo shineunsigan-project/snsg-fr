@@ -8,14 +8,11 @@ import { useEffect, useRef } from "react";
 
 import { useIsLoggedIn } from "../hooks/useIsLoggedIn";
 import { startKakaoLogin } from "@/shared/lib/kakaoLogin";
+import { PRIVACY_POLICY_URL, TERMS_URL } from "@/shared/lib/legalUrls";
 import { canGoBackInApp } from "@/shared/lib/navigation";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { SocialLoginButton } from "@/shared/ui/SocialLoginButton";
-
-// 개인정보처리방침·이용약관 문서 주소 (기능 요구사항 정의서 v0.3, DESIGN §3.2)
-const PRIVACY_POLICY_URL = "https://info.shineunsigan.com/privacy.html";
-const TERMS_URL = "https://info.shineunsigan.com/terms.html";
 
 /**
  * 로그인 화면 (Figma 247:21229, DESIGN §3.1)
