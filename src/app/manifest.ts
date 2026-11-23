@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 // 웹 앱 매니페스트 — 홈 화면에 추가했을 때의 이름·아이콘 (USER_FLOW §9.1, SHI-160 결정 2026-11-07)
-// 아이콘은 로고의 동그라미 무늬를 흰 바탕에 둔 임시 아이콘이다. TODO(D-18): 정식 아이콘은 디자이너에게 받는다
+// 아이콘은 `snsg-logo-default` 로고를 흰 바탕에 둔 것이다 (SHI-209). TODO(D-18): 디자이너의 정식 아이콘 파일을 받으면 교체한다
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "쉬는시간",
