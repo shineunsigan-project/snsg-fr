@@ -237,6 +237,21 @@ test("비로그인이면 메인 배너를 보여 주고 탭하면 서비스 소�
   ).toHaveLength(0);
 });
 
+test("메인 배너는 화면 폭 안에 들어오고 양옆 여백이 같다 (아이폰 사파리에서 오른쪽으로 넘쳤다, SHI-210)", async ({
+  page,
+}) => {
+  await mockApis(page, { loggedIn: false });
+  await page.goto("/");
+  await expect(banner(page)).toBeVisible();
+
+  const box = await banner(page).boundingBox();
+  const viewport = page.viewportSize();
+  if (!box || !viewport) throw new Error("배너 크기를 읽지 못했다");
+  // 왼쪽 여백(px-5 = 20px)과 같은 여백이 오른쪽에도 있어야 한다
+  expect(box.x).toBe(20);
+  expect(viewport.width - (box.x + box.width)).toBe(20);
+});
+
 test("로그인했지만 다가오는 일정이 없으면(응답에 data가 없으면) 로그인 버튼 없이 메인 배너를 보여 준다", async ({
   page,
 }) => {

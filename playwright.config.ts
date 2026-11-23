@@ -13,8 +13,6 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: BASE_URL,
-    // 설치된 Chrome을 쓴다 (Playwright 전용 브라우저를 따로 받지 않는다)
-    channel: "chrome",
     // 시안 기준 화면 (DESIGN: 390×844)
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -26,6 +24,14 @@ export default defineConfig({
     serviceWorkers: "block",
     trace: "retain-on-failure",
   },
+  // 같은 테스트를 크롬(Blink)과 WebKit(아이폰 사파리와 같은 엔진)으로 모두 돌린다.
+  // 아이폰은 크롬 앱도 WebKit이라, 크롬 엔진만으로는 사파리 전용 화면 문제를 못 잡는다 (SHI-210, SHI-212)
+  projects: [
+    // 설치된 Chrome을 쓴다 (Playwright 전용 브라우저를 따로 받지 않는다)
+    { name: "chrome", use: { channel: "chrome" } },
+    // Playwright 전용 WebKit이다. 처음 한 번 `pnpm exec playwright install webkit`
+    { name: "webkit", use: { browserName: "webkit" } },
+  ],
   webServer: {
     command: `pnpm exec next build && pnpm exec next start -p ${PORT}`,
     url: BASE_URL,
