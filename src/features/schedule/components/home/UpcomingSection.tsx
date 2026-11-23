@@ -13,7 +13,7 @@ import { Avatar } from "@/shared/ui/Avatar";
 import { Skeleton, SkeletonGroup } from "@/shared/ui/Skeleton";
 
 /**
- * 다가오는 내 일정 카드 (홈 화면 수정 시안). 진한 녹색 카드, 카드 전체가 일정 상세로 가는 링크다. 1건만 보여 준다(사용자 결정 2026-11-23).
+ * 다가오는 내 일정 카드 (홈 화면 수정 시안). 노랑에서 연두로 이어지는 세로 그라데이션 카드(사용자 결정 2026-11-23), 카드 전체가 일정 상세로 가는 링크다. 1건만 보여 준다(사용자 결정 2026-11-23).
  * 위: `D-n`(흰 알약) · `다가오는 내 일정` → 제목 → `약속 시간 · 예상 소요` → 구분선 → `참여자 사진(겹침) 장소명 · 확정/정원명`, 오른쪽 `›`.
  * 참여 확정·내가 만든 일정을 구분하지 않는다. 사진이 확정 인원보다 적어도 `+n`은 그리지 않는다(시안에 없다)
  */
@@ -23,7 +23,7 @@ function UpcomingCard({ schedule }: { schedule: NextSchedule }) {
   return (
     <Link
       href={`/schedules/${schedule.id}`}
-      className="flex flex-col gap-1 rounded-3xl bg-brand p-5 text-primary-foreground focus-visible:outline-3 focus-visible:outline-ring/50"
+      className="flex flex-col gap-1 rounded-3xl bg-linear-to-b from-upcoming-from to-upcoming-to p-5 text-foreground focus-visible:outline-3 focus-visible:outline-ring/50"
     >
       <div className="flex items-center gap-2">
         {dday && (
@@ -31,38 +31,35 @@ function UpcomingCard({ schedule }: { schedule: NextSchedule }) {
             {dday}
           </span>
         )}
-        <span className="truncate text-tag font-semibold text-on-brand-accent">
+        <span className="truncate text-tag font-semibold text-brand">
           다가오는 내 일정
         </span>
       </div>
       <h3 className="mt-1 truncate text-xl font-bold">{schedule.title}</h3>
-      <p className="text-sm text-on-brand-muted">
+      <p className="text-sm text-foreground/70">
         {formatUpcomingDateTime(schedule.startAt)}
         {duration && ` · ${duration}`}
       </p>
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-primary-foreground/15 pt-4 text-sm text-on-brand-muted">
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-foreground/15 pt-4 text-sm text-foreground/70">
         <div className="flex min-w-0 items-center gap-3">
           <span aria-hidden className="flex shrink-0 -space-x-2">
             {schedule.participantProfileImageUrls.map((path, index) => (
               <Avatar
                 key={index}
                 src={toApiImageUrl(path)}
-                className="ring-2 ring-brand"
+                className="ring-2 ring-upcoming-to"
               />
             ))}
           </span>
           <p className="min-w-0 truncate">
             {schedule.placeName && `${schedule.placeName} · `}
-            <span className="font-bold text-primary-foreground">
+            <span className="font-bold text-foreground">
               {schedule.confirmedCount}
             </span>
             /{schedule.capacity}명
           </p>
         </div>
-        <ChevronRight
-          aria-hidden
-          className="size-5 shrink-0 text-primary-foreground"
-        />
+        <ChevronRight aria-hidden className="size-5 shrink-0 text-foreground" />
       </div>
     </Link>
   );

@@ -189,6 +189,8 @@ test("로그인하면 다가오는 내 일정 1건을 카드 한 장으로 보�
   await expect(cards.locator("img")).toHaveCount(3);
   await expect(upcoming(page)).not.toContainText(/\d \/ \d/);
   await expect(banner(page)).toHaveCount(0);
+  // 카드 배경은 단색이 아니라 노랑에서 연두로 이어지는 그라데이션이다 (사용자 결정 2026-11-23)
+  await expect(cards).toHaveCSS("background-image", /linear-gradient/);
 
   // 인사말: 오늘 날짜와 닉네임
   await expect(
