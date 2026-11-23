@@ -7,7 +7,6 @@ import type { NextSchedule } from "../../api/homeSchedules";
 import { useNextSchedule } from "../../hooks/useHomeSchedules";
 import { formatUpcomingDateTime, getDdayLabel } from "../../lib/scheduleDate";
 import { getDurationLabel } from "../../lib/scheduleDetailView";
-import { HomeSectionError } from "./HomeSectionError";
 import { MainBanner } from "./MainBanner";
 import { toApiImageUrl } from "@/shared/lib/apiImageUrl";
 import { Avatar } from "@/shared/ui/Avatar";
@@ -80,7 +79,7 @@ function UpcomingSkeleton() {
 /**
  * 홈 맨 위 구역 (LIST-06 · LIST-06-1)
  * - 로그인하고 다가오는 내 일정이 있으면 그 1건을 카드로
- * - 비로그인이거나 다가오는 일정이 없으면 메인 배너
+ * - 비로그인이거나 다가오는 일정이 없거나 받지 못했으면 메인 배너
  * - 로그인 여부를 확인하기 전(undefined)에는 배너가 번쩍이지 않게 자리 표시만 둔다
  */
 export function UpcomingSection({
@@ -88,20 +87,13 @@ export function UpcomingSection({
 }: {
   isLoggedIn: boolean | undefined;
 }) {
-  const { data, isError, refetch } = useNextSchedule(isLoggedIn === true);
+  const { data, isError } = useNextSchedule(isLoggedIn === true);
 
   if (isLoggedIn === undefined) return <UpcomingSkeleton />;
   if (!isLoggedIn) return <MainBanner />;
-  if (data === undefined) {
-    return isError ? (
-      <section aria-label="다가오는 일정" className="flex flex-col gap-3">
-        <HomeSectionError onRetry={() => refetch()} />
-      </section>
-    ) : (
-      <UpcomingSkeleton />
-    );
-  }
-  if (data === null) return <MainBanner />;
+  // 다가오는 일정을 받지 못해도 오류 화면 대신 배너를 보여 준다. 홈이 비어 보이지 않게 한다 (사용자 결정 2026-11-23)
+  if (isError || data === null) return <MainBanner />;
+  if (data === undefined) return <UpcomingSkeleton />;
 
   return (
     <section aria-label="다가오는 일정" className="flex flex-col gap-3">
