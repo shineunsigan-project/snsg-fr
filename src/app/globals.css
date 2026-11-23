@@ -95,6 +95,8 @@
   --color-kakao: var(--kakao);
   --color-on-brand-accent: var(--on-brand-accent);
   --color-on-brand-muted: var(--on-brand-muted);
+  --color-upcoming-from: var(--upcoming-from);
+  --color-upcoming-to: var(--upcoming-to);
   --color-toast: var(--toast);
 
   /* 토스트 그림자 — 시안 컴포넌트 코드(Toast) 값 */
@@ -196,6 +198,9 @@
   /* 브랜드 녹색 배경 위 글자 — 서비스명 라벨 / 보조 문구·약관 안내 (Figma 247:21229 측정) */
   --on-brand-accent: #b1d27b;
   --on-brand-muted: #dfebc7;
+  /* 홈 다가오는 일정 카드 배경 그라데이션 (위 노랑 → 아래 연두). 레퍼런스 `IMG_6902`에서 읽은 값 (사용자 결정 2026-11-23) */
+  --upcoming-from: #f7f1a5;
+  --upcoming-to: #bbefa4;
   /* TODO(D-4): 시안 코드의 --toast-bg 실제 값을 받으면 교체한다. 지금은 짙은 글자색으로 대신한다 */
   --toast: #1c1f18;
   /* placeholder.stripe — 이미지 placeholder 사선 (다른 한 색은 brand-soft) */
