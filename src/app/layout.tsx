@@ -11,6 +11,7 @@ import {
   socialMetadata,
 } from "@/shared/lib/seo";
 
+import { GoogleAnalytics } from "./GoogleAnalytics";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           className="pointer-events-none fixed inset-y-0 left-1/2 -z-10 w-full max-w-md -translate-x-1/2 shadow-app-frame"
         />
         <Providers>{children}</Providers>
+        <GoogleAnalytics />
       </body>
     </html>
   );
