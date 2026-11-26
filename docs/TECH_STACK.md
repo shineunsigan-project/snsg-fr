@@ -176,6 +176,16 @@ shadcn 기반 컴포넌트는 코드를 레포로 복사한 뒤 DESIGN.md에 맞
 - 다크 모드는 정의하지 않는다(DESIGN §6 미확인).
 - 폰트는 **Pretendard 1.3.9 가변 폰트**를 `public/fonts/`에서 직접 서빙한다(라이선스 `OFL.txt` 포함). 파일이 약 2MB라, 첫 로딩이 문제가 되면 subset 방식으로 바꾸는 것을 검토한다.
 
+### 3.14 SEO · 공유 미리보기 · 분석 (SHI-220)
+- 문구·대표 주소·공유 이미지·색인 금지 표시·구조화 데이터는 `src/shared/lib/seo.ts` 한 곳에 둔다. 문구는 PM이 준 텍스트 그대로다.
+- 홈·일정 목록은 `page.tsx`의 `metadata`, 일정 상세는 `generateMetadata`(서버에서 일정·활동 목록 조회, 짧게 서버 메모리 보관 `shared/lib/serverCache.ts`)로 채운다. 화면 컴포넌트는 데이터를 화면이 뜬 뒤에 받으므로 검색엔진이 읽을 값은 서버 쪽에서 만든다.
+- 운영 구분은 Vercel의 `VERCEL_ENV === "production"`(`IS_PRODUCTION_SITE`)이다. 운영이 아니면 `robots.txt`는 전체 차단, 화면에는 noindex가 붙는다. 다른 곳으로 배포를 옮기면 이 값을 바꾼다.
+- 로그인·가입·개설·내 정보 같은 비공개 화면은 robots.txt로 막지 않고 각 `page.tsx`에서 `NO_INDEX_METADATA`로 noindex를 알린다(robots.txt로 막으면 검색엔진이 noindex를 읽지 못함). 취소·완료·없는 일정 상세도 noindex.
+- 사이트맵(`src/app/sitemap.ts`)은 모집 중 목록 API로 일정 주소를 모은다. 빌드 때 만들지 않고(빌드 중 API가 안 되면 배포가 실패하므로) 요청 때 만들며, 성공한 결과만 서버 메모리에 1시간 보관한다. 목록 API가 실패하면 일정 주소가 빠진 사이트맵 대신 오류(500)로 응답한다.
+- 파비콘은 `src/app/favicon.ico`(16·32·48px, 로고 여백을 잘라 만듦)로 두면 Next가 `<link rel="icon">`을 만든다. 일정 상세의 canonical·og:url은 주소창 값이 아니라 서버가 준 일정 id로 정한다.
+- GA4는 `src/app/GoogleAnalytics.tsx`(`next/script`)로 운영에서만 불러온다. 측정 ID는 환경변수 `NEXT_PUBLIC_GA_ID`(Vercel Production에 설정).
+- 공유 이미지는 `public/images/og/`(1200×630 JPG): 보드게임이 대표, 방탈출 일정만 방탈출 이미지(활동 `code`로 선택).
+
 ---
 
 ## 4. 확인이 필요한 사항
