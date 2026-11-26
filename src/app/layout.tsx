@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import {
   IS_PRODUCTION_SITE,
+  NAVER_SITE_VERIFICATION,
   OG_IMAGES,
   SEARCH_DESCRIPTION,
   SITE_INTRO,
@@ -28,6 +29,10 @@ export const metadata: Metadata = {
   }),
   // 미리보기·개발 배포는 robots.txt와 함께 화면에서도 색인을 막는다
   robots: IS_PRODUCTION_SITE ? undefined : { index: false, follow: false },
+  // 네이버 서치어드바이저가 홈(`/`)에서 이 태그를 찾아 사이트 소유를 확인한다
+  verification: {
+    other: { "naver-site-verification": NAVER_SITE_VERIFICATION },
+  },
   // 아이폰 홈 화면에 추가했을 때의 이름·아이콘 (USER_FLOW §9.1). 매니페스트는 app/manifest.ts
   appleWebApp: { title: "쉬는시간" },
   icons: { apple: "/icons/apple-touch-icon.png" },

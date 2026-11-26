@@ -6,6 +6,9 @@ import type { Metadata } from "next";
 export const SITE_URL = "https://shineunsigan.com";
 export const SITE_NAME = "쉬는시간";
 export const INSTAGRAM_URL = "https://www.instagram.com/snsg_official";
+/** 네이버 서치어드바이저 사이트 소유 확인용 값. 브라우저에 보이는 공개 값이다 (사용자 제공 2026-11-26) */
+export const NAVER_SITE_VERIFICATION =
+  "5dc836fd424bcd3f9c24ebb6464d0799b19461b2";
 
 /**
  * 검색엔진에 노출하는 운영 배포인지. 미리보기·개발 배포는 검색에 잡히지 않게 막는다 (사용자 결정 2026-11-24).
