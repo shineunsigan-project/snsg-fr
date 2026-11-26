@@ -97,7 +97,8 @@ export function ScheduleListScreen() {
         {/* 모든 탭에서 흰 헤더와 필터 줄 높이를 유지한다 (SHI-189) */}
         <header className="relative z-10 bg-card pt-safe shadow-header">
           <div className="flex items-center justify-between px-5 pt-4">
-            <AppHeader />
+            {/* 이 화면의 h1은 서버 컴포넌트(`app/schedules/page.tsx`)가 첫 HTML부터 내려준다 */}
+            <AppHeader logoIsHeading={false} />
             <AuthHeaderButton />
           </div>
           <div className="px-5 pt-3">

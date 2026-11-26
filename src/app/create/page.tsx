@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 
 import { CreateScheduleFlow } from "@/features/schedule/components/create/CreateScheduleFlow";
+import { NO_INDEX_METADATA } from "@/shared/lib/seo";
+
+export const metadata = NO_INDEX_METADATA;
 
 export default function CreateSchedulePage() {
   return (

@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 
 import { HomeScreenGuideScreen } from "@/features/onboarding/components/HomeScreenGuideScreen";
+import { NO_INDEX_METADATA } from "@/shared/lib/seo";
+
+export const metadata = NO_INDEX_METADATA;
 
 export default function HomeScreenGuidePage() {
   return (

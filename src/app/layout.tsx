@@ -1,10 +1,32 @@
 import type { Metadata, Viewport } from "next";
 
+import {
+  IS_PRODUCTION_SITE,
+  OG_IMAGES,
+  SEARCH_DESCRIPTION,
+  SITE_INTRO,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SITE_URL,
+  socialMetadata,
+} from "@/shared/lib/seo";
+
 import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "쉬는시간",
+  // 상대 경로로 적은 공유 이미지·canonical 주소를 대표 주소 기준 절대 주소로 바꾼다
+  metadataBase: new URL(SITE_URL),
+  title: SITE_NAME,
+  // 하위 화면이 따로 정하지 않으면(일정 상세 조회가 일시적으로 실패한 경우 등) 홈과 같은 설명·공유 미리보기를 쓴다
+  description: SEARCH_DESCRIPTION,
+  ...socialMetadata({
+    title: SITE_TAGLINE,
+    description: SITE_INTRO,
+    image: OG_IMAGES.boardGame,
+  }),
+  // 미리보기·개발 배포는 robots.txt와 함께 화면에서도 색인을 막는다
+  robots: IS_PRODUCTION_SITE ? undefined : { index: false, follow: false },
   // 아이폰 홈 화면에 추가했을 때의 이름·아이콘 (USER_FLOW §9.1). 매니페스트는 app/manifest.ts
   appleWebApp: { title: "쉬는시간" },
   icons: { apple: "/icons/apple-touch-icon.png" },

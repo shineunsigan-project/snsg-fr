@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 
 import { AuthCallback } from "@/features/auth/components/AuthCallback";
+import { NO_INDEX_METADATA } from "@/shared/lib/seo";
 import { PageStatus } from "@/shared/ui/PageStatus";
+
+export const metadata = NO_INDEX_METADATA;
 
 // 카카오 인증 후 서버가 돌려보내는 주소 (백엔드 FRONTEND_REDIRECT_URI)
 export default function AuthCallbackPage() {

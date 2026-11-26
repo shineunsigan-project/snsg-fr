@@ -33,7 +33,7 @@ const SCROLLBAR_HIDE_DELAY_MS = 800;
  * 홈 `/` (USER_FLOW §5.1, 화면 기능 명세서 LIST-06·06-1). 앱을 열면 로그인 여부와 상관없이 처음 보는 화면이다
  * - 홈 화면 추가 안내: `나중에` 7일 뒤 홈에 처음 들어올 때 한 번 (USER_FLOW §9.1, 결정 Q4)
  */
-export function HomeScreen() {
+export function HomeScreen({ heading }: { heading: string }) {
   const router = useRouter();
   const isLoggedIn = useIsLoggedIn();
 
@@ -74,7 +74,8 @@ export function HomeScreen() {
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-card">
       <header className="relative z-10 bg-card pt-safe shadow-header">
         <div className="flex items-center justify-between px-5 py-2">
-          <AppHeader />
+          {/* 홈의 대표 제목은 화면에 보이지 않고 검색엔진이 읽는다 (SHI-220). 문구는 서버(page.tsx)에서 받는다 */}
+          <AppHeader hiddenHeading={heading} />
           <AuthHeaderButton />
         </div>
       </header>
